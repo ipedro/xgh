@@ -1,0 +1,30 @@
+# Windsurf Rules — xgh (eXtreme Go Horse)
+
+Full agent instructions: see `AGENTS.md` at the repository root.
+
+## Project type
+
+Bash/YAML/Markdown MCS tech pack. No compiled artifacts. No npm/cargo/maven build step.
+
+## Core rules
+
+- Read `AGENTS.md` before starting any task
+- Test-first: write a failing `bash` test in `tests/` before implementing
+- All bash: `#!/usr/bin/env bash` and `set -euo pipefail`
+- Track tasks with `- [x]` checkboxes in `docs/plans/`
+- No secrets in source — environment variables only
+
+## Test commands
+
+```bash
+bash tests/test-install.sh
+bash tests/test-config.sh
+bash tests/test-techpack.sh
+bash tests/test-uninstall.sh
+```
+
+## Implementation roadmap
+
+Plan 1 ✅ → Plan 2 ⏳ → Plan 3 ⏳ → Plan 4 ⏳ → Plan 5 ⏳ → Plan 6 ⏳
+
+See `docs/plans/` for detailed task checklists.
