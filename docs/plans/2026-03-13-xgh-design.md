@@ -754,7 +754,7 @@ New developer joins → runs setup → first session:
 
 These skills integrate with external tools via MCP to create end-to-end development workflows. They combine the Superpowers methodology (systematic debugging, brainstorming, writing plans) with xgh's memory layer and team conventions.
 
-**Prerequisite:** Each skill auto-detects which MCP servers are available and adapts. No hard dependencies — skills degrade gracefully if an MCP isn't configured.
+**Prerequisite:** Each skill auto-detects which MCP servers are available. On first use, if a required MCP is missing, the `xgh:mcp-setup` skill triggers an **interactive setup helper** — guiding the user through hassle-free configuration without leaving the terminal. No hard dependencies — skills degrade gracefully if the user chooses to skip setup.
 
 ```
 ┌─ MCP Integrations (user-configured, all optional) ──────┐
@@ -769,7 +769,9 @@ These skills integrate with external tools via MCP to create end-to-end developm
 │                  └──────────────┘                       │
 │                                                          │
 │  xgh auto-detects which MCPs are available and adapts.   │
-│  Skills work with ANY combination. None are required.    │
+│  Missing MCP? → Interactive setup helper on first use.   │
+│  User can skip → skill degrades gracefully.              │
+│  /xgh-setup → full audit of all integrations.            │
 │                                                          │
 └──────────────────────────────────────────────────────────┘
 ```
