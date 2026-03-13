@@ -242,6 +242,61 @@ CLAUDEEOF
   fi
 fi
 
+# ── 11. Optional Plugins ──────────────────────────────────
+XGH_INSTALL_PLUGINS="${XGH_INSTALL_PLUGINS:-ask}"
+
+install_plugin() {
+  local marketplace="$1" plugin="$2" label="$3"
+  if command -v claude &>/dev/null; then
+    info "Installing ${label}..."
+    claude plugin marketplace add "$marketplace" 2>/dev/null || true
+    claude plugin install "${plugin}" 2>/dev/null || {
+      warn "Could not install ${label} — you can install it manually later"
+      return 1
+    }
+    info "${label} installed"
+  else
+    warn "Claude CLI not found — install ${label} manually:"
+    echo "    claude plugin marketplace add ${marketplace}"
+    echo "    claude plugin install ${plugin}"
+  fi
+}
+
+if [ "$XGH_DRY_RUN" -eq 0 ] && [ "$XGH_INSTALL_PLUGINS" != "skip" ]; then
+  echo ""
+  info "Optional plugins enhance xgh with session optimization and development superpowers."
+  echo ""
+
+  # ── context-mode ────────────────────────────────────────
+  INSTALL_CONTEXT_MODE="n"
+  if [ "$XGH_INSTALL_PLUGINS" = "all" ]; then
+    INSTALL_CONTEXT_MODE="y"
+  elif [ "$XGH_INSTALL_PLUGINS" = "ask" ]; then
+    echo -e "  ${GREEN}context-mode${NC} — Session runtime optimizer (98% context savings, sandboxed execution,"
+    echo "                  compaction recovery, FTS5 search). By mksglu. https://github.com/mksglu/context-mode"
+    echo ""
+    read -r -p "  Install context-mode? [y/N] " INSTALL_CONTEXT_MODE
+  fi
+  if [[ "${INSTALL_CONTEXT_MODE,,}" =~ ^y ]]; then
+    install_plugin "mksglu/context-mode" "context-mode@context-mode" "context-mode"
+  fi
+
+  # ── superpowers ─────────────────────────────────────────
+  INSTALL_SUPERPOWERS="n"
+  if [ "$XGH_INSTALL_PLUGINS" = "all" ]; then
+    INSTALL_SUPERPOWERS="y"
+  elif [ "$XGH_INSTALL_PLUGINS" = "ask" ]; then
+    echo ""
+    echo -e "  ${GREEN}superpowers${NC} — Development methodology (TDD, brainstorming, plan writing/execution,"
+    echo "                 subagent-driven development, code review). By obra. https://github.com/obra/superpowers"
+    echo ""
+    read -r -p "  Install superpowers? [y/N] " INSTALL_SUPERPOWERS
+  fi
+  if [[ "${INSTALL_SUPERPOWERS,,}" =~ ^y ]]; then
+    install_plugin "claude-plugins-official/superpowers" "superpowers@superpowers" "superpowers"
+  fi
+fi
+
 # ── Done ─────────────────────────────────────────────────
 echo ""
 echo "🐴 xgh installed successfully!"
@@ -255,4 +310,6 @@ echo ""
 echo "  Start Claude Code — your memory layer is active."
 echo ""
 echo "  Customize: XGH_TEAM=my-team XGH_PRESET=openai ./install.sh"
+echo "  Skip plugins: XGH_INSTALL_PLUGINS=skip ./install.sh"
+echo "  Install all:  XGH_INSTALL_PLUGINS=all ./install.sh"
 echo ""
