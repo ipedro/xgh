@@ -61,8 +61,17 @@ cat > "$TMP/no_fm.md" <<'EOF'
 Just some text without frontmatter
 EOF
 
-ct_frontmatter_has "$TMP/with_fm.md" && assert_eq "has: with frontmatter" "0" "0" || assert_eq "has: with frontmatter" "0" "1"
-ct_frontmatter_has "$TMP/no_fm.md" && assert_eq "has: without frontmatter" "1" "0" || assert_eq "has: without frontmatter" "0" "0"
+if ct_frontmatter_has "$TMP/with_fm.md"; then
+  PASS=$((PASS+1))
+else
+  FAIL=$((FAIL+1)); echo "FAIL: has: should detect frontmatter"
+fi
+
+if ct_frontmatter_has "$TMP/no_fm.md"; then
+  FAIL=$((FAIL+1)); echo "FAIL: has: should reject file without frontmatter"
+else
+  PASS=$((PASS+1))
+fi
 
 # --- ct_frontmatter_get ---
 assert_eq "get title" "Test" "$(ct_frontmatter_get "$TMP/with_fm.md" "title")"
@@ -114,6 +123,19 @@ title: "Quoted Title"
 EOF
 
 assert_eq "get quoted title" "Quoted Title" "$(ct_frontmatter_get "$TMP/quoted.md" "title")"
+
+# --- get on file without frontmatter ---
+assert_eq "get on no-fm file" "" "$(ct_frontmatter_get "$TMP/no_fm.md" "title" || true)"
+
+# --- increment_int on missing key (should start at 0 → 1) ---
+cat > "$TMP/missing_key.md" <<'EOF'
+---
+title: Missing Key Test
+---
+EOF
+
+ct_frontmatter_increment_int "$TMP/missing_key.md" "accessCount"
+assert_eq "increment missing key" "1" "$(ct_frontmatter_get "$TMP/missing_key.md" "accessCount")"
 
 echo "Frontmatter tests: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1
@@ -189,11 +211,20 @@ assert_eq "PROMOTE_VALIDATED" "65" "$PROMOTE_VALIDATED"
 assert_eq "PROMOTE_CORE" "85" "$PROMOTE_CORE"
 assert_eq "DEMOTE_CORE_THRESHOLD" "25" "$DEMOTE_CORE_THRESHOLD"
 assert_eq "DEMOTE_VALIDATED_THRESHOLD" "30" "$DEMOTE_VALIDATED_THRESHOLD"
+assert_eq "IMPORTANCE_SEARCH_HIT" "3" "$IMPORTANCE_SEARCH_HIT"
+assert_eq "IMPORTANCE_UPDATE" "5" "$IMPORTANCE_UPDATE"
+assert_eq "IMPORTANCE_MANUAL_CURATE" "10" "$IMPORTANCE_MANUAL_CURATE"
 
 # --- ct_score_recency ---
 # 0 days ago → recency 1.0
 RECENCY=$(ct_score_recency "$(date -u +%Y-%m-%dT%H:%M:%SZ)")
 assert_eq "recency today" "1.0000" "$RECENCY"
+
+# 21 days ago → recency ~0.5 (half-life)
+PAST_DATE=$(python3 -c "from datetime import datetime, timedelta; print((datetime.utcnow() - timedelta(days=21)).strftime('%Y-%m-%dT%H:%M:%SZ'))")
+RECENCY_21=$(ct_score_recency "$PAST_DATE")
+# Accept 0.4900-0.5100 range (half-life approximation)
+python3 -c "assert 0.49 <= float('$RECENCY_21') <= 0.51, f'Expected ~0.5, got $RECENCY_21'" && PASS=$((PASS+1)) || { FAIL=$((FAIL+1)); echo "FAIL: recency at half-life — got $RECENCY_21"; }
 
 # --- ct_score_maturity (hysteresis) ---
 # draft → validated at 65
@@ -243,6 +274,29 @@ ct_frontmatter_set "$TMP/entry.md" "importance" "98"
 ct_score_apply_event "$TMP/entry.md" "manual"
 assert_eq "importance capped" "100" "$(ct_frontmatter_get "$TMP/entry.md" "importance")"
 
+# --- exact boundary: core stays at 25 (threshold is < 25, not <= 25) ---
+assert_eq "core stays at exactly 25" "core" "$(ct_score_maturity 25 core)"
+
+# --- ct_score_recalculate ---
+cat > "$TMP/recalc.md" <<'EOF'
+---
+title: Recalculate Test
+importance: 70
+recency: 0.5000
+maturity: draft
+createdAt: 2026-03-13T00:00:00Z
+updatedAt: 2026-03-13T00:00:00Z
+---
+Body
+EOF
+
+ct_score_recalculate "$TMP/recalc.md"
+# importance 70 >= 65, so maturity should promote to validated
+assert_eq "recalculate promotes maturity" "validated" "$(ct_frontmatter_get "$TMP/recalc.md" "maturity")"
+# recency should be recalculated from updatedAt (not left at 0.5)
+RECALC_RECENCY=$(ct_frontmatter_get "$TMP/recalc.md" "recency")
+[ "$RECALC_RECENCY" != "0.5000" ] && PASS=$((PASS+1)) || { FAIL=$((FAIL+1)); echo "FAIL: recalculate should update recency"; }
+
 echo "Scoring tests: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1
 ```
@@ -291,17 +345,18 @@ git commit -m "feat: rewrite ct-scoring.sh with hysteresis and named constants"
 - [ ] **Step 1: Write the test file**
 
 Tests must verify:
-- `ct_manifest_init` creates valid JSON with `entries: []`
-- `ct_manifest_add` upserts entry by reading frontmatter from file
+- `ct_manifest_init` creates valid JSON with `version`, `team`, `created`, `lastRebuilt`, and `entries: []`
+- `ct_manifest_init` on existing manifest validates without overwriting
+- `ct_manifest_add` upserts entry with all 6 fields: `path`, `title`, `maturity`, `importance`, `tags`, `updatedAt`
 - `ct_manifest_remove` deletes entry by path
-- `ct_manifest_rebuild` scans filesystem and rebuilds
+- `ct_manifest_rebuild` scans filesystem and rebuilds (verify entry count matches file count)
 - `ct_manifest_list` outputs entry paths
 - `ct_manifest_update_indexes` generates `_index.md` per domain directory
 - Schema is flat `entries[]` (no `domains[]`)
 
-Test pattern: create a temp context tree with 3-4 entries across 2 domains, run each function, verify JSON output with `python3 -c "import json; ..."`.
+Test pattern: create a temp context tree with 3-4 entries across 2 domains, run each function, verify JSON output with `python3 -c "import json; ..."`. For `ct_manifest_add`, verify all 6 entry fields are populated correctly.
 
-~14 assertions following the same `assert_eq` pattern.
+~16 assertions following the same `assert_eq` pattern.
 
 - [ ] **Step 2: Run test — verify it fails**
 
@@ -312,7 +367,7 @@ bash tests/test-ct-manifest.sh
 - [ ] **Step 3: Write ct-manifest.sh**
 
 Sourceable library. Python heredocs for JSON manipulation (same pattern as Copilot). Functions:
-- `ct_manifest_init <root>` — creates `_manifest.json` with `{"version":"1.0.0","team":"${XGH_TEAM:-my-team}","created":"...","entries":[]}`
+- `ct_manifest_init <root>` — creates `_manifest.json` with `{"version":"1.0.0","team":"${XGH_TEAM:-my-team}","created":"...","lastRebuilt":"...","entries":[]}`
 - `ct_manifest_add <root> <rel-path>` — reads frontmatter from file, upserts into entries array
 - `ct_manifest_remove <root> <rel-path>` — filters out entry by path
 - `ct_manifest_rebuild <root>` — `find` all `.md` files, parse frontmatter, rebuild entries
@@ -346,14 +401,16 @@ git commit -m "feat: rewrite ct-manifest.sh with flat entries schema"
 
 Tests must verify:
 - `ct_archive_run` archives draft entries with importance < 35
+- Boundary: draft with importance = 35 is NOT archived, importance = 34 IS archived
 - Creates `.full.md` and `.stub.md` in `_archived/`
-- Does NOT archive validated/core entries
-- Does NOT archive drafts with importance >= 35
+- `.stub.md` contains metadata pointer (verify it references the full file path)
+- `.full.md` is byte-identical to the original file
+- Does NOT archive validated/core entries regardless of importance
 - `ct_archive_restore` copies `.full.md` back and updates manifest
-- Restored file has correct frontmatter
+- Restored file has correct frontmatter (verify title and importance preserved)
 - Archived count reported correctly
 
-~15 assertions.
+~17 assertions.
 
 - [ ] **Step 2: Run test — verify it fails**
 
@@ -394,11 +451,12 @@ Tests must verify:
 - `ct_search_run` returns results for matching query
 - Results include `bm25_score`, `final_score`, `path`, `title`, `maturity`
 - Results sorted by `final_score` descending
-- Maturity boost applied (core entries score higher)
+- Maturity boost: core entry's `final_score` is exactly 1.15× what it would be without the boost (create two identical entries — one core, one draft — and verify the core entry's score is 1.15× the draft's)
+- Results with `bm25_score < 0.01` are excluded (create an entry with no matching terms, verify it's absent from results)
 - `ct_search_with_cipher` merges Cipher results (mock JSON input)
 - Empty query returns empty results
 
-~8 assertions. Create a temp context tree with 3 entries, search for a term that appears in one.
+~10 assertions. Create a temp context tree with 4 entries (including one core, one with no matching terms), search for a term that appears in two.
 
 - [ ] **Step 2: Run test — verify it fails**
 
@@ -440,12 +498,16 @@ git commit -m "feat: rewrite ct-search.sh with dual BM25+Cipher mode"
 - [ ] **Step 1: Write the test file**
 
 Tests must verify:
-- `ct_sync_slugify` converts strings to kebab-case
-- `ct_sync_curate` creates entry at correct path with correct frontmatter
+- `ct_sync_slugify` converts strings to kebab-case (test: uppercase, special chars, consecutive hyphens)
+- `ct_sync_curate` with required params creates entry at `<root>/<domain>/<topic>/<slugified-title>.md`
+- `ct_sync_curate` with optional `tags`, `keywords` writes them to frontmatter
+- `ct_sync_curate` with `source` and `from_agent` stores them in frontmatter metadata
+- `ct_sync_curate` calls `ct_manifest_add` (verify entry appears in manifest)
 - `ct_sync_query` delegates to search and returns results
-- `ct_sync_refresh` rebuilds manifest and indexes
+- `ct_sync_query` with `cipher_json` uses merged scoring mode
+- `ct_sync_refresh` rebuilds manifest and updates indexes (verify `_index.md` created)
 
-~11 assertions.
+~14 assertions.
 
 - [ ] **Step 2: Run test — verify it fails**
 
@@ -487,18 +549,25 @@ git commit -m "feat: rewrite ct-sync.sh as sourceable orchestration library"
 
 - [ ] **Step 1: Write the test file (test-ct-crud.sh)**
 
-Tests must verify the CLI interface end-to-end:
+Tests must verify all 12 CLI subcommands end-to-end:
 - `context-tree.sh init` creates directory + manifest
 - `context-tree.sh create backend/auth/jwt.md "JWT Patterns" "content"` creates file with frontmatter
-- `context-tree.sh read backend/auth/jwt.md` outputs content, bumps accessCount
+- `context-tree.sh read backend/auth/jwt.md` outputs content, bumps accessCount + importance
 - `context-tree.sh update backend/auth/jwt.md "new content"` appends update section
-- `context-tree.sh delete backend/auth/jwt.md` removes file + cleans dirs
-- `context-tree.sh list` shows entries
+- `context-tree.sh delete backend/auth/jwt.md` removes file + cleans dirs + checks `_archived/` counterparts
+- `context-tree.sh list` shows entries with maturity and importance
 - `context-tree.sh search "jwt"` returns matching results
 - `context-tree.sh score backend/auth/jwt.md search-hit` bumps importance
-- Delete also checks `_archived/` counterparts
+- `context-tree.sh archive` archives low-importance drafts
+- `context-tree.sh restore backend/auth/old.full.md` restores from archive
+- `context-tree.sh sync curate <args>` creates entry via sync layer
+- `context-tree.sh sync query "jwt"` returns search results
+- `context-tree.sh sync refresh` rebuilds manifest + indexes
+- `context-tree.sh manifest init` initializes manifest
+- `context-tree.sh manifest rebuild` rebuilds from filesystem
+- `context-tree.sh manifest update-indexes` generates `_index.md` files
 
-~25 assertions using `XGH_CONTEXT_TREE="$TMP"` to isolate.
+~32 assertions using `XGH_CONTEXT_TREE="$TMP"` to isolate.
 
 - [ ] **Step 2: Run test — verify it fails**
 
@@ -536,7 +605,7 @@ git commit -m "feat: rewrite context-tree.sh as CLI dispatcher over library func
 - Create: `hooks/prompt-submit.sh` (overwrite existing)
 - Modify: `tests/test-hooks.sh`
 
-**Depends on:** None (hooks are standalone Python-in-bash)
+**Depends on:** None (hooks are standalone Python-in-bash). Note: session-start test setup requires creating mock `.md` files with frontmatter in a temp `XGH_CONTEXT_TREE` directory.
 
 - [ ] **Step 1: Write the updated test file**
 
@@ -565,7 +634,7 @@ Reference Copilot's `hooks/session-start.sh` for the Python structure and JSON o
 
 - [ ] **Step 4: Write prompt-submit.sh**
 
-Copy from Copilot branch: `git show origin/copilot/update-readme-positioning:hooks/prompt-submit.sh`. This is already the correct implementation (intent detection + structured JSON).
+Write per spec: Python heredoc with regex intent detection (`implement|refactor|fix|build|code|write|change|feature|bug` → `code-change`, everything else → `general`). Output structured JSON with `result`, `promptIntent`, `requiredActions`, `toolHints`. Reference Copilot's `hooks/prompt-submit.sh` as a guide for the Python structure, but write fresh from the spec to avoid depending on the remote branch.
 
 - [ ] **Step 5: Run test — verify it passes**
 
@@ -588,6 +657,7 @@ git commit -m "feat: rewrite hooks with structured JSON output and intent detect
 
 **Files:**
 - Modify: `install.sh` — change `"domains": []` to `"entries": []`, rename `XGH_CONTEXT_PATH` to `XGH_CONTEXT_TREE`
+- Modify: `uninstall.sh` — update any `context-tree.sh` invocations to new API if needed
 - Modify: `scripts/configure.sh` — produce flat `entries[]` manifest
 - Modify: `commands/query.md` — rename env var
 - Modify: `commands/status.md` — rename env var
@@ -598,26 +668,30 @@ In `install.sh`:
 1. Line 6: Change `XGH_CONTEXT_PATH` to `XGH_CONTEXT_TREE` (and all references throughout)
 2. Line 209: Change `"domains": []` to `"entries": []`
 
-- [ ] **Step 2: Update configure.sh**
+- [ ] **Step 2: Update uninstall.sh**
+
+Review `uninstall.sh` for any references to `context-tree.sh` API or `XGH_CONTEXT_PATH`. Update env var references to `XGH_CONTEXT_TREE` if present. Verify cleanup paths are still correct.
+
+- [ ] **Step 3: Update configure.sh**
 
 Rewrite `scripts/configure.sh` to initialize manifest with flat `entries[]` schema. If existing manifest has `domains[]`, migrate entries to flat list.
 
-- [ ] **Step 3: Update commands/query.md and commands/status.md**
+- [ ] **Step 4: Update commands/query.md and commands/status.md**
 
 Find-and-replace `XGH_CONTEXT_TREE_PATH` → `XGH_CONTEXT_TREE` in both files.
 
-- [ ] **Step 4: Run install + techpack + uninstall tests**
+- [ ] **Step 5: Run install + techpack + uninstall tests**
 
 ```bash
 bash tests/test-install.sh && bash tests/test-techpack.sh && bash tests/test-uninstall.sh
 ```
 Expected: All pass.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add install.sh scripts/configure.sh commands/query.md commands/status.md
-git commit -m "chore: update install/commands for flat manifest and XGH_CONTEXT_TREE env var"
+git add install.sh uninstall.sh scripts/configure.sh commands/query.md commands/status.md
+git commit -m "chore: update install/uninstall/commands for flat manifest and XGH_CONTEXT_TREE env var"
 ```
 
 ---
@@ -632,20 +706,23 @@ git commit -m "chore: update install/commands for flat manifest and XGH_CONTEXT_
 - [ ] **Step 1: Write integration test**
 
 End-to-end test that exercises the full lifecycle:
-1. `context-tree.sh init` — verify manifest created
-2. Create 4 entries across 2 domains
-3. Verify manifest has 4 entries (flat schema)
+1. `context-tree.sh init` — verify manifest created with flat `entries[]` schema
+2. Create 4 entries across 2 domains via CLI
+3. Verify manifest has 4 entries (flat schema, verify `lastRebuilt` field exists)
 4. Verify `_index.md` generated per domain
 5. Read entry — verify accessCount incremented, importance bumped
 6. Update entry — verify updateCount incremented, importance bumped
 7. Score entry — verify maturity promotion (draft→validated at 65+)
 8. Search — verify results returned and scored
-9. Archive — verify low-importance drafts archived, stubs created
-10. Restore — verify file restored from archive
-11. Delete — verify file removed, archived counterparts cleaned
-12. List — verify remaining entries correct
+9. Sync curate — create entry via sync layer, verify it appears in manifest
+10. Sync query — search via sync layer, verify results
+11. Sync refresh — rebuild manifest + verify indexes updated
+12. Archive — verify low-importance drafts archived, stubs created
+13. Restore — verify file restored from archive
+14. Delete — verify file removed, archived counterparts cleaned
+15. List — verify remaining entries correct
 
-~25 assertions.
+~30 assertions.
 
 - [ ] **Step 2: Run integration test**
 
