@@ -66,7 +66,7 @@ xgh/
 - Create: `commands/.gitkeep`
 - Create: `agents/.gitkeep`
 
-- [ ] **Step 1: Write test for preset validation**
+- [x] **Step 1: Write test for preset validation**
 
 ```bash
 # tests/test-config.sh
@@ -128,12 +128,12 @@ echo "Results: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/test-config.sh`
 Expected: FAIL — no preset files exist yet
 
-- [ ] **Step 3: Create preset files**
+- [x] **Step 3: Create preset files**
 
 ```yaml
 # config/presets/local.yaml
@@ -215,19 +215,19 @@ vector_store:
   api_key: ${QDRANT_API_KEY}
 ```
 
-- [ ] **Step 4: Create placeholder directories**
+- [x] **Step 4: Create placeholder directories**
 
 ```bash
 mkdir -p hooks skills commands agents
 touch hooks/.gitkeep skills/.gitkeep commands/.gitkeep agents/.gitkeep
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `bash tests/test-config.sh`
 Expected: All tests PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add config/ hooks/ skills/ commands/ agents/ tests/test-config.sh
@@ -242,7 +242,7 @@ git commit -m "feat: add BYOP provider presets and project scaffold"
 - Create: `config/settings.json`
 - Create: `config/hooks-settings.json`
 
-- [ ] **Step 1: Write test for settings validation**
+- [x] **Step 1: Write test for settings validation**
 
 Append to `tests/test-config.sh`:
 
@@ -266,12 +266,12 @@ assert_contains "config/hooks-settings.json" "xgh-session-start.sh"
 assert_contains "config/hooks-settings.json" "xgh-prompt-submit.sh"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/test-config.sh`
 Expected: FAIL — settings files don't exist yet
 
-- [ ] **Step 3: Create settings files**
+- [x] **Step 3: Create settings files**
 
 ```json
 // config/settings.json
@@ -310,12 +310,12 @@ Expected: FAIL — settings files don't exist yet
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bash tests/test-config.sh`
 Expected: All tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add config/settings.json config/hooks-settings.json tests/test-config.sh
@@ -329,7 +329,7 @@ git commit -m "feat: add Claude Code settings and hook event registration"
 **Files:**
 - Create: `templates/instructions.md`
 
-- [ ] **Step 1: Write test**
+- [x] **Step 1: Write test**
 
 Append to `tests/test-config.sh`:
 
@@ -343,12 +343,12 @@ assert_contains "templates/instructions.md" "__TEAM_NAME__"
 assert_contains "templates/instructions.md" "__CONTEXT_TREE_PATH__"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/test-config.sh`
 Expected: FAIL
 
-- [ ] **Step 3: Create template**
+- [x] **Step 3: Create template**
 
 ```markdown
 <!-- templates/instructions.md -->
@@ -392,12 +392,12 @@ Human-readable knowledge in `__CONTEXT_TREE_PATH__/`:
 - Core conventions auto-loaded on session start
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bash tests/test-config.sh`
 Expected: All tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add templates/instructions.md tests/test-config.sh
@@ -414,7 +414,7 @@ git commit -m "feat: add CLAUDE.local.md template with xgh instructions"
 - Create: `install.sh`
 - Create: `tests/test-install.sh`
 
-- [ ] **Step 1: Write install test (dry-run mode)**
+- [x] **Step 1: Write install test (dry-run mode)**
 
 ```bash
 # tests/test-install.sh
@@ -504,12 +504,12 @@ echo "Install test: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/test-install.sh`
 Expected: FAIL — install.sh doesn't exist
 
-- [ ] **Step 3: Create install.sh**
+- [x] **Step 3: Create install.sh**
 
 ```bash
 # install.sh
@@ -773,18 +773,18 @@ echo "  Customize: XGH_TEAM=my-team XGH_PRESET=openai ./install.sh"
 echo ""
 ```
 
-- [ ] **Step 4: Make install.sh executable**
+- [x] **Step 4: Make install.sh executable**
 
 ```bash
 chmod +x install.sh
 ```
 
-- [ ] **Step 5: Run install test to verify it passes**
+- [x] **Step 5: Run install test to verify it passes**
 
 Run: `bash tests/test-install.sh`
 Expected: All tests PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add install.sh tests/test-install.sh
@@ -798,7 +798,7 @@ git commit -m "feat: add one-liner install script with BYOP preset support"
 **Files:**
 - Create: `uninstall.sh`
 
-- [ ] **Step 1: Write test for uninstall**
+- [x] **Step 1: Write test for uninstall**
 
 ```bash
 # tests/test-uninstall.sh
@@ -847,12 +847,12 @@ echo "Uninstall test: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/test-uninstall.sh`
 Expected: FAIL — uninstall.sh doesn't exist
 
-- [ ] **Step 3: Create uninstall.sh**
+- [x] **Step 3: Create uninstall.sh**
 
 ```bash
 # uninstall.sh
@@ -925,18 +925,18 @@ echo "  To remove completely: rm -rf .xgh ~/.xgh"
 echo ""
 ```
 
-- [ ] **Step 4: Make uninstall.sh executable**
+- [x] **Step 4: Make uninstall.sh executable**
 
 ```bash
 chmod +x uninstall.sh
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `bash tests/test-uninstall.sh`
 Expected: All tests PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add uninstall.sh tests/test-uninstall.sh
@@ -952,7 +952,7 @@ git commit -m "feat: add uninstall script with clean removal"
 **Files:**
 - Create: `techpack.yaml`
 
-- [ ] **Step 1: Write test for manifest validation**
+- [x] **Step 1: Write test for manifest validation**
 
 ```bash
 # tests/test-techpack.sh
@@ -1004,12 +1004,12 @@ echo "Techpack test: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/test-techpack.sh`
 Expected: FAIL
 
-- [ ] **Step 3: Create techpack.yaml**
+- [x] **Step 3: Create techpack.yaml**
 
 ```yaml
 # techpack.yaml
@@ -1129,7 +1129,7 @@ supplementaryDoctorChecks:
     isOptional: false
 ```
 
-- [ ] **Step 4: Create post-install configure script**
+- [x] **Step 4: Create post-install configure script**
 
 ```bash
 # scripts/configure.sh
@@ -1166,18 +1166,18 @@ fi
 echo "  ✓ Configuration complete"
 ```
 
-- [ ] **Step 5: Make configure script executable**
+- [x] **Step 5: Make configure script executable**
 
 ```bash
 chmod +x scripts/configure.sh
 ```
 
-- [ ] **Step 6: Run test to verify it passes**
+- [x] **Step 6: Run test to verify it passes**
 
 Run: `bash tests/test-techpack.sh`
 Expected: All tests PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add techpack.yaml scripts/configure.sh tests/test-techpack.sh
@@ -1192,7 +1192,7 @@ git commit -m "feat: add MCS tech pack manifest with configureProject script"
 - Create: `hooks/session-start.sh`
 - Create: `hooks/prompt-submit.sh`
 
-- [ ] **Step 1: Create placeholder hooks**
+- [x] **Step 1: Create placeholder hooks**
 
 ```bash
 # hooks/session-start.sh
@@ -1211,7 +1211,7 @@ exit 0
 exit 0
 ```
 
-- [ ] **Step 2: Make executable and commit**
+- [x] **Step 2: Make executable and commit**
 
 ```bash
 chmod +x hooks/session-start.sh hooks/prompt-submit.sh
@@ -1223,7 +1223,7 @@ git commit -m "feat: add placeholder hooks for session-start and prompt-submit"
 
 ### Task 8: Run full test suite and final commit
 
-- [ ] **Step 1: Run all tests**
+- [x] **Step 1: Run all tests**
 
 ```bash
 bash tests/test-config.sh && bash tests/test-techpack.sh && bash tests/test-install.sh && bash tests/test-uninstall.sh
@@ -1231,7 +1231,7 @@ bash tests/test-config.sh && bash tests/test-techpack.sh && bash tests/test-inst
 
 Expected: All tests PASS
 
-- [ ] **Step 2: Verify install script works end-to-end**
+- [x] **Step 2: Verify install script works end-to-end**
 
 ```bash
 # In a temp directory, test the full install flow
@@ -1247,7 +1247,7 @@ cd -
 rm -rf "$TMPDIR"
 ```
 
-- [ ] **Step 3: Final commit with all remaining files**
+- [x] **Step 3: Final commit with all remaining files**
 
 ```bash
 git add -A
