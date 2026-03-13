@@ -400,6 +400,10 @@ xgh skills follow the Superpowers framework's proven patterns for maximum qualit
 | `xgh:query-strategies` | When agent needs to search prior knowledge |
 | `xgh:agent-collaboration` | When multi-agent workflow is requested |
 | `xgh:context-tree-maintenance` | Periodic (scoring updates, archival) |
+| `xgh:investigate` | `/xgh investigate` or Slack thread URL detected |
+| `xgh:implement-design` | `/xgh implement-design` or Figma URL detected |
+| `xgh:implement-ticket` | `/xgh implement <ticket-id>` |
+| `xgh:subagent-pair-programming` | `/xgh pair-program` or large implementation tasks |
 
 ## 8. Hub / Skill Marketplace
 
@@ -505,6 +509,30 @@ components:
     skill:
       source: skills/context-tree-maintenance
       destination: xgh-context-tree-maintenance
+
+  - id: investigate
+    description: "Slack-driven debugging workflow"
+    skill:
+      source: skills/investigate
+      destination: xgh-investigate
+
+  - id: implement-design
+    description: "Figma-driven UI implementation"
+    skill:
+      source: skills/implement-design
+      destination: xgh-implement-design
+
+  - id: implement-ticket
+    description: "Full-context ticket implementation"
+    skill:
+      source: skills/implement-ticket
+      destination: xgh-implement-ticket
+
+  - id: subagent-pair-programming
+    description: "Local TDD via spec writer + implementer subagents"
+    skill:
+      source: skills/subagent-pair-programming
+      destination: xgh-subagent-pair-programming
 
   # Commands
   - id: query-command
@@ -722,7 +750,401 @@ New developer joins → runs setup → first session:
   → Answer informed by months of team memory
 ```
 
-## 11. Installation
+## 11. Workflow Skills (MCP-Powered)
+
+These skills integrate with external tools via MCP to create end-to-end development workflows. They combine the Superpowers methodology (systematic debugging, brainstorming, writing plans) with xgh's memory layer and team conventions.
+
+**Prerequisite:** Each skill auto-detects which MCP servers are available and adapts. No hard dependencies — skills degrade gracefully if an MCP isn't configured.
+
+```
+┌─ MCP Integrations (user-configured, all optional) ──────┐
+│                                                          │
+│  Communication    Task Management    Design              │
+│  ┌──────────┐    ┌──────────────┐   ┌──────────┐       │
+│  │ Slack    │    │ Jira         │   │ Figma    │       │
+│  │ Teams    │    │ Linear       │   │ FigJam   │       │
+│  │ Discord  │    │ GitHub Issues│   │          │       │
+│  └──────────┘    │ Asana        │   └──────────┘       │
+│                  │ Shortcut     │                       │
+│                  └──────────────┘                       │
+│                                                          │
+│  xgh auto-detects which MCPs are available and adapts.   │
+│  Skills work with ANY combination. None are required.    │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+### `xgh:investigate` — Slack-Driven Debugging Workflow
+
+A systematic investigation skill inspired by Superpowers' `systematic-debugging`. Starts from a Slack thread (bug report, alert, user complaint) and produces a detailed finding report.
+
+```
+┌─ Investigation Flow ────────────────────────────────────────────┐
+│                                                                  │
+│  TRIGGER: "/xgh investigate <slack-thread-url>"                  │
+│           or "/xgh investigate" (prompts for context)            │
+│                                                                  │
+│  ┌─ Phase 1: Context Gathering ──────────────────────────────┐  │
+│  │                                                            │  │
+│  │  1. Read Slack thread (via Slack MCP)                      │  │
+│  │     → Extract: symptoms, affected users, timestamps,       │  │
+│  │       error messages, screenshots, related threads         │  │
+│  │                                                            │  │
+│  │  2. Search for related Slack discussions                   │  │
+│  │     → "Has this happened before?"                          │  │
+│  │     → Find prior incidents, workarounds, affected areas    │  │
+│  │                                                            │  │
+│  │  3. Query xgh memory                                       │  │
+│  │     → cipher_memory_search: similar bugs, past fixes       │  │
+│  │     → context tree: related architecture decisions         │  │
+│  │     → team conventions for this area                       │  │
+│  │                                                            │  │
+│  │  4. Check task manager (if MCP configured)                 │  │
+│  │     → Search Jira/Linear/GitHub for existing tickets       │  │
+│  │     → "Is someone already working on this?"                │  │
+│  │                                                            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                         │                                        │
+│                         ▼                                        │
+│  ┌─ Phase 2: Interactive Triage (prompts user) ──────────────┐  │
+│  │                                                            │  │
+│  │  IF existing ticket found:                                 │  │
+│  │    → "Found JIRA-1234: 'Login timeout on mobile'          │  │
+│  │       Status: In Progress, Assigned: @alice                │  │
+│  │       Want to add context from this thread to it?"         │  │
+│  │                                                            │  │
+│  │  IF no ticket found:                                       │  │
+│  │    → "No existing ticket. Want me to create one?"          │  │
+│  │    → Interactive: title, priority, assignee, labels         │  │
+│  │    → Creates ticket via task manager MCP                   │  │
+│  │                                                            │  │
+│  │  IF no task manager MCP:                                   │  │
+│  │    → Skips ticket management, continues with investigation │  │
+│  │                                                            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                         │                                        │
+│                         ▼                                        │
+│  ┌─ Phase 3: Systematic Debug (Superpowers methodology) ─────┐  │
+│  │                                                            │  │
+│  │  Iron Law: NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST │  │
+│  │                                                            │  │
+│  │  1. Reproduce: trace from symptoms to code paths           │  │
+│  │  2. Boundary analysis: log at module transitions           │  │
+│  │  3. Pattern analysis: diff working vs broken               │  │
+│  │  4. Hypothesis: single theory, minimal isolated test       │  │
+│  │  5. Root cause: confirmed with evidence                    │  │
+│  │                                                            │  │
+│  │  Hard gate: after 3 failed hypotheses → stop,              │  │
+│  │  question architecture, ask user for help                  │  │
+│  │                                                            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                         │                                        │
+│                         ▼                                        │
+│  ┌─ Phase 4: Finding Report ─────────────────────────────────┐  │
+│  │                                                            │  │
+│  │  Structured report (inspired by Superpowers writing):      │  │
+│  │                                                            │  │
+│  │  # Investigation: [Title]                                  │  │
+│  │  ## Source: [Slack thread link]                             │  │
+│  │  ## Ticket: [JIRA-1234] (if created/found)                │  │
+│  │  ## Summary: [1-2 sentence root cause]                     │  │
+│  │  ## Timeline: [when it started, when reported]             │  │
+│  │  ## Root Cause: [detailed technical analysis]              │  │
+│  │  ## Evidence: [logs, traces, reproduction steps]           │  │
+│  │  ## Impact: [affected users, severity]                     │  │
+│  │  ## Fix: [proposed solution with code]                     │  │
+│  │  ## Prevention: [what would catch this earlier]            │  │
+│  │  ## Related: [links to past incidents, decisions]          │  │
+│  │                                                            │  │
+│  │  → Saved to context tree: investigations/[date]-[title]    │  │
+│  │  → Curated to Cipher memory (learnings persist)            │  │
+│  │  → Optionally posted back to Slack thread                  │  │
+│  │  → Optionally attached to ticket                           │  │
+│  │                                                            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### `xgh:implement-design` — Figma-Driven UI Implementation
+
+Takes a Figma design URL and produces a complete, convention-compliant implementation by gathering ALL available context from the design file.
+
+```
+┌─ Figma Implementation Flow ─────────────────────────────────────┐
+│                                                                  │
+│  TRIGGER: "/xgh implement-design <figma-url>"                    │
+│           or "/xgh implement-design" (prompts for URL)           │
+│                                                                  │
+│  ┌─ Phase 1: Deep Design Mining ─────────────────────────────┐  │
+│  │                                                            │  │
+│  │  Via Figma MCP:                                            │  │
+│  │                                                            │  │
+│  │  1. get_design_context(nodeId, fileKey)                    │  │
+│  │     → Code hints, component mappings, design tokens        │  │
+│  │                                                            │  │
+│  │  2. get_screenshot(nodeId, fileKey)                        │  │
+│  │     → Visual reference for layout understanding            │  │
+│  │                                                            │  │
+│  │  3. get_metadata(fileKey)                                  │  │
+│  │     → File structure, pages, component inventory           │  │
+│  │                                                            │  │
+│  │  4. Search for related FigJam boards:                      │  │
+│  │     → get_figjam for linked boards                         │  │
+│  │     → Extract: user flows, state diagrams, edge cases,     │  │
+│  │       designer notes, acceptance criteria, annotations     │  │
+│  │                                                            │  │
+│  │  5. get_variable_defs(fileKey)                             │  │
+│  │     → Design tokens, color system, spacing, typography     │  │
+│  │                                                            │  │
+│  │  6. get_code_connect_map(fileKey)                          │  │
+│  │     → Existing component ↔ codebase mappings               │  │
+│  │                                                            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                         │                                        │
+│                         ▼                                        │
+│  ┌─ Phase 2: Context Enrichment ─────────────────────────────┐  │
+│  │                                                            │  │
+│  │  1. Query xgh memory:                                      │  │
+│  │     → "How do we implement [component type] in this repo?" │  │
+│  │     → Team conventions for UI components                   │  │
+│  │     → Past implementations of similar designs              │  │
+│  │     → Design system component inventory                    │  │
+│  │                                                            │  │
+│  │  2. Scan codebase for existing components:                 │  │
+│  │     → Match Figma components to code via Code Connect      │  │
+│  │     → Identify reusable components vs new ones needed      │  │
+│  │                                                            │  │
+│  │  3. Check task manager (if MCP configured):                │  │
+│  │     → Find ticket for this design work                     │  │
+│  │     → Extract acceptance criteria, requirements, notes     │  │
+│  │                                                            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                         │                                        │
+│                         ▼                                        │
+│  ┌─ Phase 3: Interactive State Review (prompts user) ────────┐  │
+│  │                                                            │  │
+│  │  Present discovered states and ask for confirmation:       │  │
+│  │                                                            │  │
+│  │  "I found these states in the Figma file:                  │  │
+│  │   ✓ Default state (node 34079:43248)                       │  │
+│  │   ✓ Loading state (node 34079:43320)                       │  │
+│  │   ✓ Error state (node 34256:54416)                         │  │
+│  │   ✓ Empty state (node 34256:54400)                         │  │
+│  │   ? Offline state — not found. Is there one?"              │  │
+│  │                                                            │  │
+│  │  "FigJam notes mention:                                    │  │
+│  │   - 'Animation on transition between states'               │  │
+│  │   - 'Skeleton loading, not spinner'                        │  │
+│  │   - 'Error must show retry CTA'                            │  │
+│  │   Any additional requirements?"                            │  │
+│  │                                                            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                         │                                        │
+│                         ▼                                        │
+│  ┌─ Phase 4: Implementation Plan + Execute ──────────────────┐  │
+│  │                                                            │  │
+│  │  Uses Superpowers writing-plans methodology:               │  │
+│  │  → 2-5 minute tasks with exact file paths                  │  │
+│  │  → TDD: test per state before implementation               │  │
+│  │  → Maps Figma tokens → project's design system             │  │
+│  │  → Reuses existing components (never reinvent)             │  │
+│  │  → Follows team conventions from context tree              │  │
+│  │                                                            │  │
+│  │  Subagent execution (if user approves):                    │  │
+│  │  → Fresh subagent per component/state                      │  │
+│  │  → Two-stage review: design fidelity + code quality        │  │
+│  │  → Screenshot comparison: Figma vs rendered                │  │
+│  │                                                            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                         │                                        │
+│                         ▼                                        │
+│  ┌─ Phase 5: Curate & Report ────────────────────────────────┐  │
+│  │                                                            │  │
+│  │  → Curate: new component mappings, design patterns         │  │
+│  │  → Update Code Connect: new Figma ↔ code mappings          │  │
+│  │  → Context tree: design-system/[component].md              │  │
+│  │  → Report: what was implemented, decisions made,           │  │
+│  │    components reused vs created, deviations from design    │  │
+│  │                                                            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### `xgh:implement-ticket` — Full-Context Ticket Implementation
+
+The most comprehensive skill. Takes a ticket from any task manager, gathers ALL available context (ticket, Slack, Figma, memory, codebase), interviews the user for missing context, and produces a complete implementation plan.
+
+```
+┌─ Implement Ticket Flow ─────────────────────────────────────────┐
+│                                                                  │
+│  TRIGGER: "/xgh implement <ticket-id>"                           │
+│           "/xgh implement PROJ-1234"                             │
+│           "/xgh implement" (searches recent assigned tickets)    │
+│                                                                  │
+│  ┌─ Phase 1: Ticket Deep Dive ──────────────────────────────┐   │
+│  │                                                            │  │
+│  │  Via task manager MCP (auto-detected):                     │  │
+│  │                                                            │  │
+│  │  1. Fetch ticket details:                                  │  │
+│  │     → Title, description, acceptance criteria              │  │
+│  │     → Status, priority, assignee, sprint                   │  │
+│  │     → Comments, attachments, linked tickets                │  │
+│  │     → Epic/parent context                                  │  │
+│  │                                                            │  │
+│  │  2. Traverse linked tickets:                               │  │
+│  │     → Blocked by / blocks relationships                    │  │
+│  │     → Related tickets (similar work, dependencies)         │  │
+│  │     → Epic-level requirements and constraints              │  │
+│  │                                                            │  │
+│  │  3. Extract structured requirements:                       │  │
+│  │     → User stories → testable assertions                   │  │
+│  │     → Acceptance criteria → verification checklist          │  │
+│  │     → "Definition of done" → completion gate               │  │
+│  │                                                            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                         │                                        │
+│                         ▼                                        │
+│  ┌─ Phase 2: Cross-Platform Context Gathering ───────────────┐  │
+│  │                                                            │  │
+│  │  Searches ALL available MCPs for related context:          │  │
+│  │                                                            │  │
+│  │  Slack (if configured):                                    │  │
+│  │  → Search for ticket ID mentions in channels               │  │
+│  │  → Find design discussions, requirement debates            │  │
+│  │  → Extract decisions made in threads                       │  │
+│  │                                                            │  │
+│  │  Figma (if configured):                                    │  │
+│  │  → Search for linked designs in ticket attachments         │  │
+│  │  → Fetch design context, states, annotations               │  │
+│  │  → Extract FigJam notes and acceptance criteria            │  │
+│  │                                                            │  │
+│  │  xgh Memory (always):                                      │  │
+│  │  → cipher_memory_search: related past work                 │  │
+│  │  → Context tree: conventions for this domain               │  │
+│  │  → Team decisions that affect this implementation          │  │
+│  │  → Past investigations/bugs in this area                   │  │
+│  │                                                            │  │
+│  │  Codebase (always):                                        │  │
+│  │  → Find related files, modules, tests                      │  │
+│  │  → Understand existing patterns to follow                  │  │
+│  │  → Identify integration points                             │  │
+│  │                                                            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                         │                                        │
+│                         ▼                                        │
+│  ┌─ Phase 3: Context Interview (Superpowers brainstorming) ──┐  │
+│  │                                                            │  │
+│  │  Present gathered context, then interview ONE question     │  │
+│  │  at a time (Superpowers pattern):                          │  │
+│  │                                                            │  │
+│  │  "Here's what I know about PROJ-1234:                      │  │
+│  │   ✓ Ticket: Add rate limiting to public API                │  │
+│  │   ✓ AC: 100 req/min per user, 429 response, retry-after   │  │
+│  │   ✓ Slack: @bob mentioned Redis for the counter store      │  │
+│  │   ✓ Memory: team uses token-bucket (convention #42)        │  │
+│  │   ✓ Design: no Figma linked                                │  │
+│  │   ? Missing: which endpoints? All public, or subset?"      │  │
+│  │                                                            │  │
+│  │  Follow-up questions (one at a time):                      │  │
+│  │  → "Should rate limits differ per endpoint?"               │  │
+│  │  → "Redis or in-memory? (Slack says Redis)"                │  │
+│  │  → "Need admin override capability?"                       │  │
+│  │                                                            │  │
+│  │  Multiple choice preferred (Superpowers pattern):          │  │
+│  │  → A) All public endpoints, same limit                     │  │
+│  │  → B) Per-endpoint configuration                           │  │
+│  │  → C) Tiered by user plan                                  │  │
+│  │                                                            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                         │                                        │
+│                         ▼                                        │
+│  ┌─ Phase 4: Design Proposal (2-3 approaches) ──────────────┐  │
+│  │                                                            │  │
+│  │  Superpowers brainstorming pattern:                        │  │
+│  │  → Propose 2-3 approaches with trade-offs                  │  │
+│  │  → Lead with recommendation and reasoning                  │  │
+│  │  → Reference team conventions and past decisions            │  │
+│  │  → Present design section by section for approval           │  │
+│  │                                                            │  │
+│  │  Hard gate: NO IMPLEMENTATION WITHOUT APPROVED DESIGN       │  │
+│  │                                                            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                         │                                        │
+│                         ▼                                        │
+│  ┌─ Phase 5: Implementation Plan (Superpowers writing-plans) ┐  │
+│  │                                                            │  │
+│  │  Detailed plan with:                                       │  │
+│  │  → 2-5 minute tasks with exact file paths                  │  │
+│  │  → TDD: failing test before each implementation step       │  │
+│  │  → Verification command per step                           │  │
+│  │  → Complete code (no "add validation here" placeholders)   │  │
+│  │  → Follows ALL team conventions from context tree           │  │
+│  │                                                            │  │
+│  │  Saved to: docs/plans/YYYY-MM-DD-[ticket-id]-plan.md      │  │
+│  │  Linked back to ticket via task manager MCP                │  │
+│  │                                                            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                         │                                        │
+│                         ▼                                        │
+│  ┌─ Phase 6: Execute + Report ───────────────────────────────┐  │
+│  │                                                            │  │
+│  │  Subagent-driven execution (Superpowers pattern):          │  │
+│  │  → Fresh subagent per task                                 │  │
+│  │  → TDD enforced (iron law)                                 │  │
+│  │  → Two-stage review per task                               │  │
+│  │  → Verification before completion                          │  │
+│  │                                                            │  │
+│  │  On completion:                                            │  │
+│  │  → Update ticket status via MCP                            │  │
+│  │  → Post implementation summary to Slack thread             │  │
+│  │  → Curate learnings to context tree + Cipher               │  │
+│  │  → Generate PR with full context (pr-context-bridge)       │  │
+│  │                                                            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Skill Interaction Map
+
+All workflow skills compose with each other and the team collaboration skills:
+
+```
+                    /xgh implement PROJ-1234
+                            │
+                ┌───────────┼───────────┐
+                ▼           ▼           ▼
+          Slack MCP    Figma MCP   Task MCP
+          (context)    (designs)   (ticket)
+                │           │           │
+                └─────┬─────┘───────────┘
+                      ▼
+              xgh Memory Layer
+              (conventions, decisions,
+               past work, patterns)
+                      │
+                      ▼
+            Brainstorming Interview
+            (one question at a time)
+                      │
+                      ▼
+            Design → Plan → Execute
+            (Superpowers methodology)
+                      │
+        ┌─────────────┼─────────────┐
+        ▼             ▼             ▼
+  subagent-pair    convention    pr-context
+  -programming     -guardian     -bridge
+  (TDD enforce)  (check rules) (share why)
+                      │
+                      ▼
+              Curate Learnings
+              (context tree + Cipher)
+```
+
+## 12. Installation
 
 ### Option A: MCS Tech Pack (recommended)
 
@@ -985,7 +1407,7 @@ rm -rf .claude/agents/xgh-*
 # Remove xgh section from CLAUDE.local.md and .claude/.mcp.json manually
 ```
 
-## 12. Key Influences & Attribution
+## 13. Key Influences & Attribution
 
 | Source | What we adopted |
 |--------|----------------|
