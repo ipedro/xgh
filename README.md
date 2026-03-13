@@ -432,4 +432,4 @@ MIT — see [LICENSE](LICENSE).
 
 ---
 
-*Built around the [Cipher](https://github.com/campfirein/cipher) memory layer by [ByteRover](https://byterover.dev) — thank you for making it possible. Also inspired by the [Superpowers methodology](https://www.claudesuperpowers.com).*
+*Built around the [Cipher](https://github.com/campfirein/cipher) memory layer and inspired by the [Superpowers](https://github.com/obra/superpowers) methodology. Also check out [ByteRover](https://byterover.dev) — a very nice alternative product that does something similar.*
