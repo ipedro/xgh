@@ -1,139 +1,156 @@
 #!/usr/bin/env bash
 # ct-frontmatter.sh — YAML frontmatter parse/write helpers for context tree .md files
-# Sourced by other scripts; do not execute directly.
+# Sourceable library: defines ct_frontmatter_has, ct_frontmatter_get,
+# ct_frontmatter_set, ct_frontmatter_increment_int.
 
-# write_frontmatter FILE KEY1 VAL1 KEY2 VAL2 ...
-# Prepends YAML frontmatter to FILE. Preserves existing body content.
-# Auto-adds createdAt and updatedAt timestamps.
-write_frontmatter() {
-  local file="$1"; shift
-  local now
-  now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-  # Read existing body (strip any existing frontmatter)
-  local body=""
-  if [ -f "$file" ]; then
-    body=$(read_frontmatter_body "$file")
-  fi
-
-  # Build frontmatter
-  {
-    echo "---"
-    local has_created=0 has_updated=0
-    while [ $# -ge 2 ]; do
-      local key="$1" val="$2"; shift 2
-      echo "${key}: ${val}"
-      [ "$key" = "createdAt" ] && has_created=1
-      [ "$key" = "updatedAt" ] && has_updated=1
-    done
-    [ "$has_created" -eq 0 ] && echo "createdAt: ${now}"
-    [ "$has_updated" -eq 0 ] && echo "updatedAt: ${now}"
-    echo "---"
-    echo ""
-    echo "$body"
-  } > "$file"
-}
-
-# read_frontmatter_field FILE FIELD
-# Prints the value of FIELD from YAML frontmatter. Empty string if not found.
-read_frontmatter_field() {
-  local file="$1" field="$2"
-  if [ ! -f "$file" ]; then echo ""; return; fi
-
-  # Check if file starts with ---
-  local first_line
-  first_line=$(head -n 1 "$file")
-  if [ "$first_line" != "---" ]; then echo ""; return; fi
-
-  # Extract frontmatter block (between first and second ---)
-  awk '
-    BEGIN { in_fm=0; count=0 }
-    /^---$/ { count++; if (count==1) { in_fm=1; next } else { exit } }
-    in_fm { print }
-  ' "$file" | grep "^${field}:" | head -1 | sed "s/^${field}: *//"
-}
-
-# read_frontmatter_body FILE
-# Prints everything after the closing --- of frontmatter.
-# If no frontmatter, prints entire file.
-read_frontmatter_body() {
-  local file="$1"
-  if [ ! -f "$file" ]; then echo ""; return; fi
+ct_frontmatter_has() {
+  local file=${1:?file required}
+  [[ -f "$file" ]] || return 1
 
   local first_line
-  first_line=$(head -n 1 "$file")
-  if [ "$first_line" != "---" ]; then
-    cat "$file"
-    return
-  fi
+  first_line=$(head -n 1 "$file" 2>/dev/null || true)
+  [[ "$first_line" == "---" ]] || return 1
 
-  # Skip frontmatter, print rest
-  awk '
-    BEGIN { count=0; past_fm=0 }
-    /^---$/ { count++; if (count==2) { past_fm=1; next } next }
-    past_fm { print }
+  tail -n +2 "$file" | grep -m1 -x -- '---' >/dev/null
+}
+
+ct_frontmatter_get() {
+  local file=${1:?file required}
+  local key=${2:?key required}
+
+  awk -v key="$key" '
+    BEGIN { in_fm = 0; found = 0 }
+
+    NR == 1 && $0 == "---" {
+      in_fm = 1
+      next
+    }
+
+    in_fm && $0 == "---" {
+      exit
+    }
+
+    in_fm {
+      if ($0 ~ "^[[:space:]]*" key ":[[:space:]]*") {
+        value = $0
+        sub("^[[:space:]]*" key ":[[:space:]]*", "", value)
+        gsub(/^"|"$/, "", value)
+        gsub(/^'"'"'|'"'"'$/, "", value)
+        print value
+        found = 1
+        exit
+      }
+    }
+
+    END {
+      if (found == 0) {
+        exit 1
+      }
+    }
   ' "$file"
 }
 
-# update_frontmatter_field FILE FIELD NEW_VALUE
-# Updates a single field in existing frontmatter. Also bumps updatedAt.
-update_frontmatter_field() {
-  local file="$1" field="$2" new_val="$3"
-  if [ ! -f "$file" ]; then return 1; fi
-
+ct_frontmatter_set() {
+  local file=${1:?file required}
+  local key=${2:?key required}
+  local value=${3:?value required}
   local now
   now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  local tmp
+  tmp=$(mktemp)
 
-  local tmpfile
-  tmpfile=$(mktemp)
+  if [[ ! -f "$file" ]]; then
+    {
+      echo "---"
+      echo "$key: $value"
+      [[ "$key" != "updatedAt" ]] && echo "updatedAt: $now"
+      echo "---"
+    } > "$tmp"
+    mv "$tmp" "$file"
+    return 0
+  fi
 
-  awk -v field="$field" -v val="$new_val" -v now="$now" '
-    BEGIN { in_fm=0; count=0; found=0; updated_ts=0 }
-    /^---$/ {
-      count++
-      if (count == 2 && !found) {
-        print field ": " val
-      }
-      if (count == 2 && !updated_ts) {
-        print "updatedAt: " now
-      }
+  if ! ct_frontmatter_has "$file"; then
+    {
+      echo "---"
+      echo "$key: $value"
+      [[ "$key" != "updatedAt" ]] && echo "updatedAt: $now"
+      echo "---"
+      cat "$file"
+    } > "$tmp"
+    mv "$tmp" "$file"
+    return 0
+  fi
+
+  awk -v key="$key" -v value="$value" -v now="$now" '
+    BEGIN { in_fm = 0; replaced = 0; updated_ts = 0 }
+
+    NR == 1 && $0 == "---" {
+      in_fm = 1
       print
       next
     }
-    count == 1 && $0 ~ "^" field ": " {
-      print field ": " val
-      found = 1
+
+    in_fm && $0 == "---" {
+      if (replaced == 0) {
+        print key ": " value
+      }
+      if (updated_ts == 0 && key != "updatedAt") {
+        print "updatedAt: " now
+      }
+      in_fm = 0
+      print
       next
     }
-    count == 1 && $0 ~ "^updatedAt: " {
-      print "updatedAt: " now
-      updated_ts = 1
-      next
+
+    in_fm {
+      if ($0 ~ "^[[:space:]]*" key ":[[:space:]]*") {
+        print key ": " value
+        replaced = 1
+        next
+      }
+      if (key != "updatedAt" && $0 ~ "^[[:space:]]*updatedAt:[[:space:]]*") {
+        print "updatedAt: " now
+        updated_ts = 1
+        next
+      }
     }
+
     { print }
-  ' "$file" > "$tmpfile"
+  ' "$file" > "$tmp"
 
-  mv "$tmpfile" "$file"
+  mv "$tmp" "$file"
 }
 
-# has_frontmatter FILE
-# Returns 0 if file has YAML frontmatter, 1 otherwise.
-has_frontmatter() {
-  local file="$1"
-  [ -f "$file" ] || return 1
-  local first_line
-  first_line=$(head -n 1 "$file")
-  [ "$first_line" = "---" ]
+ct_frontmatter_increment_int() {
+  local file=${1:?file required}
+  local key=${2:?key required}
+  local current=0
+
+  if current=$(ct_frontmatter_get "$file" "$key" 2>/dev/null); then
+    :
+  else
+    current=0
+  fi
+
+  if [[ ! "$current" =~ ^-?[0-9]+$ ]]; then
+    current=0
+  fi
+
+  ct_frontmatter_set "$file" "$key" "$((current + 1))"
 }
 
-# list_frontmatter_fields FILE
-# Prints all field names from frontmatter, one per line.
-list_frontmatter_fields() {
-  local file="$1"
-  if ! has_frontmatter "$file"; then return; fi
-  awk '
-    BEGIN { count=0 }
-    /^---$/ { count++; if (count>=2) exit; next }
-    count==1 { split($0, a, ":"); print a[1] }
-  ' "$file"
-}
+# No-op when sourced; CLI dispatch when executed directly
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  cmd=${1:-}
+  case "$cmd" in
+    has) ct_frontmatter_has "${2:?file required}" ;;
+    get) ct_frontmatter_get "${2:?file required}" "${3:?key required}" ;;
+    set) ct_frontmatter_set "${2:?file required}" "${3:?key required}" "${4:?value required}" ;;
+    inc) ct_frontmatter_increment_int "${2:?file required}" "${3:?key required}" ;;
+    *)
+      echo "Usage: ct-frontmatter.sh {has|get|set|inc} <file> [key] [value]" >&2
+      exit 1
+      ;;
+  esac
+fi
