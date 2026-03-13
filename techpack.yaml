@@ -78,6 +78,27 @@ components:
       - ".claude/settings.local.json"
     description: "Gitignore rules for local-only and ephemeral files"
 
+optionalPlugins:
+  - id: context-mode
+    marketplace: mksglu/context-mode
+    plugin: context-mode@context-mode
+    description: "Session runtime optimizer — 98% context savings, sandboxed execution, FTS5 search, compaction recovery"
+    url: https://github.com/mksglu/context-mode
+    integration: |
+      Complements xgh by keeping raw tool output out of the context window.
+      Route heavy operations (briefing fetches, log analysis) through ctx_execute.
+      FTS5 keyword search pairs with Cipher vector search for dual-engine retrieval.
+
+  - id: superpowers
+    marketplace: claude-plugins-official/superpowers
+    plugin: superpowers@superpowers
+    description: "Development methodology — TDD, brainstorming, plan writing/execution, subagent-driven development, code review"
+    url: https://github.com/obra/superpowers
+    integration: |
+      xgh workflow skills (investigate, implement-design, implement-ticket) reference
+      Superpowers skills (brainstorming, writing-plans, executing-plans, TDD) for
+      structured development methodology.
+
 templates:
   - sectionIdentifier: instructions
     contentFile: templates/instructions.md

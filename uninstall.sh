@@ -61,6 +61,14 @@ json.dump(s, open('${SETTINGS_FILE}', 'w'), indent=2)
 " 2>/dev/null || warn "Could not clean settings — remove xgh hooks manually"
 fi
 
+# Optional: offer to uninstall plugins
+if command -v claude &>/dev/null; then
+  echo ""
+  info "xgh recommended these optional plugins. They work independently — uninstall only if you no longer want them:"
+  echo "    claude plugin uninstall context-mode@context-mode"
+  echo "    claude plugin uninstall superpowers@superpowers"
+fi
+
 echo ""
 echo "🐴 xgh uninstalled."
 echo ""
