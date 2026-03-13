@@ -1,0 +1,92 @@
+schemaVersion: 1
+identifier: xgh
+displayName: "XGH — eXtreme Go Horse"
+description: "Context-aware AI coding conventions powered by Cipher memory and a living context tree."
+
+components:
+  - id: ollama
+    type: brew
+    package: ollama
+    description: "Local LLM runtime for embeddings and lightweight inference"
+
+  - id: ollama-models
+    type: shell
+    command: |
+      ollama pull llama3.2:3b
+      ollama pull nomic-embed-text
+    description: "Pull required Ollama models for local inference and embeddings"
+    doctorChecks:
+      - shellScript: "ollama list | grep -q 'llama3.2:3b'"
+        label: "llama3.2:3b model installed"
+      - shellScript: "ollama list | grep -q 'nomic-embed-text'"
+        label: "nomic-embed-text model installed"
+
+  - id: qdrant
+    type: brew
+    package: qdrant
+    description: "Vector database for Cipher semantic memory"
+
+  - id: cipher
+    type: mcpServer
+    command: "npx -y @byterover/cipher"
+    env:
+      QDRANT_URL: "http://localhost:6333"
+      CIPHER_COLLECTION: "__TEAM_NAME__-memory"
+      CIPHER_SCOPE: "project"
+    scope: project
+    description: "Cipher MCP server — structured reasoning memory with Qdrant backend"
+
+  - id: session-start-hook
+    type: hook
+    hookEvent: SessionStart
+    source: hooks/session-start.sh
+    description: "Load context tree and inject conventions at session start"
+
+  - id: prompt-submit-hook
+    type: hook
+    hookEvent: UserPromptSubmit
+    source: hooks/prompt-submit.sh
+    description: "Inject decision table for auto-query/auto-curate behaviour"
+
+  - id: settings
+    type: settingsFile
+    isRequired: true
+    settingsFile: config/settings.json
+    description: "Project-level Claude Code settings (permissions, MCP servers)"
+
+  - id: gitignore
+    type: gitignore
+    isRequired: true
+    patterns:
+      - ".xgh/local/"
+      - "data/cipher-sessions.db*"
+      - ".claude/settings.local.json"
+    description: "Gitignore rules for local-only and ephemeral files"
+
+templates:
+  - sectionIdentifier: instructions
+    contentFile: templates/instructions.md
+    placeholders:
+      - __TEAM_NAME__
+      - __CONTEXT_TREE_PATH__
+
+prompts:
+  - key: TEAM_NAME
+    type: input
+    label: "Team name for Cipher collection namespace"
+    default: "my-team"
+  - key: CONTEXT_TREE_PATH
+    type: input
+    label: "Path to the context tree directory"
+    default: ".xgh/context-tree"
+
+configureProject:
+  script: scripts/configure.sh
+
+supplementaryDoctorChecks:
+  - shellScript: "curl -sf http://localhost:6333/healthz > /dev/null 2>&1"
+    label: "Qdrant is running on localhost:6333"
+  - shellScript: "curl -sf http://localhost:11434/api/tags > /dev/null 2>&1"
+    label: "Ollama is running on localhost:11434"
+  - shellScript: "[ -d \"${MCS_RESOLVED_CONTEXT_TREE_PATH:-.xgh/context-tree}\" ]"
+    label: "Context tree directory exists"
