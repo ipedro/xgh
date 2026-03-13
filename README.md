@@ -4,8 +4,7 @@
 > An open, self-hosted alternative to ByteRover — team knowledge that grows with every session.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Plan 1](https://img.shields.io/badge/Plan%201%20Foundation-complete-brightgreen)](#implementation-roadmap)
-[![Plans 2–6](https://img.shields.io/badge/Plans%202–6-in%20progress-yellow)](#implementation-roadmap)
+[![Status](https://img.shields.io/badge/status-initial%20release-brightgreen)](#implementation-status)
 
 ---
 
@@ -17,20 +16,160 @@ xgh fixes this.
 
 ---
 
-## What xgh Does
+## Quick Start
 
-xgh installs a **persistent memory layer** into any project in one command:
+### Prerequisites
+
+- macOS or Linux
+- Bash 5+
+- Git
+
+Everything else (Homebrew, Ollama, Qdrant, Node.js for Cipher) is installed automatically.
+
+### Install (fully local, free)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
 ```
 
-After installation:
+### Install with a preset
 
-- Every AI session **starts** with your team's top conventions automatically injected
-- Every prompt **surfaces** relevant past decisions before the agent writes code
-- Every session **ends** with new learnings captured and stored for all future agents
-- All knowledge is **git-committed** as human-readable markdown — reviewable in PRs, shareable without shared infrastructure
+```bash
+# OpenAI (fastest, ~$0.01/session)
+XGH_PRESET=openai XGH_TEAM=my-team \
+  curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
+
+# Anthropic
+XGH_PRESET=anthropic XGH_TEAM=my-team \
+  curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
+
+# Local with custom team name
+XGH_TEAM=acme-frontend \
+  curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
+```
+
+The installer will ask if you'd like to add optional plugins ([context-mode](#optional-plugins) and [superpowers](#optional-plugins)). You can also control this with `XGH_INSTALL_PLUGINS=all|skip`.
+
+### Uninstall
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/uninstall.sh | bash
+```
+
+---
+
+## What You Get
+
+After installation, every AI session automatically:
+
+- **Starts** with your team's top conventions injected as context
+- **Surfaces** relevant past decisions before the agent writes code
+- **Ends** with new learnings captured and stored for all future agents
+- **Commits** all knowledge as human-readable markdown — reviewable in PRs, shareable without infrastructure
+
+### Installed files
+
+```
+your-project/
+├── .claude/
+│   ├── .mcp.json                  # Cipher MCP server config
+│   ├── settings.local.json        # Permissions + hook registrations
+│   ├── hooks/
+│   │   ├── xgh-session-start.sh   # Injects top-5 context files as JSON
+│   │   └── xgh-prompt-submit.sh   # Intent detection + decision table
+│   ├── skills/                    # 18 workflow + collaboration skills
+│   ├── commands/                  # 10 slash commands
+│   └── agents/
+│       └── xgh-collaboration-dispatcher.md
+├── CLAUDE.local.md                # Agent instructions with your team config
+└── .xgh/
+    └── context-tree/
+        └── _manifest.json         # Knowledge registry (grows over time)
+```
+
+---
+
+## Slash Commands
+
+| Command | Description |
+|---------|-------------|
+| `/xgh-briefing` | Session briefing — checks Slack, Jira, GitHub for actionable updates |
+| `/xgh-query <question>` | Search memory + context tree |
+| `/xgh-curate <knowledge>` | Store knowledge in Cipher + sync to context tree |
+| `/xgh-status` | Memory stats, context tree health, agent registry |
+| `/xgh-investigate` | MCP-powered investigation workflow (auto-detects Slack, Figma, Atlassian) |
+| `/xgh-implement <ticket>` | Ticket-to-implementation workflow |
+| `/xgh-implement-design` | Design-to-implementation workflow |
+| `/xgh-collaborate <workflow>` | Start multi-agent workflow |
+| `/xgh-setup` | Interactive MCP configuration wizard |
+
+---
+
+## Context Tree
+
+Knowledge is stored as structured markdown with YAML frontmatter:
+
+```yaml
+---
+title: JWT Token Refresh Strategy
+tags: [auth, jwt, security]
+keywords: [token, refresh]
+importance: 78          # 0-100, grows with usage
+recency: 0.8521         # exponential decay (half-life: 21 days)
+maturity: validated     # draft → validated → core
+accessCount: 12
+updateCount: 3
+createdAt: 2026-03-01T00:00:00Z
+updatedAt: 2026-03-10T14:30:00Z
+---
+
+Refresh tokens rotate on every use with a 7-day absolute expiry.
+We chose token rotation over sliding-window expiry to limit the
+blast radius of a stolen token...
+```
+
+### Maturity levels (with hysteresis)
+
+| Level | Promotion threshold | Demotion threshold | Effect |
+|-------|--------------------|--------------------|--------|
+| `draft` | — | — | Normal weight in search results |
+| `validated` | importance ≥ 65 | importance < 30 | Included in session injection |
+| `core` | importance ≥ 85 | importance < 25 | 1.15× score boost, always injected |
+
+Separate promotion/demotion thresholds prevent maturity flapping.
+
+### Context tree CLI
+
+```bash
+context-tree.sh init                          # Initialize context tree + manifest
+context-tree.sh create <path> <title> [body]  # Create entry with frontmatter
+context-tree.sh read <path>                   # Read entry (bumps importance)
+context-tree.sh update <path> <content>       # Append update section
+context-tree.sh delete <path>                 # Remove entry + archived counterparts
+context-tree.sh list                          # List entries with maturity/importance
+context-tree.sh search <query> [top]          # BM25 search with scoring
+context-tree.sh score <path> [event]          # Bump importance by event type
+context-tree.sh archive                       # Archive low-importance drafts
+context-tree.sh restore <archived-file>       # Restore from archive
+context-tree.sh sync curate <args...>         # Create entry via sync layer
+context-tree.sh sync query <query>            # Search via sync layer
+context-tree.sh sync refresh                  # Rebuild manifest + indexes
+```
+
+---
+
+## The Self-Learning Loop
+
+xgh enforces one iron law:
+
+> **Every coding session must query memory before writing code and curate learnings before ending.**
+
+| Hook / Trigger | What happens |
+|----------------|-------------|
+| Session start | Top-5 core/validated files injected as structured JSON (`contextFiles[]`) |
+| Every prompt | Intent detection classifies prompt as `code-change` or `general`, injects relevant actions |
+| Significant work completed | `cipher_extract_and_operate_memory` captures learnings |
+| Architectural decision made | `cipher_store_reasoning_memory` records the reasoning chain |
 
 ---
 
@@ -38,7 +177,7 @@ After installation:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      xgh MCS Tech Pack                      │
+│                      xgh Tech Pack                           │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  ┌──────────────┐    ┌──────────────┐    ┌───────────────┐ │
@@ -68,70 +207,25 @@ After installation:
 │                         ▼                                  │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │         .xgh/context-tree/  (git-committed)         │   │
-│  │  ├── domain/ → topic/ → subtopic/                   │   │
-│  │  ├── YAML frontmatter (importance, maturity)        │   │
-│  │  ├── _index.md (compressed summaries)               │   │
-│  │  └── _manifest.json (registry)                      │   │
+│  │  ├── domain/ → topic/ → entry.md                    │   │
+│  │  ├── YAML frontmatter (importance, recency, maturity│   │
+│  │  ├── _index.md (per-domain summary)                 │   │
+│  │  └── _manifest.json (flat entries[] registry)       │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Dual-Engine Search
+### Dual-engine search
 
 | Engine | Purpose | Storage | Search method |
 |--------|---------|---------|---------------|
 | **Cipher** | Semantic memory, reasoning traces | Qdrant vectors + SQLite | Vector similarity |
-| **Context Tree** | Human-readable knowledge, git-shareable | `.xgh/context-tree/*.md` | BM25 keyword + frontmatter scoring |
+| **Context Tree** | Human-readable knowledge, git-shareable | `.xgh/context-tree/*.md` | Field-weighted BM25 (title×3, tags×2, keywords×2, body×1) |
 
-Results are merged: `score = (0.5 × cipher_similarity + 0.3 × bm25 + 0.1 × importance + 0.1 × recency) × maturityBoost`
+**BM25-only:** `score = (0.6 × bm25 + 0.2 × importance/100 + 0.2 × recency) × maturityBoost`
 
----
-
-## Quick Start
-
-### Prerequisites
-
-- macOS or Linux
-- Bash 5+
-- Git
-
-Everything else (Homebrew, Ollama, Qdrant, Node.js for Cipher) is installed automatically.
-
-### Install with default preset (fully local, free)
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
-```
-
-### Install with a preset
-
-```bash
-# OpenAI (fastest, ~$0.01/session)
-XGH_PRESET=openai XGH_TEAM=my-team \
-  curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
-
-# Anthropic
-XGH_PRESET=anthropic XGH_TEAM=my-team \
-  curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
-
-# Local (no API keys, no cost)
-XGH_PRESET=local XGH_TEAM=my-team \
-  curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
-```
-
-### Custom team name and context tree path
-
-```bash
-XGH_TEAM=acme-frontend XGH_CONTEXT_PATH=.xgh/context-tree \
-  curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
-```
-
-### Uninstall
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/uninstall.sh | bash
-```
+**Cipher-merged:** `score = (0.5 × cipher + 0.3 × bm25 + 0.1 × importance/100 + 0.1 × recency) × maturityBoost`
 
 ---
 
@@ -147,88 +241,7 @@ xgh is **provider-agnostic**. Choose the preset that matches your infrastructure
 | `anthropic` | Claude Haiku | Ollama nomic-embed-text | Qdrant (local) | ~$0.01/session |
 | `cloud` | OpenRouter (configurable) | OpenAI embeddings | Qdrant Cloud | ~$0.02/session |
 
-Preset files are in `config/presets/`. You can add custom presets or override individual fields with environment variables.
-
----
-
-## What Gets Installed
-
-```
-your-project/
-├── .claude/
-│   ├── .mcp.json               # Cipher MCP server configuration
-│   ├── settings.local.json     # Claude Code permissions + hook registrations
-│   ├── hooks/
-│   │   ├── xgh-session-start.sh   # Context injection on session start
-│   │   └── xgh-prompt-submit.sh   # Decision table on every prompt
-│   ├── skills/
-│   │   └── xgh-mcp-setup/         # Interactive MCP configuration skill
-│   └── commands/
-│       └── xgh-setup.md           # /xgh-setup slash command
-├── CLAUDE.local.md             # Agent instructions with your team config
-└── .xgh/
-    └── context-tree/
-        └── _manifest.json      # Knowledge registry (grows over time)
-```
-
----
-
-## Slash Commands
-
-After installation, these commands are available in Claude Code:
-
-| Command | Description |
-|---------|-------------|
-| `/xgh-setup` | Interactive MCP configuration wizard |
-| `/xgh query <question>` | Search memory + context tree *(Plan 3)* |
-| `/xgh curate <knowledge>` | Store knowledge in Cipher + sync to context tree *(Plan 3)* |
-| `/xgh status` | Memory stats, context tree health, agent registry *(Plan 3)* |
-| `/xgh collaborate <workflow>` | Start multi-agent workflow *(Plan 5)* |
-
----
-
-## Context Tree
-
-Knowledge is stored as structured markdown with YAML frontmatter:
-
-```yaml
----
-title: JWT Token Refresh Strategy
-tags: [auth, jwt, security]
-importance: 78          # 0-100, grows with usage
-maturity: validated     # draft → validated (≥65) → core (≥85)
----
-
-## Raw Concept
-Refresh tokens rotate on every use with a 7-day absolute expiry.
-
-## Narrative
-We chose token rotation over sliding-window expiry to limit the
-blast radius of a stolen token...
-```
-
-**Maturity levels:**
-
-| Level | Importance threshold | Effect |
-|-------|---------------------|--------|
-| `draft` | < 65 | Normal weight in search results |
-| `validated` | ≥ 65 | Included in session injection |
-| `core` | ≥ 85 | ×1.15 score boost, always injected on session start |
-
----
-
-## The Self-Learning Loop
-
-xgh enforces one iron law:
-
-> **Every coding session must query memory before writing code and curate learnings before ending.**
-
-| Hook / Trigger | What happens |
-|----------------|-------------|
-| Session start | Top-5 core/validated knowledge files are injected as context |
-| Every prompt | Decision table guides the agent to query first, curate after |
-| Significant work completed | `cipher_extract_and_operate_memory` captures learnings |
-| Architectural decision made | `cipher_store_reasoning_memory` records the reasoning chain |
+Preset files are in `config/presets/`. Add custom presets or override individual fields with environment variables.
 
 ---
 
@@ -241,133 +254,34 @@ xgh's Cipher workspace acts as a **message bus** between agents. Any MCP-compati
 - **Codex** — fast implementation, code review (MCP + bash)
 - **Custom agents** — user-defined capabilities (MCP)
 
-Workflow templates for multi-agent patterns (`plan-review`, `parallel-impl`, `validation`, `security-review`) are implemented in Plan 5.
+### Workflow templates
+
+| Workflow | Pattern | Agents |
+|----------|---------|--------|
+| `plan-review` | Plan → review → implement | 2 agents |
+| `parallel-impl` | Parallel implementation | N agents |
+| `validation` | Implement → validate loop | 2 agents |
+| `security-review` | Implement → review → fix → re-review | 2-3 agents |
+
+Workflow templates are in `config/workflows/`. The collaboration dispatcher agent (`agents/collaboration-dispatcher.md`) orchestrates multi-agent workflows.
 
 ---
 
-## Implementation Roadmap
+## Optional Plugins
 
-The xgh development follows a 6-plan design-first roadmap. Each plan has a detailed implementation document in `docs/plans/` with task checklists.
+The installer offers two optional Claude Code plugins that complement xgh:
 
-### Progress Overview
+| Plugin | What it does | Author |
+|--------|-------------|--------|
+| [**context-mode**](https://github.com/mksglu/context-mode) | Session runtime optimizer — 98% context savings, sandboxed execution, FTS5 search, compaction recovery | mksglu |
+| [**superpowers**](https://github.com/obra/superpowers) | Development methodology — TDD, brainstorming, plan writing/execution, subagent-driven development, code review | obra |
 
+Install manually if you skipped during setup:
+
+```bash
+claude plugin marketplace add mksglu/context-mode && claude plugin install context-mode@context-mode
+claude plugin marketplace add claude-plugins-official/superpowers && claude plugin install superpowers@superpowers
 ```
-Overall: ██░░░░░░░░░░  17% (1 of 6 plans complete)
-```
-
----
-
-### Plan 1 — Foundation ✅ Complete
-
-> Scaffold, BYOP config system, one-liner installer
-
-**Delivered:**
-- [x] `techpack.yaml` — MCS tech pack manifest
-- [x] `install.sh` — standalone one-liner installer (Brew, Ollama, Qdrant, Cipher MCP, hooks, skills, commands, context tree, gitignore, `CLAUDE.local.md`)
-- [x] `uninstall.sh` — clean removal script
-- [x] `config/presets/` — 5 BYOP provider presets (local, local-light, openai, anthropic, cloud)
-- [x] `config/settings.json` — Claude Code tool permissions
-- [x] `config/hooks-settings.json` — hook event registrations
-- [x] `templates/instructions.md` — `CLAUDE.local.md` template with placeholder substitution
-- [x] `scripts/configure.sh` — post-install context tree setup
-- [x] `tests/test-install.sh`, `test-config.sh`, `test-techpack.sh`, `test-uninstall.sh`
-
-📄 [Plan 1 document](docs/plans/2026-03-13-plan-1-foundation.md)
-
----
-
-### Plan 2 — Context Tree Engine ⏳ Not started
-
-> CRUD operations, BM25 search, scoring/maturity, archival, Cipher sync
-
-**Will deliver:**
-- [ ] `scripts/context-tree.sh` — main dispatcher (create/read/update/delete/list/search/score/archive/sync)
-- [ ] `scripts/ct-frontmatter.sh` — YAML frontmatter parse/write helpers
-- [ ] `scripts/ct-scoring.sh` — importance/recency/maturity calculations
-- [ ] `scripts/ct-manifest.sh` — manifest + `_index.md` management
-- [ ] `scripts/ct-archive.sh` — archival and restore logic
-- [ ] `scripts/ct-search.sh` — BM25 + Cipher result merge
-- [ ] `scripts/ct-sync.sh` — curate + query orchestration
-- [ ] `scripts/bm25.py` — Python TF-IDF/BM25 search engine
-- [ ] `tests/test-ct-*.sh` — full test suite for all context tree operations
-
-📄 [Plan 2 document](docs/plans/2026-03-13-plan-2-context-tree.md)
-
----
-
-### Plan 3 — Hooks & Core Skills ⏳ Not started
-
-> Replace placeholder hooks, implement 5 core skills + 3 slash commands
-
-**Will deliver:**
-- [ ] `hooks/session-start.sh` — real implementation (load context tree, inject top-5 knowledge files)
-- [ ] `hooks/prompt-submit.sh` — real implementation (inject decision table, auto-query/auto-curate)
-- [ ] `skills/continuous-learning/` — iron law enforcement skill
-- [ ] `skills/curate-knowledge/` — knowledge curation guidance
-- [ ] `skills/query-strategies/` — tiered query routing
-- [ ] `skills/context-tree-maintenance/` — scoring, maturity, archival
-- [ ] `skills/memory-verification/` — verify store/retrieve correctness
-- [ ] `commands/query.md` — `/xgh query` slash command
-- [ ] `commands/curate.md` — `/xgh curate` slash command
-- [ ] `commands/status.md` — `/xgh status` slash command
-- [ ] `tests/test-hooks.sh`, `test-skills.sh`, `test-commands.sh`
-
-📄 [Plan 3 document](docs/plans/2026-03-13-plan-3-hooks-and-skills.md)
-
----
-
-### Plan 4 — Team Collaboration Skills ⏳ Not started
-
-> 6 team collaboration skills, `/xgh-collaborate` command, collaboration dispatcher agent
-
-**Will deliver:**
-- [ ] `skills/pr-context-bridge/` — auto-curate PR reasoning
-- [ ] `skills/knowledge-handoff/` — structured handoff on merge
-- [ ] `skills/convention-guardian/` — enforce team conventions
-- [ ] `skills/cross-team-pollinator/` — org-wide knowledge sharing
-- [ ] `skills/subagent-pair-programming/` — TDD via spec writer + implementer
-- [ ] `skills/onboarding-accelerator/` — new dev context bootstrapping
-- [ ] `commands/collaborate.md` — `/xgh-collaborate` command
-- [ ] `agents/collaboration-dispatcher.md` — multi-agent orchestration agent
-- [ ] `tests/test-team-skills.sh`, `test-collaborate-command.sh`, `test-collaboration-agent.sh`
-
-📄 [Plan 4 document](docs/plans/2026-03-13-plan-4-team-collaboration.md)
-
----
-
-### Plan 5 — Multi-Agent Collaboration Bus ⏳ Not started
-
-> Agent registry, workflow templates, message protocol, dispatcher
-
-**Will deliver:**
-- [ ] `config/agents.yaml` — agent registry (Claude Code, Codex, Cursor, custom)
-- [ ] `config/workflows/plan-review.yaml` — 2-agent plan→review→implement
-- [ ] `config/workflows/parallel-impl.yaml` — N-agent parallel implementation
-- [ ] `config/workflows/validation.yaml` — implement→validate loop
-- [ ] `config/workflows/security-review.yaml` — implement→review→fix→re-review
-- [ ] `skills/agent-collaboration/` — message protocol + dispatch conventions skill
-- [ ] `agents/collaboration-dispatcher.md` — orchestration agent
-- [ ] `commands/xgh-collaborate.md` — `/xgh-collaborate` command
-- [ ] `tests/test-multi-agent.sh`
-
-📄 [Plan 5 document](docs/plans/2026-03-13-plan-5-multi-agent.md)
-
----
-
-### Plan 6 — Workflow Skills ⏳ Not started
-
-> `xgh:investigate`, `xgh:implement-design`, `xgh:implement-ticket` — MCP-powered workflow skills
-
-**Will deliver:**
-- [ ] `skills/investigate/investigate.md` — Superpowers-style investigation workflow with MCP auto-detection (Slack, Figma, Atlassian)
-- [ ] `skills/implement-design/implement-design.md` — design-to-implementation workflow
-- [ ] `skills/implement-ticket/implement-ticket.md` — ticket-to-implementation workflow
-- [ ] `commands/investigate.md` — `/xgh investigate` command
-- [ ] `commands/implement-design.md` — `/xgh implement-design` command
-- [ ] `commands/implement.md` — `/xgh implement` command
-- [ ] `tests/test-workflow-skills.sh`
-
-📄 [Plan 6 document](docs/plans/2026-03-13-plan-6-workflow-skills.md)
 
 ---
 
@@ -386,13 +300,31 @@ xgh includes ready-made agent instruction files for every major AI platform:
 
 ---
 
+## Implementation Status
+
+All 7 plans are complete. 18 skills, 10 commands, 4 workflow templates, 22 test suites.
+
+| Plan | Scope | Status |
+|------|-------|--------|
+| 1 — Foundation | Scaffold, BYOP config, one-liner installer | ✅ |
+| 2 — Context Tree Engine | CRUD, BM25 search, scoring/maturity, archival, sync | ✅ |
+| 3 — Hooks & Core Skills | Session-start/prompt-submit hooks, 5 core skills, 3 commands | ✅ |
+| 4 — Team Collaboration | 6 team skills, collaborate command, dispatcher agent | ✅ |
+| 5 — Multi-Agent Bus | Agent registry, 4 workflow templates, message protocol | ✅ |
+| 6 — Workflow Skills | investigate, implement-design, implement-ticket workflows | ✅ |
+| 7 — Best-of-Both Merge | Sourceable library architecture, flat manifest, structured JSON hooks | ✅ |
+
+Plan documents are in `docs/plans/`. Design specs are in `docs/superpowers/specs/`.
+
+---
+
 ## Contributing
 
-1. Read [`AGENTS.md`](AGENTS.md) — development conventions, test commands, implementation status
+1. Read [`AGENTS.md`](AGENTS.md) — development conventions and implementation status
 2. Read the relevant plan in `docs/plans/` for the area you are working on
 3. Write a failing test first (`tests/`)
 4. Implement the feature
-5. Run all tests: `bash tests/test-install.sh && bash tests/test-config.sh && bash tests/test-techpack.sh`
+5. Run tests: `for t in tests/test-*.sh; do bash "$t"; done`
 6. Open a PR — context tree diffs are normal and expected
 
 ### Development tips
@@ -404,8 +336,13 @@ XGH_DRY_RUN=1 XGH_LOCAL_PACK=. bash install.sh
 # Test with a specific preset
 XGH_DRY_RUN=1 XGH_LOCAL_PACK=. XGH_PRESET=openai bash install.sh
 
-# Run individual tests
-bash tests/test-config.sh
+# Run individual test suites
+bash tests/test-ct-integration.sh    # Full context tree lifecycle
+bash tests/test-hooks.sh             # Hook JSON output
+bash tests/test-install.sh           # Installer
+
+# Run all tests
+for t in tests/test-*.sh; do echo -n "$(basename $t): "; bash "$t" 2>&1 | tail -1; done
 ```
 
 ---
@@ -421,8 +358,6 @@ The full architecture is documented in [`docs/plans/2026-03-13-xgh-design.md`](d
 - Multi-agent collaboration bus and message protocol
 - Superpowers-inspired skill methodology
 - CLI commands and skill reference
-- Team collaboration patterns
-- Workflow skills (investigate, implement-design, implement-ticket)
 
 ---
 
