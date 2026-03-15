@@ -23,20 +23,20 @@ assert_contains() {
 }
 
 assert_file_exists "skills/investigate/investigate.md"
-assert_file_exists "skills/implement-design/implement-design.md"
-assert_file_exists "skills/implement-ticket/implement-ticket.md"
+assert_file_exists "skills/design/design.md"
+assert_file_exists "skills/implement/implement.md"
 
 assert_contains "skills/investigate/investigate.md" "MCP"
 assert_contains "skills/investigate/investigate.md" "investigate"
-assert_contains "skills/implement-design/implement-design.md" "design"
-assert_contains "skills/implement-ticket/implement-ticket.md" "ticket"
+assert_contains "skills/design/design.md" "design"
+assert_contains "skills/implement/implement.md" "ticket"
 
 assert_file_exists "commands/investigate.md"
-assert_file_exists "commands/implement-design.md"
+assert_file_exists "commands/design.md"
 assert_file_exists "commands/implement.md"
 
 assert_contains "commands/investigate.md" "/xgh investigate"
-assert_contains "commands/implement-design.md" "/xgh implement-design"
+assert_contains "commands/design.md" "/xgh implement-design"
 assert_contains "commands/implement.md" "/xgh implement"
 
 
