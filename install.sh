@@ -699,7 +699,7 @@ Warning: **Cipher extraction failed** ($stats). The 3B model filtered out the co
 **You MUST store this directly.** Use \`ctx_execute\` with JavaScript:
 \`\`\`javascript
 const { storeWithDedup } = require(process.env.HOME + '/.local/lib/qdrant-store.js');
-const result = await storeWithDedup('knowledge_memory', TEXT, ['tag1'], { domain: 'iOS', projectId: 'tr-ios' });
+const result = await storeWithDedup('knowledge_memory', TEXT, ['tag1'], { domain: 'iOS', projectId: 'acme-ios' });
 console.log(JSON.stringify(result));
 \`\`\`
 Pass the ORIGINAL text that was meant to be stored. Do NOT ask the user — just retry automatically.
@@ -853,7 +853,7 @@ Use `ctx_execute` with JavaScript, requiring the shared helper:
 ```javascript
 const { storeWithDedup, search } = require(process.env.HOME + '/.local/lib/qdrant-store.js');
 const result = await storeWithDedup('knowledge_memory', text, ['tag1', 'tag2'], {
-  domain: 'iOS', projectId: 'tr-ios', source: 'docs/kb'
+  domain: 'iOS', projectId: 'acme-ios', source: 'docs/kb'
 });
 console.log(JSON.stringify(result));
 ```
@@ -869,7 +869,7 @@ console.log(JSON.stringify(result));
 | domain | string | e.g. "iOS", "devops" |
 | confidence | float | 0.95 default |
 | event | string | "ADD" |
-| projectId | string | e.g. "tr-ios" |
+| projectId | string | e.g. "acme-ios" |
 
 ## Collections
 
