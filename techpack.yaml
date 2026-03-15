@@ -78,6 +78,81 @@ components:
       - ".claude/settings.local.json"
     description: "Gitignore rules for local-only and ephemeral files"
 
+  - id: ingest-config-template
+    type: configFile
+    source: config/ingest-template.yaml
+    description: "Central ingest config — edit profile section and run /xgh-track to add projects"
+
+  - id: workspace-write
+    type: script
+    source: lib/workspace-write.js
+    description: "Direct Qdrant write helper — generates embeddings matching Cipher's config"
+
+  - id: ingest-retrieve-skill
+    type: skill
+    source: skills/ingest-retrieve/ingest-retrieve.md
+    description: "Headless retriever loop — scans Slack/Jira/Confluence/GitHub/Figma every 5 min"
+
+  - id: ingest-analyze-skill
+    type: skill
+    source: skills/ingest-analyze/ingest-analyze.md
+    description: "Headless analyzer loop — classifies, deduplicates, writes to Cipher every 30 min"
+
+  - id: ingest-track-skill
+    type: skill
+    source: skills/ingest-track/ingest-track.md
+    description: "Interactive project onboarding — adds new projects to ingest.yaml"
+
+  - id: ingest-doctor-skill
+    type: skill
+    source: skills/ingest-doctor/ingest-doctor.md
+    description: "Pipeline health check — config, connectivity, scheduler freshness, workspace stats"
+
+  - id: ingest-index-repo-skill
+    type: skill
+    source: skills/ingest-index-repo/ingest-index-repo.md
+    description: "Codebase architecture extraction — quick (~5min) and full (~30min) modes"
+
+  - id: ingest-calibrate-skill
+    type: skill
+    source: skills/ingest-calibrate/ingest-calibrate.md
+    description: "Dedup threshold calibration with F1 scoring — interactive, headless, comparison modes"
+
+  - id: ingest-retrieve-command
+    type: command
+    source: commands/ingest-retrieve.md
+    description: "/xgh-retrieve — run retrieval loop (also invoked by scheduler)"
+
+  - id: ingest-analyze-command
+    type: command
+    source: commands/ingest-analyze.md
+    description: "/xgh-analyze — run analysis loop (also invoked by scheduler)"
+
+  - id: ingest-track-command
+    type: command
+    source: commands/ingest-track.md
+    description: "/xgh-track — add a new project to ingest monitoring"
+
+  - id: ingest-doctor-command
+    type: command
+    source: commands/ingest-doctor.md
+    description: "/xgh-doctor — validate full pipeline health"
+
+  - id: ingest-index-repo-command
+    type: command
+    source: commands/ingest-index-repo.md
+    description: "/xgh-index-repo [path] [--depth quick|full] — index a codebase"
+
+  - id: ingest-calibrate-command
+    type: command
+    source: commands/ingest-calibrate.md
+    description: "/xgh-calibrate [--auto] [--compare] — calibrate dedup threshold"
+
+  - id: ingest-schedule
+    type: script
+    source: scripts/ingest-schedule.sh
+    description: "Install/uninstall xgh ingest scheduler — launchd on macOS, cron on Linux"
+
 optionalPlugins:
   - id: context-mode
     marketplace: mksglu/context-mode

@@ -1027,6 +1027,38 @@ exec vllm-mlx serve "\${XGH_LLM_MODEL}" \\
 STARTEOF
 chmod +x "${SCRIPTS_DIR}/start-models.sh"
 
+# ── xgh-ingest setup ──────────────────────────────────────
+if [ "$XGH_DRY_RUN" -eq 0 ]; then
+  info "Setting up xgh-ingest directories and helpers..."
+
+  mkdir -p "$HOME/.xgh/inbox/processed"
+  mkdir -p "$HOME/.xgh/logs"
+  mkdir -p "$HOME/.xgh/digests"
+  mkdir -p "$HOME/.xgh/calibration"
+  mkdir -p "$HOME/.xgh/lib"
+  mkdir -p "$HOME/.xgh/schedulers"
+
+  # Copy lib helpers
+  cp "${PACK_DIR}/lib/workspace-write.js"  "$HOME/.xgh/lib/"
+  cp "${PACK_DIR}/lib/config-reader.sh"    "$HOME/.xgh/lib/"
+  cp "${PACK_DIR}/lib/usage-tracker.sh"    "$HOME/.xgh/lib/"
+  chmod +x "$HOME/.xgh/lib/config-reader.sh" "$HOME/.xgh/lib/usage-tracker.sh"
+
+  # Copy config template only if ~/.xgh/ingest.yaml doesn't exist yet
+  if [ ! -f "$HOME/.xgh/ingest.yaml" ]; then
+    cp "${PACK_DIR}/config/ingest-template.yaml" "$HOME/.xgh/ingest.yaml"
+    info "Created ~/.xgh/ingest.yaml — edit your profile, then run /xgh-track to add projects"
+  fi
+
+  # Copy scheduler templates
+  cp "${PACK_DIR}/scripts/schedulers/com.xgh.retriever.plist" "$HOME/.xgh/schedulers/"
+  cp "${PACK_DIR}/scripts/schedulers/com.xgh.analyzer.plist"  "$HOME/.xgh/schedulers/"
+  cp "${PACK_DIR}/scripts/ingest-schedule.sh" "$HOME/.xgh/lib/"
+  chmod +x "$HOME/.xgh/lib/ingest-schedule.sh"
+
+  info "Run 'xgh-doctor' to validate the pipeline, or '~/.xgh/lib/ingest-schedule.sh install' to start the scheduler"
+fi
+
 # ── Done ─────────────────────────────────────────────────
 echo ""
 echo "🐴 xgh installed successfully!"

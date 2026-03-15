@@ -31,5 +31,16 @@ _cap=$(xgh_config_get "budget.daily_token_cap")
 if [ "$_cap" = "500000" ]; then PASS=$((PASS+1)); else echo "FAIL: xgh_config_get returned '$_cap', expected '500000'"; FAIL=$((FAIL+1)); fi
 export HOME="$_HOME_BAK"
 
+# Config template must exist in repo
+assert_file_exists "config/ingest-template.yaml"
+# Schedulers must exist
+assert_file_exists "scripts/schedulers/com.xgh.retriever.plist"
+assert_file_exists "scripts/schedulers/com.xgh.analyzer.plist"
+assert_file_exists "scripts/ingest-schedule.sh"
+# techpack references all ingest components
+assert_contains "techpack.yaml" "ingest-retrieve-skill"
+assert_contains "techpack.yaml" "ingest-analyze-skill"
+assert_contains "techpack.yaml" "workspace-write"
+
 echo ""; echo "Results: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1
