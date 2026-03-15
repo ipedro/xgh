@@ -571,7 +571,7 @@ Since `cipher_workspace_store` is internal-only (not agent-callable), the analyz
   progressStatus: "spec_change",
   bugs: [],
   workContext: {
-    repository: "trade-republic/tr-ios",
+    repository: "acme-corp/acme-ios",
     branch: "feature/passcode-biometric",
     jiraTicket: "PTECH-31204"
   },
@@ -631,7 +631,7 @@ $ /xgh-track
   ✓ Stored reference
 
 > GitHub repos (optional):
-  trade-republic/tr-ios
+  acme-corp/acme-ios
   ✓ Found. Index codebase now? [y/n]: y
   → Running /xgh-index-repo quick mode...
 
@@ -658,7 +658,7 @@ projects:
     confluence:
       - /spaces/PTECH/pages/rfc-passcode-v2
     github:
-      - trade-republic/tr-ios
+      - acme-corp/acme-ios
     figma:
       - https://figma.com/design/abc123/passcode-screens
     rfcs:
@@ -779,7 +779,7 @@ Workspace
   ✓ Last write: 28 min ago
 
 Codebase Index
-  ✓ tr-ios: last indexed 2 days ago (schedule: weekly — OK)
+  ✓ acme-ios: last indexed 2 days ago (schedule: weekly — OK)
   ✗ passcode-service: never indexed — run /xgh-index-repo
 ```
 
