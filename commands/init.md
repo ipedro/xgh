@@ -5,6 +5,8 @@ description: First-run onboarding. Verifies MCP connections, sets up profile, ad
 
 # /xgh-init — First-Run Onboarding
 
+> **Output format:** Follow the [xgh output style guide](../templates/output-style.md). Start with `## 🐴🤖 xgh init`. Use markdown tables for structured data. Use ✅ ⚠️ ❌ for status.
+
 Run the `xgh:init` skill for the complete first-time setup experience after installing xgh.
 
 ## Usage
@@ -23,6 +25,7 @@ No arguments. The skill walks you through everything interactively.
 4. **Initial retrieval** — backfills recent Slack messages and linked resources
 5. **Team profiling** (optional) — runs `/xgh-profile` for each team member
 6. **Index codebase** (optional) — runs `/xgh-index` in quick mode
+7. **Initial curation** (optional) — asks if you want to capture initial knowledge (architecture decisions, team conventions, known gotchas). If yes, invokes `/xgh-curate` interactively.
 
 ## Prerequisites
 

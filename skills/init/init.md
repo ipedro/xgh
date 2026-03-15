@@ -34,6 +34,7 @@ I'll walk you through first-time setup. This takes about 5 minutes and covers:
   4. Run initial retrieval
   5. (Optional) Profile your team
   6. (Optional) Index your codebase
+  7. (Optional) Curate initial knowledge
 
 Let's get started.
 ```
@@ -257,7 +258,29 @@ If **no** (or user skips): Continue to Step 7.
 
 ---
 
-## Step 7 — Summary
+## Step 7 — Initial Curation (Optional)
+
+Ask:
+
+```
+Want to curate any initial knowledge? (architecture decisions, team conventions, known gotchas)
+This captures important context that helps future sessions work better.
+You can skip this and do it later with /xgh-curate.
+
+Curate initial knowledge now? [y/N]
+```
+
+If **yes**:
+
+1. Invoke the `xgh:curate` skill interactively.
+2. Let the user capture as many items as they want.
+3. When done, show a summary of what was stored.
+
+If **no** (or user skips): Continue to Step 8.
+
+---
+
+## Step 8 — Summary
 
 Print a final recap of everything that was configured:
 
@@ -320,3 +343,4 @@ This skill chains together existing skills rather than duplicating their logic:
 | Step 4 — Retrieval | `xgh:retrieve` single cycle |
 | Step 5 — Team profiles | `xgh:profile` per engineer |
 | Step 6 — Index codebase | `xgh:index` quick mode |
+| Step 7 — Initial curation | `xgh:curate` interactive |
