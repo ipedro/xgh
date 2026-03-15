@@ -836,24 +836,32 @@ json.dump(settings, open('${SETTINGS_FILE}', 'w'), indent=2)
 " 2>/dev/null || warn "Could not add cipher hooks to settings — add them manually"
 
 # ── 7. Skills + Commands + Agents ────────────────────────
-info "Installing skills, commands, and agents..."
-mkdir -p "${CLAUDE_DIR}/skills" "${CLAUDE_DIR}/commands" "${CLAUDE_DIR}/agents"
+# Respect the same scope choice as hooks (global vs project)
+if [ "$XGH_HOOKS_SCOPE" = "global" ]; then
+  INSTALL_DIR="${HOME}/.claude"
+  info "Installing skills, commands, and agents globally (~/.claude)..."
+else
+  INSTALL_DIR="${CLAUDE_DIR}"
+  info "Installing skills, commands, and agents to project (.claude)..."
+fi
+
+mkdir -p "${INSTALL_DIR}/skills" "${INSTALL_DIR}/commands" "${INSTALL_DIR}/agents"
 
 for skill_dir in "${PACK_DIR}/skills/"*/; do
   [ -d "$skill_dir" ] || continue
   skill_name=$(basename "$skill_dir")
   [ "$skill_name" = ".gitkeep" ] && continue
-  cp -r "$skill_dir" "${CLAUDE_DIR}/skills/xgh-${skill_name}"
+  cp -r "$skill_dir" "${INSTALL_DIR}/skills/xgh-${skill_name}"
 done
 
 for cmd in "${PACK_DIR}/commands/"*.md; do
   [ -f "$cmd" ] || continue
-  cp "$cmd" "${CLAUDE_DIR}/commands/xgh-$(basename "$cmd")"
+  cp "$cmd" "${INSTALL_DIR}/commands/xgh-$(basename "$cmd")"
 done
 
 for agent in "${PACK_DIR}/agents/"*.md; do
   [ -f "$agent" ] || continue
-  cp "$agent" "${CLAUDE_DIR}/agents/xgh-$(basename "$agent")"
+  cp "$agent" "${INSTALL_DIR}/agents/xgh-$(basename "$agent")"
 done
 
 # -- store-memory skill (global, for direct Qdrant storage bypassing cipher extraction) --
@@ -1115,6 +1123,8 @@ echo "  Embeddings:   ${XGH_EMBED_MODEL}"
 echo "  Context tree: ${XGH_CONTEXT_TREE}/"
 echo "  Cipher MCP:   .claude/.mcp.json (using cipher-mcp wrapper)"
 echo "  Hooks:        ${HOOKS_DIR}/xgh-*.sh + cipher-{pre,post}-hook.sh (${XGH_HOOKS_SCOPE})"
+echo "  Commands:     ${INSTALL_DIR}/commands/xgh-*.md (${XGH_HOOKS_SCOPE})"
+echo "  Skills:       ${INSTALL_DIR}/skills/xgh-* (${XGH_HOOKS_SCOPE})"
 echo "  Skill:        ~/.claude/skills/store-memory/"
 echo ""
 echo "  To start the model server:"
