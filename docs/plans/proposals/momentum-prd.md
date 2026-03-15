@@ -49,7 +49,7 @@ Developer opens session → Agent presents briefing → Developer says "continue
 | Time-to-productive (session start to first meaningful action) | 2-5 minutes | <15 seconds | Timestamp delta: session start to first code edit or command |
 | Context accuracy (briefing matches developer's intent) | N/A | >90% of sessions | User does not correct or override the briefing |
 | Session pickup rate (developer continues suggested work) | N/A | >70% | Developer responds "continue" or equivalent vs. starting fresh |
-| Briefing generation time | N/A | <2 seconds | Wall-clock time from session start to briefing render |
+| Briefing generation time | N/A | <500ms (P0), <2s (P1 with Cipher) | Wall-clock time from session start to briefing render |
 | Capture overhead per session | N/A | <100ms | Time added to session-end flow |
 | Developer satisfaction (weekly pulse) | N/A | >4/5 | Optional one-question survey |
 | Cross-session continuity (same task resumed across sessions) | Unknown | Measurable | Track task IDs across session snapshots |
@@ -122,16 +122,18 @@ These requirements form the minimum viable Momentum. Without all of them, the fe
 
 | ID | Requirement | Acceptance Criteria |
 |----|------------|-------------------|
-| **M-P0-01** | **Session snapshot capture:** At session end (or natural stopping point), automatically capture a structured YAML snapshot to `.xgh/momentum/latest.yaml`. | Snapshot includes: `session_id`, `branch`, `active_task`, `status`, `next_steps[]`, `blockers[]`, `modified_files[]`, `uncommitted_changes` (bool). File is written in <100ms. |
-| **M-P0-02** | **Session snapshot restore:** At session start, read `.xgh/momentum/latest.yaml` and compose a Momentum Briefing injected into the agent's initial context. | Briefing renders in <2s. Briefing includes: time since last session, branch name, task summary, next steps, uncommitted changes status. |
-| **M-P0-03** | **SessionEnd hook:** New hook `hooks/xgh-session-end-momentum.sh` that fires on session end to trigger snapshot capture. | Hook registered in `hooks-settings.json` under `SessionEnd` event. Hook exits 0 even on capture failure (non-blocking). |
+| **M-P0-01** | **Agent-side semantic state capture:** At natural stopping points (before commits, PR creation, sign-off), the agent writes semantic session state (task, next_steps, blockers, decisions, open_files) to `.xgh/momentum/agent-state.yaml`. | Agent instruction includes explicit snapshot-write triggers. `agent-state.yaml` includes: `session_id`, `active_task`, `status`, `next_steps[]`, `blockers[]`, `open_decisions[]`, `open_files[]`. File is written even if SessionEnd hook never fires. |
+| **M-P0-02** | **Session snapshot restore:** At session start, read `.xgh/momentum/latest.yaml` and compose a Momentum Briefing injected into the agent's initial context. | Briefing renders in <500ms (local YAML + git only). Briefing includes: time since last session, branch name, task summary, next steps, uncommitted changes status. P1 with Cipher semantic enrichment: <2s. |
+| **M-P0-03** | **SessionEnd hook (backup capture):** New hook `hooks/xgh-session-end-momentum.sh` that fires on session end as a **safety net**. The hook reads `agent-state.yaml` (written by the agent), enriches it with git state (branch, dirty files, recent commits, stash count), and writes the final `.xgh/momentum/latest.yaml`. If `agent-state.yaml` is missing (agent did not write it), the hook captures git-only state. | Hook registered in `hooks-settings.json` under `SessionEnd` event. Hook exits 0 even on capture failure (non-blocking). `latest.yaml` is always the merged result of agent semantic state + hook git state. |
 | **M-P0-04** | **SessionStart integration:** Extend the existing `session-start.sh` hook to invoke Momentum restore after context tree loading. | Momentum briefing appended to session-start output. If no snapshot exists, no briefing is shown (graceful no-op). |
 | **M-P0-05** | **Local snapshot storage:** Snapshots stored in `.xgh/momentum/` directory, git-ignored. | Directory created on first capture. `.gitignore` pattern `.xgh/momentum/` added by installer. `latest.yaml` is always the most recent. |
 | **M-P0-06** | **Snapshot retention:** Configurable retention period (default: 30 days). Old snapshots archived as `{session_id}.yaml`. | Config key: `modules.momentum.snapshot_retention`. Cleanup runs on each capture. |
 | **M-P0-07** | **Graceful first session:** On the very first session (no snapshot exists), Momentum produces no briefing — no error, no empty output, no confusion. | First session is indistinguishable from a non-Momentum session. On the second session, the magic begins. |
 | **M-P0-08** | **`/xgh-momentum` skill:** Skill file `skills/momentum/momentum.md` and command `commands/momentum.md` for on-demand briefing invocation. | Skill shows current Momentum state. Supports `--status` flag to show last snapshot without composing a full briefing. |
 | **M-P0-09** | **Git state enrichment:** Snapshot capture includes git branch, uncommitted file count, stash count, and most recent commit hash. | `git status --porcelain`, `git stash list`, `git log -1 --format=%H` are captured. Adds <50ms to capture time. |
-| **M-P0-10** | **Config integration:** Momentum configuration lives in `.xgh/config.yaml` under `modules.momentum`. | Keys: `enabled` (bool), `tier` (core/enhanced/enterprise), `snapshot_retention` (int, days), `briefing_verbosity` (auto/minimal/detailed). |
+| **M-P0-10** | **Config integration:** Momentum configuration lives in `.xgh/config.yaml` under `modules.momentum`. | Keys: `enabled` (bool), `snapshot_retention` (int, days), `briefing_verbosity` (auto/minimal/detailed). |
+| **M-P0-11** | **Agent-initiated snapshot writes:** Agent writes snapshot at natural stopping points (before commits, PR creation, sign-off). The SessionEnd hook is a safety net, not the primary capture mechanism. | Agent instruction includes explicit snapshot-write triggers. Snapshot is written even if hook never fires. |
+| **M-P0-12** | **techpack.yaml registration:** Momentum components (hook, skill, command, config) registered as components in `techpack.yaml`. | New component IDs: `momentum-session-end-hook`, `momentum-skill`, `momentum-command`. Components follow existing schema patterns. |
 
 ### 3.2 Should Have (P1) — Enhanced Features
 
@@ -139,13 +141,11 @@ These features differentiate Momentum from a simple "last session" log. They req
 
 | ID | Requirement | Acceptance Criteria |
 |----|------------|-------------------|
-| **M-P1-01** | **Semantic session memory (Layer 2):** At session end, store a semantic summary of the session in Cipher. At session start, query Cipher for recent session summaries to enrich the briefing beyond the local snapshot. | Cipher memory tagged with `type: momentum-session`. Query retrieves last 5 sessions by recency. Briefing shows multi-session narrative, not just the last one. |
+| **M-P1-01** | **Semantic session memory (Layer 2):** At session end, store a semantic summary of the session in Cipher. At session start, query Cipher for recent session summaries to enrich the briefing beyond the local snapshot. | Cipher memory tagged with `type: momentum-session`. Query retrieves last 5 sessions by recency. Briefing shows multi-session narrative, not just the last one. Restore budget with Cipher enrichment: <2s. |
 | **M-P1-02** | **Open decisions tracking:** Snapshot captures explicit open decisions with the developer's "leaning" and reasoning. Briefing surfaces these prominently. | YAML schema: `open_decisions[].question`, `.leaning`, `.reason`. Briefing renders as "Open decision: [question]. You were leaning toward [leaning] because [reason]." |
 | **M-P1-03** | **Historical views:** `/xgh-momentum --yesterday` and `/xgh-momentum --week` flags that aggregate multiple session snapshots into a summary. | `--yesterday` shows all sessions from the previous calendar day. `--week` shows the last 7 calendar days. Output is structured with per-session entries and a roll-up summary. |
 | **M-P1-04** | **Multi-branch tracking:** When the developer switches branches during a session, Momentum captures per-branch state. Briefing shows all active branches, not just the current one. | Snapshot includes `branches[]` array. Each entry: `name`, `last_active`, `task`, `status`. Briefing highlights: "You also have work in progress on `fix/token-refresh` (last touched 2 days ago)." |
 | **M-P1-05** | **Briefing verbosity auto-tuning:** `briefing_verbosity: auto` adjusts briefing length based on time gap. Short gap (<1 hour): minimal (2-3 lines). Long gap (>24 hours): detailed (full briefing with all context). | Verbosity thresholds: <1h = minimal, 1-8h = standard, 8-24h = detailed, >24h = full. Developer can override with explicit `minimal` or `detailed` in config. |
-| **M-P1-06** | **Standup generation:** `/xgh-momentum --standup` generates a standup-formatted summary from yesterday's sessions. | Output format: "Yesterday: [bullet list of completed/in-progress work]. Today: [planned next steps from latest snapshot]. Blockers: [list or 'none']." Suitable for pasting into Slack. |
-| **M-P1-07** | **techpack.yaml registration:** Momentum components (hook, skill, command, config) registered as components in `techpack.yaml`. | New component IDs: `momentum-session-end-hook`, `momentum-skill`, `momentum-command`. Components follow existing schema patterns. |
 
 ### 3.3 Nice to Have (P2) — Future Possibilities
 
@@ -159,6 +159,7 @@ These are features Momentum enables but does not implement in v1. They are docum
 | **M-P2-04** | **Flow state detection:** Track session patterns (duration, interruption frequency, task focus ratio). Adapt briefing style: long uninterrupted session = minimal briefing, scattered day = detailed briefing with prioritized next steps. | Requires >10 sessions of history. Metric: session duration variance, task switch count. Output: `flow_profile: focused | scattered | exploring`. |
 | **M-P2-05** | **Linked workspace momentum:** Cross-project continuity via the linked workspaces feature. "You were updating swift-mock-kit to support the new auth flow in tr-ios. tr-ios merged the auth changes yesterday." | Requires linked workspaces feature. Momentum queries linked projects' snapshots for cross-references. |
 | **M-P2-06** | **Session analytics dashboard:** `/xgh-momentum --analytics` showing focus time, context-switching frequency, task completion patterns over 30 days. | Output: table with per-day summary (sessions, focus time, tasks completed, context switches). Trend indicators (arrows). |
+| **M-P2-07** | **Standup generation:** `/xgh-momentum --standup` generates a standup-formatted summary from yesterday's sessions. | Output format: "Yesterday: [bullet list of completed/in-progress work]. Today: [planned next steps from latest snapshot]. Blockers: [list or 'none']." Suitable for pasting into Slack. |
 
 ---
 
@@ -172,15 +173,17 @@ Momentum's capture layer is completely invisible to the developer. There is no U
 
 1. **Continuous observation:** The agent passively tracks which files are modified, which branch is active, what task is being worked on, and what decisions are made. This uses information already available in the session context — no additional tool calls.
 
-2. **Natural stopping point detection:** When the agent detects a logical pause (commit, PR creation, explicit "I'm done for now", or session timeout), it prepares the snapshot.
+2. **Agent writes semantic state (primary mechanism):** When the agent detects a logical pause (commit, PR creation, explicit "I'm done for now"), it writes `.xgh/momentum/agent-state.yaml` with the semantic session state: active task, next steps, blockers, open decisions, and open files. This happens at every natural stopping point, ensuring state is captured even if the session ends abruptly.
 
-3. **SessionEnd hook fires:** `hooks/xgh-session-end-momentum.sh` executes. It:
+3. **SessionEnd hook fires (safety net):** `hooks/xgh-session-end-momentum.sh` executes. It:
+   - Reads `.xgh/momentum/agent-state.yaml` (if present — the agent wrote it)
    - Runs `git status --porcelain` and `git log -1 --format=%H` (shell, <50ms)
-   - Reads the session's accumulated state (task, next steps, blockers, decisions)
+   - Merges agent semantic state with git state
    - Writes `.xgh/momentum/latest.yaml` (YAML, <10ms)
-   - (P1) Stores a semantic summary in Cipher (`cipher_store_reasoning_memory`)
+   - Stores a semantic summary in Cipher (`cipher_store_reasoning_memory`)
    - Archives the previous `latest.yaml` as `{session_id}.yaml`
    - Cleans up snapshots older than `snapshot_retention` days
+   - If `agent-state.yaml` is missing, captures git-only state as a fallback
 
 4. **Total overhead:** <100ms for P0, <500ms for P1 (Cipher write is async-tolerant).
 
@@ -296,7 +299,7 @@ Additionally, the briefing suggests running `/xgh-momentum --week` to see a summ
 
 **Behavior:** If `.xgh/momentum/latest.yaml` is corrupted (invalid YAML) or missing (deleted manually), Momentum:
 1. Logs a warning to `.xgh/momentum/momentum.log`
-2. Falls back to Cipher query for recent session memories (P1)
+2. Falls back to Cipher query for recent session memories
 3. If Cipher also has nothing, produces no briefing (same as first session)
 4. Does not crash, does not show an error to the developer
 
@@ -316,14 +319,14 @@ Additionally, the briefing suggests running `/xgh-momentum --week` to see a summ
 | Momentum log | `.xgh/momentum/momentum.log` | 7 days, max 5MB |
 | Momentum config | `.xgh/config.yaml` → `modules.momentum` | Permanent (config file) |
 
-**Snapshot schema (P0):**
+**Snapshot schema (P0) — two-file split:**
+
+The agent writes semantic state; the hook enriches with git state.
 
 ```yaml
-# .xgh/momentum/latest.yaml
+# .xgh/momentum/agent-state.yaml  (written by the agent at natural stopping points)
 schema_version: 1
 session_id: "2026-03-15T14:32:00Z"       # ISO 8601 timestamp
-branch: "feat/archetype-modularization"    # Current git branch
-commit_hash: "a1b2c3d"                     # HEAD at session end
 active_task: "Implementing skill bundling"  # Human-readable task description
 status: "in-progress"                       # in-progress | completed | blocked | idle
 next_steps:                                 # Ordered list of intended next actions
@@ -335,12 +338,38 @@ open_decisions:                             # Pending decisions with leaning
   - question: "Should archetypes be mutable after init?"
     leaning: "Yes, via /xgh-setup"
     reason: "Users will want to upgrade from Solo to Enterprise"
-modified_files:                             # Files changed in this session
+open_files:                                 # Files the agent was actively working with
   - "skills/xgh-init.md"
   - "config/archetypes.yaml"
-uncommitted_changes: true                   # Whether working tree is dirty
-stash_count: 0                              # Number of git stashes
 session_duration_minutes: 47                # Approximate session length
+```
+
+```yaml
+# .xgh/momentum/latest.yaml  (written by the SessionEnd hook, merging agent-state + git)
+schema_version: 1
+session_id: "2026-03-15T14:32:00Z"       # Copied from agent-state.yaml
+branch: "feat/archetype-modularization"    # From git (hook-enriched)
+commit_hash: "a1b2c3d"                     # HEAD at session end (hook-enriched)
+active_task: "Implementing skill bundling"  # From agent-state.yaml
+status: "in-progress"                       # From agent-state.yaml
+next_steps:                                 # From agent-state.yaml
+  - "Wire up archetype selection in /xgh-init flow"
+  - "Write tests for skill filtering"
+blockers:                                   # From agent-state.yaml
+  - "Need to decide: archetype storage location"
+open_decisions:                             # From agent-state.yaml
+  - question: "Should archetypes be mutable after init?"
+    leaning: "Yes, via /xgh-setup"
+    reason: "Users will want to upgrade from Solo to Enterprise"
+open_files:                                 # From agent-state.yaml
+  - "skills/xgh-init.md"
+  - "config/archetypes.yaml"
+modified_files:                             # From git (hook-enriched)
+  - "skills/xgh-init.md"
+  - "config/archetypes.yaml"
+uncommitted_changes: true                   # From git (hook-enriched)
+stash_count: 0                              # From git (hook-enriched)
+session_duration_minutes: 47                # From agent-state.yaml
 ```
 
 ### 5.2 Privacy: What NEVER Gets Stored
@@ -363,8 +392,8 @@ session_duration_minutes: 47                # Approximate session length
 |-----------|--------|--------|
 | **Snapshot capture (P0)** | <100ms total | `git status` (~30ms) + `git log -1` (~10ms) + YAML write (~5ms) + cleanup (~20ms) |
 | **Snapshot capture (P1 addon)** | <500ms total | P0 + Cipher write (async-tolerant, can complete after session ends) |
-| **Briefing restore (P0)** | <500ms | YAML read (~5ms) + `git status` (~30ms) + `git log --since` (~50ms) + markdown compose (~10ms) |
-| **Briefing restore (P1 addon)** | <2000ms total | P0 + Cipher query (~1000ms) + semantic merge (~200ms) |
+| **Briefing restore (P0, local YAML + git only)** | <500ms | YAML read (~5ms) + `git status` (~30ms) + `git log --since` (~50ms) + markdown compose (~10ms) |
+| **Briefing restore (P1, with Cipher semantic enrichment)** | <2000ms total | P0 + Cipher query (~1000ms) + semantic merge (~200ms) |
 | **Briefing restore (P2 Enterprise)** | <3000ms total | P1 + ingest pipeline query (~1000ms) |
 | **Snapshot disk usage** | <1KB per snapshot | YAML is tiny. 30 days x 6 sessions/day = 180 files x 1KB = <200KB. |
 | **Snapshot cleanup** | <50ms | Glob + delete of expired files. |
@@ -408,9 +437,9 @@ session_duration_minutes: 47                # Approximate session length
 
 #### Cipher MCP
 
-- **Capture (P1):** Uses `cipher_store_reasoning_memory` to store session summaries. Tagged with `type: momentum-session` for filtered retrieval.
-- **Restore (P1):** Uses `cipher_memory_search` with query "recent session context" filtered by `type: momentum-session`, limited to last 5 results.
-- **No new Cipher capabilities required.** Momentum uses existing Cipher tools.
+- **Capture (P0):** Uses `cipher_store_reasoning_memory` to store session summaries. Tagged with `type: momentum-session` for filtered retrieval.
+- **Restore (P1 enrichment):** Uses `cipher_memory_search` with query "recent session context" filtered by `type: momentum-session`, limited to last 5 results. Adds multi-session narrative to briefing (P1 restore budget: <2s).
+- **No new Cipher capabilities required.** Momentum uses existing Cipher tools. Cipher is a P0 dependency for all archetypes.
 
 #### Context Tree
 
@@ -419,34 +448,33 @@ session_duration_minutes: 47                # Approximate session length
 
 #### Ingest Pipeline
 
-- **P0-P1:** No interaction with ingest.
+- **P0/P1:** No interaction with ingest.
 - **P2 (Enterprise Layer 3):** Queries ingest data store for changes since `last_session_end`. Uses the same data that `/xgh-brief` already accesses, filtered by time window.
 
 ### 5.5 Archetype Tiering
 
-| Capability | Core (all) | Enhanced (Solo+) | Enterprise |
-|------------|:---------:|:----------------:|:---------:|
-| Session snapshot capture (Layer 1) | **Yes** | **Yes** | **Yes** |
-| Session snapshot restore + briefing | **Yes** | **Yes** | **Yes** |
-| `/xgh-momentum` command | **Yes** | **Yes** | **Yes** |
-| Git state enrichment | **Yes** | **Yes** | **Yes** |
-| Semantic session memory (Layer 2) | | **Yes** | **Yes** |
-| Open decisions tracking | | **Yes** | **Yes** |
-| Multi-branch tracking | | **Yes** | **Yes** |
-| Historical views (--yesterday, --week) | | **Yes** | **Yes** |
-| Briefing verbosity auto-tuning | | **Yes** | **Yes** |
-| Standup generation | | **Yes** | **Yes** |
-| Ambient signals / "While you were away" (Layer 3) | | | **Yes** |
-| Team handoff snapshots | | | **Yes** |
-| Predictive tasking | | | **Yes** |
+Cipher is a P0 dependency for all archetypes. There is no "Core" tier without Cipher -- the Cipher integration (Layer 2) is what makes Momentum meaningfully better than `git log`.
+
+| Capability | Standard (all archetypes) | Enterprise |
+|------------|:-----------------------:|:---------:|
+| Session snapshot capture (Layer 1) | **Yes** | **Yes** |
+| Session snapshot restore + briefing | **Yes** | **Yes** |
+| `/xgh-momentum` command | **Yes** | **Yes** |
+| Git state enrichment | **Yes** | **Yes** |
+| Semantic session memory (Layer 2, Cipher) | **Yes** | **Yes** |
+| Open decisions tracking | **Yes** | **Yes** |
+| Multi-branch tracking | **Yes** | **Yes** |
+| Historical views (--yesterday, --week) | **Yes** | **Yes** |
+| Briefing verbosity auto-tuning | **Yes** | **Yes** |
+| Ambient signals / "While you were away" (Layer 3) | | **Yes** |
+| Team handoff snapshots | | **Yes** |
+| Predictive tasking | | **Yes** |
 
 **Auto-selection:** The tier auto-selects based on the archetype chosen during `/xgh-init`:
-- Solo Dev → Enhanced
-- OSS Contributor → Enhanced
+- Solo Dev → Standard
+- OSS Contributor → Standard
 - Enterprise → Enterprise
-- OpenClaw → Enhanced
-
-There is no "Core only" archetype — Core is a dependency of Enhanced, not a standalone tier. Even the simplest archetype gets Enhanced because the Cipher integration (Layer 2) is what makes Momentum meaningfully better than `git log`.
+- OpenClaw → Standard
 
 ---
 
@@ -467,7 +495,7 @@ Momentum is a session continuity layer. These are things it explicitly does NOT 
 
 **What Momentum enables but does not implement:**
 
-- **Session Analytics** — Momentum's archived snapshots are the data source for a future analytics feature. But Momentum itself does not compute or display analytics (beyond `--standup`).
+- **Session Analytics** — Momentum's archived snapshots are the data source for a future analytics feature. But Momentum itself does not compute or display analytics in P0/P1 (standup generation is P2).
 - **Predictive Tasking** — Momentum captures the patterns. A future feature could analyze them for predictions. Momentum itself does not predict.
 - **Team Handoffs** — Momentum's snapshot format is designed to be shareable. But v1 does not implement the sharing mechanism.
 
@@ -481,8 +509,8 @@ These are design decisions that need user input, prototyping, or further technic
 
 | # | Question | Options | Recommendation | Needs |
 |---|----------|---------|---------------|-------|
-| Q1 | **How does the agent compose the snapshot?** The SessionEnd hook is a shell script, but the session context (active task, next steps, open decisions) lives in the agent's conversation, not in shell-accessible state. | (a) Agent writes the YAML before the hook fires, hook just validates. (b) Hook passes a template, agent fills it. (c) The skill instruction tells the agent to always write the snapshot as the last action before session end. | **(c)** — The skill instruction approach is most natural for Claude Code. The hook simply checks that the file was written and handles git enrichment. | Prototype with Claude Code to verify that agent-authored YAML is reliable and well-formed. |
-| Q2 | **Should Momentum have an explicit "session end" trigger?** Claude Code sessions can end abruptly (terminal close, timeout, crash). | (a) Rely on `SessionEnd` hook only. (b) Periodic snapshot writes every N minutes as a safety net. (c) Agent writes snapshot at natural stopping points + hook as backup. | **(c)** — Natural stopping point writes (after commits, before sign-offs) plus hook as a backup. Periodic writes add noise. | Test: how reliably does `SessionEnd` fire on abrupt termination? |
+| Q1 | **How does the agent compose the snapshot?** The SessionEnd hook is a shell script, but the session context (active task, next steps, open decisions) lives in the agent's conversation, not in shell-accessible state. | (a) Agent writes the YAML before the hook fires, hook just validates. (b) Hook passes a template, agent fills it. (c) The skill instruction tells the agent to always write the snapshot as the last action before session end. | **RESOLVED:** Split responsibility. Agent writes semantic state (task, next_steps, blockers, decisions, open_files) to `agent-state.yaml`. Hook reads `agent-state.yaml`, enriches with git state (branch, dirty files, recent commits), and writes final `latest.yaml`. See M-P0-01 and M-P0-03. | Resolved. |
+| Q2 | **Should Momentum have an explicit "session end" trigger?** Claude Code sessions can end abruptly (terminal close, timeout, crash). | (a) Rely on `SessionEnd` hook only. (b) Periodic snapshot writes every N minutes as a safety net. (c) Agent writes snapshot at natural stopping points + hook as backup. | **RESOLVED:** Option (c). Agent-side writes at natural stopping points (before commits, PR creation, sign-off) are the primary capture mechanism. The SessionEnd hook is a safety net, not the primary mechanism. See M-P0-11. | Resolved. |
 | Q3 | **Where does the Momentum config live?** | (a) `.xgh/config.yaml` (new file). (b) Inside `ingest.yaml` under a `momentum` key. (c) Standalone `.xgh/momentum/config.yaml`. | **(a)** — `.xgh/config.yaml` is the natural home for module-level configuration. `ingest.yaml` is ingest-specific. Standalone config is unnecessary fragmentation. | Confirm `.xgh/config.yaml` does not already exist with conflicting schema. |
 | Q4 | **Should the briefing be injected automatically or require developer opt-in?** | (a) Always inject on session start. (b) Inject only if `XGH_MOMENTUM=1` env var is set. (c) Inject by default, suppress with `XGH_MOMENTUM=0`. | **(c)** — Default-on with opt-out. The value of Momentum is in the zero-friction experience. Requiring opt-in defeats the purpose. | User testing: does the briefing ever feel intrusive for short sessions? |
 | Q5 | **What happens when the developer changes projects (different repo)?** | (a) Momentum is per-project (each repo has its own `.xgh/momentum/`). (b) Global Momentum that spans projects. | **(a)** — Per-project. Each repo has its own `.xgh/momentum/` directory with its own snapshots. Cross-project continuity is a P2 feature (linked workspaces). | Confirm that Claude Code sessions are scoped to a project directory. |
@@ -504,7 +532,7 @@ These are design decisions that need user input, prototyping, or further technic
 | S1 | Is Session Replay (the other proposal) a prerequisite for Momentum? | **No.** They are independent. Momentum captures *distilled state*, Replay captures *full history*. | User testing reveals that developers want to see the full conversation, not just the summary. |
 | S2 | Does Momentum replace `/xgh-brief`? | **No.** `/xgh-brief` is an on-demand briefing from ingest sources (Slack, Jira). Momentum is automatic session state restoration. They can coexist — Momentum runs first, `/xgh-brief` adds external context. | Enterprise Layer 3 absorbs `/xgh-brief` functionality, making them redundant. |
 | S3 | Should Momentum snapshots be stored in the context tree? | **No.** Snapshots are ephemeral personal state, not durable team knowledge. The context tree is for validated, shared knowledge. | A "promoted decisions" flow moves confirmed decisions from Momentum to the context tree. |
-| S4 | Should Momentum work without Cipher (Core tier only)? | **Yes (P0).** Core tier uses only local YAML snapshots and git. No Cipher dependency. | If Cipher-less usage is rare, simplify by requiring Cipher for all tiers. |
+| S4 | Should Momentum work without Cipher? | **No.** Cipher is a P0 dependency for all archetypes. The Core tier has been removed — Cipher integration is what makes Momentum meaningfully better than `git log`. | N/A — resolved. |
 
 ---
 
@@ -514,10 +542,10 @@ Suggested implementation order, mapping to existing xgh development patterns:
 
 | Phase | Scope | Components | Est. Effort |
 |-------|-------|-----------|-------------|
-| **Phase 1** | P0 Core (snapshot capture + restore) | `session-end-momentum.sh`, `session-start.sh` extension, `.xgh/momentum/` directory, `latest.yaml` schema, `skills/momentum/momentum.md`, `commands/momentum.md`, config schema | 2-3 days |
-| **Phase 2** | P0 Polish (edge cases, first session, config) | Graceful first session, idle session detection, snapshot retention cleanup, `techpack.yaml` registration, tests | 1-2 days |
-| **Phase 3** | P1 Enhanced (Cipher integration, historical views) | Layer 2 Cipher write/read, `--yesterday`/`--week`/`--standup` flags, open decisions tracking, multi-branch tracking, verbosity auto-tuning | 3-4 days |
-| **Phase 4** | P2 Enterprise (ambient signals) | Layer 3 ingest integration, "While you were away" section, team handoff snapshots | 2-3 days (after archetype modularization) |
+| **Phase 1** | P0 Core (agent-state + hook capture + restore) | `agent-state.yaml` schema, agent snapshot-write instructions, `session-end-momentum.sh` (hook reads agent-state, enriches with git, writes `latest.yaml`), `session-start.sh` extension, `.xgh/momentum/` directory, `skills/momentum/momentum.md`, `commands/momentum.md`, config schema, `techpack.yaml` registration | 2-3 days |
+| **Phase 2** | P0 Polish (edge cases, first session, config) | Graceful first session, idle session detection, snapshot retention cleanup, Cipher P0 integration, tests | 1-2 days |
+| **Phase 3** | P1 Enhanced (historical views, multi-branch) | `--yesterday`/`--week` flags, open decisions tracking, multi-branch tracking, verbosity auto-tuning | 3-4 days |
+| **Phase 4** | P2 Extended (ambient signals, standup, analytics) | Layer 3 ingest integration, "While you were away" section, team handoff snapshots, `--standup` generation, session analytics | 2-3 days (after archetype modularization) |
 
 **Total estimated effort:** 8-12 days for P0+P1. P2 is deferred until the archetype system ships.
 
@@ -529,7 +557,7 @@ The snapshot uses `schema_version` to support forward-compatible evolution:
 
 | Version | Additions | Breaking Changes |
 |---------|-----------|-----------------|
-| **v1** (P0 launch) | Core fields: `session_id`, `branch`, `commit_hash`, `active_task`, `status`, `next_steps`, `blockers`, `modified_files`, `uncommitted_changes`, `stash_count`, `session_duration_minutes` | N/A (initial version) |
+| **v1** (P0 launch) | Two-file split: `agent-state.yaml` (semantic: `session_id`, `active_task`, `status`, `next_steps`, `blockers`, `open_decisions`, `open_files`, `session_duration_minutes`) + `latest.yaml` (merged: agent-state + git-enriched `branch`, `commit_hash`, `modified_files`, `uncommitted_changes`, `stash_count`) | N/A (initial version) |
 | **v2** (P1) | `open_decisions[]`, `branches[]`, `semantic_summary`, `mood` (optional) | None — additive only |
 | **v3** (P2) | `parallel_session_count`, `ambient_signals{}`, `shareable` flag | None — additive only |
 
