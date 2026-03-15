@@ -34,40 +34,40 @@ assert_contains "$REPO_ROOT/scripts/mcp-detect.sh" "XGH_MCP_DETECT_LOADED"
 
 # ── Task 2: briefing skill ───────────────────────────────────────────────────
 
-assert_file_exists "$REPO_ROOT/skills/briefing/briefing.md"
+assert_file_exists "$REPO_ROOT/skills/brief/brief.md"
 
 # YAML frontmatter
-assert_contains "$REPO_ROOT/skills/briefing/briefing.md" "name: xgh:briefing"
-assert_contains "$REPO_ROOT/skills/briefing/briefing.md" "description:"
-assert_contains "$REPO_ROOT/skills/briefing/briefing.md" "type: flexible"
+assert_contains "$REPO_ROOT/skills/brief/brief.md" "name: xgh:briefing"
+assert_contains "$REPO_ROOT/skills/brief/brief.md" "description:"
+assert_contains "$REPO_ROOT/skills/brief/brief.md" "type: flexible"
 
 # Required output sections
-assert_contains "$REPO_ROOT/skills/briefing/briefing.md" "NEEDS YOU NOW"
-assert_contains "$REPO_ROOT/skills/briefing/briefing.md" "IN PROGRESS"
-assert_contains "$REPO_ROOT/skills/briefing/briefing.md" "INCOMING"
-assert_contains "$REPO_ROOT/skills/briefing/briefing.md" "TEAM PULSE"
-assert_contains "$REPO_ROOT/skills/briefing/briefing.md" "TODAY"
-assert_contains "$REPO_ROOT/skills/briefing/briefing.md" "SUGGESTED FOCUS"
+assert_contains "$REPO_ROOT/skills/brief/brief.md" "NEEDS YOU NOW"
+assert_contains "$REPO_ROOT/skills/brief/brief.md" "IN PROGRESS"
+assert_contains "$REPO_ROOT/skills/brief/brief.md" "INCOMING"
+assert_contains "$REPO_ROOT/skills/brief/brief.md" "TEAM PULSE"
+assert_contains "$REPO_ROOT/skills/brief/brief.md" "TODAY"
+assert_contains "$REPO_ROOT/skills/brief/brief.md" "SUGGESTED FOCUS"
 
 # Emoji marker
-assert_contains "$REPO_ROOT/skills/briefing/briefing.md" "🐴🤖"
+assert_contains "$REPO_ROOT/skills/brief/brief.md" "🐴🤖"
 
 # Proceed prompt
-assert_contains "$REPO_ROOT/skills/briefing/briefing.md" "Proceed?"
+assert_contains "$REPO_ROOT/skills/brief/brief.md" "Proceed?"
 
 # References mcp-detect or mcp-setup
-assert_contains "$REPO_ROOT/skills/briefing/briefing.md" "mcp"
+assert_contains "$REPO_ROOT/skills/brief/brief.md" "mcp"
 
 # ── Task 3: briefing command ─────────────────────────────────────────────────
 
-assert_file_exists "$REPO_ROOT/commands/briefing.md"
+assert_file_exists "$REPO_ROOT/commands/brief.md"
 
 # YAML frontmatter
-assert_contains "$REPO_ROOT/commands/briefing.md" "name: xgh-briefing"
-assert_contains "$REPO_ROOT/commands/briefing.md" "description:"
+assert_contains "$REPO_ROOT/commands/brief.md" "name: xgh-brief"
+assert_contains "$REPO_ROOT/commands/brief.md" "description:"
 
 # Invokes the briefing skill
-assert_contains "$REPO_ROOT/commands/briefing.md" "xgh:briefing"
+assert_contains "$REPO_ROOT/commands/brief.md" "xgh:briefing"
 
 # ── Task 4: session-start hook XGH_BRIEFING support ─────────────────────────
 

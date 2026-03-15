@@ -43,8 +43,8 @@ assert_contains "skills/agent-collaboration/agent-collaboration.md" "message pro
 assert_file_exists "agents/collaboration-dispatcher.md"
 assert_contains "agents/collaboration-dispatcher.md" "dispatch"
 
-assert_file_exists "commands/xgh-collaborate.md"
-assert_contains "commands/xgh-collaborate.md" "/xgh-collaborate"
+assert_file_exists "commands/xgh-collab.md"
+assert_contains "commands/xgh-collab.md" "/xgh-collab"
 
 
 echo ""
