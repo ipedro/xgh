@@ -46,7 +46,7 @@ ByteRover solves this commercially, but teams need:
 │  ┌────────────┐  ┌────────────┐  ┌────────────┐           │
 │  │  Vector DB  │  │  SQLite    │  │  LLM+Emb   │           │
 │  │  (BYOP)    │  │  (sessions)│  │  (BYOP)    │           │
-│  │ qdrant/    │  └────────────┘  │ ollama/    │           │
+│  │ qdrant/    │  └────────────┘  │ vllm-mlx/ │           │
 │  │ milvus/    │                  │ openai/    │           │
 │  │ in-memory  │                  │ anthropic/ │           │
 │  └────────────┘                  │ openrouter │           │
@@ -106,11 +106,12 @@ xgh is provider-agnostic. Cipher supports 18+ LLM providers and multiple vector 
 # .xgh/config.yaml (or env vars)
 providers:
   llm:
-    provider: ollama              # ollama | openai | anthropic | openrouter | bedrock | azure | qwen
+    provider: openai              # openai | anthropic | openrouter | bedrock | azure | qwen
     model: llama3.2:3b            # any model the provider supports
-    api_key: ${OPENAI_API_KEY}    # only needed for cloud providers
+    baseUrl: http://localhost:11434/v1  # vllm-mlx for local, omit for cloud
+    api_key: ${OPENAI_API_KEY}    # "placeholder" for vllm-mlx, real key for cloud
   embeddings:
-    provider: ollama              # ollama | openai | openrouter
+    provider: openai              # openai | openrouter
     model: nomic-embed-text       # any embedding model
   vector_store:
     type: qdrant                  # qdrant | milvus | in-memory
@@ -121,10 +122,10 @@ providers:
 
 | Preset | LLM | Embeddings | Vector Store | Cost |
 |--------|-----|------------|-------------|------|
-| `local` (default) | Ollama llama3.2:3b | Ollama nomic-embed-text | Qdrant (local) | Free |
-| `local-light` | Ollama llama3.2:3b | Ollama nomic-embed-text | In-memory | Free, no persistence |
+| `local` (default) | vllm-mlx llama3.2:3b | vllm-mlx nomic-embed-text | Qdrant (local) | Free |
+| `local-light` | vllm-mlx llama3.2:3b | vllm-mlx nomic-embed-text | In-memory | Free, no persistence |
 | `openai` | GPT-4o-mini | text-embedding-3-small | Qdrant (local) | ~$0.01/session |
-| `anthropic` | Claude Haiku | Ollama nomic-embed-text | Qdrant (local) | ~$0.01/session |
+| `anthropic` | Claude Haiku | vllm-mlx nomic-embed-text | Qdrant (local) | ~$0.01/session |
 | `cloud` | OpenRouter (auto) | OpenAI embeddings | Qdrant Cloud | ~$0.02/session |
 
 ```bash
@@ -434,19 +435,9 @@ author: "xgh-dev"
 
 components:
   # Infrastructure (plug-and-play)
-  - id: ollama
-    description: "Local LLM runtime"
-    brew: ollama
-
-  - id: ollama-models
-    description: "Pull required models"
-    dependencies: [ollama]
-    shell: "ollama pull llama3.2:3b && ollama pull nomic-embed-text"
-    type: shellCommand
-    doctorChecks:
-      - type: shellScript
-        name: "Ollama models"
-        command: "ollama list | grep -q llama3.2:3b && ollama list | grep -q nomic-embed-text"
+  - id: vllm-mlx
+    description: "Local OpenAI-compatible proxy for MLX models"
+    brew: vllm-mlx
 
   - id: qdrant
     description: "Vector store"
@@ -1157,9 +1148,8 @@ mcs pack add xgh && mcs sync
 Handles everything automatically. See Section 9 for full tech pack manifest.
 
 ```
-Step 1: Install Ollama (brew)           ✓ auto
-Step 2: Pull llama3.2:3b model          ✓ auto
-Step 3: Pull nomic-embed-text model     ✓ auto
+Step 1: Install vllm-mlx (brew)        ✓ auto
+Step 2: Start vllm-mlx with models     ✓ manual
 Step 4: Install Qdrant (brew)           ✓ auto
 Step 5: Configure Cipher MCP server     ✓ auto
 Step 6: Install hooks                   ✓ auto
@@ -1196,9 +1186,9 @@ if ! command -v brew &>/dev/null; then
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
 
-if ! command -v ollama &>/dev/null; then
-  echo "  Installing Ollama..."
-  brew install ollama
+if ! command -v vllm-mlx &>/dev/null; then
+  echo "  Installing vllm-mlx..."
+  brew install vllm-mlx
 fi
 
 if ! command -v qdrant &>/dev/null; then
@@ -1207,9 +1197,7 @@ if ! command -v qdrant &>/dev/null; then
 fi
 
 # ── 2. Models ────────────────────────────────────────────
-echo "→ Pulling Ollama models..."
-ollama pull llama3.2:3b 2>/dev/null || true
-ollama pull nomic-embed-text 2>/dev/null || true
+echo "→ Models are served by vllm-mlx — ensure it is running with the required models"
 
 # ── 3. Clone xgh ────────────────────────────────────────
 echo "→ Fetching xgh..."
@@ -1390,7 +1378,7 @@ $ claude
 | `XGH_TEAM` | `my-team` | Team name for workspace memory |
 | `XGH_CONTEXT_PATH` | `.xgh/context-tree` | Where the context tree lives |
 | `XGH_VERSION` | `latest` | Pin to a specific version |
-| `OLLAMA_HOST` | `http://localhost:11434` | Custom Ollama endpoint |
+| `MLX_PROXY_URL` | `http://localhost:11434` | Custom vllm-mlx endpoint |
 | `VECTOR_STORE_URL` | `http://localhost:6333` | Custom Qdrant endpoint |
 
 ### Uninstall

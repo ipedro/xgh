@@ -23,8 +23,8 @@ xgh/
 │   ├── settings.json                  # Claude Code settings (merged by MCS)
 │   ├── hooks-settings.json            # Hook event registrations
 │   └── presets/                       # BYOP provider presets
-│       ├── local.yaml                 # Default: Ollama + Qdrant
-│       ├── local-light.yaml           # Ollama + in-memory vectors
+│       ├── local.yaml                 # Default: vllm-mlx + Qdrant
+│       ├── local-light.yaml           # vllm-mlx + in-memory vectors
 │       ├── openai.yaml                # OpenAI GPT-4o-mini + Qdrant
 │       ├── anthropic.yaml             # Claude Haiku + Qdrant
 │       └── cloud.yaml                 # OpenRouter + Qdrant Cloud
@@ -108,7 +108,7 @@ for preset in config/presets/*.yaml; do
 done
 
 # Test local preset has correct defaults
-assert_contains "config/presets/local.yaml" "provider: ollama"
+assert_contains "config/presets/local.yaml" "provider: openai"
 assert_contains "config/presets/local.yaml" "model: llama3.2:3b"
 assert_contains "config/presets/local.yaml" "model: nomic-embed-text"
 assert_contains "config/presets/local.yaml" "type: qdrant"
@@ -139,12 +139,17 @@ Expected: FAIL — no preset files exist yet
 # config/presets/local.yaml
 # xgh BYOP preset: local (default)
 # Free, fully offline, no API keys needed
+# Requires vllm-mlx running: vllm-mlx --model <model>
 llm:
-  provider: ollama
+  provider: openai
   model: llama3.2:3b
+  baseUrl: http://localhost:11434/v1
+  apiKey: placeholder
 embeddings:
-  provider: ollama
+  provider: openai
   model: nomic-embed-text
+  baseUrl: http://localhost:11434/v1
+  apiKey: placeholder
 vector_store:
   type: qdrant
   url: http://localhost:6333
@@ -154,12 +159,17 @@ vector_store:
 # config/presets/local-light.yaml
 # xgh BYOP preset: local-light
 # Free, fully offline, no persistence (vectors lost on restart)
+# Requires vllm-mlx running: vllm-mlx --model <model>
 llm:
-  provider: ollama
+  provider: openai
   model: llama3.2:3b
+  baseUrl: http://localhost:11434/v1
+  apiKey: placeholder
 embeddings:
-  provider: ollama
+  provider: openai
   model: nomic-embed-text
+  baseUrl: http://localhost:11434/v1
+  apiKey: placeholder
 vector_store:
   type: in-memory
 ```
@@ -190,8 +200,10 @@ llm:
   model: claude-haiku-4-5-20251001
   api_key: ${ANTHROPIC_API_KEY}
 embeddings:
-  provider: ollama
+  provider: openai
   model: nomic-embed-text
+  baseUrl: http://localhost:11434/v1
+  apiKey: placeholder
 vector_store:
   type: qdrant
   url: http://localhost:6333
@@ -455,7 +467,7 @@ trap "rm -rf $TMPDIR" EXIT
 cd "$TMPDIR"
 git init --quiet
 
-# Run install in dry-run mode (skips brew/ollama, uses local files)
+# Run install in dry-run mode (skips brew/vllm-mlx, uses local files)
 export XGH_DRY_RUN=1
 export XGH_TEAM="test-team"
 export XGH_CONTEXT_PATH=".xgh/context-tree"
@@ -548,9 +560,9 @@ if [ "$XGH_DRY_RUN" -eq 0 ]; then
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   fi
 
-  if ! command -v ollama &>/dev/null; then
-    info "Installing Ollama..."
-    brew install ollama
+  if ! command -v vllm-mlx &>/dev/null; then
+    info "Installing vllm-mlx..."
+    brew install vllm-mlx
   fi
 
   # Only install Qdrant for presets that need it
@@ -562,9 +574,7 @@ if [ "$XGH_DRY_RUN" -eq 0 ]; then
   fi
 
   # ── 2. Models ──────────────────────────────────────────
-  info "Pulling Ollama models (this may take a few minutes on first run)..."
-  ollama pull llama3.2:3b 2>/dev/null || warn "Could not pull llama3.2:3b — you may need to start Ollama first"
-  ollama pull nomic-embed-text 2>/dev/null || warn "Could not pull nomic-embed-text"
+  info "Models are served by vllm-mlx — ensure it is running with the required models"
 else
   info "[DRY RUN] Skipping dependency installation"
 fi
@@ -979,7 +989,7 @@ assert_contains "techpack.yaml" "description:"
 assert_contains "techpack.yaml" "components:"
 
 # Test required components are defined
-assert_contains "techpack.yaml" "id: ollama"
+assert_contains "techpack.yaml" "id: vllm-mlx"
 assert_contains "techpack.yaml" "id: cipher"
 assert_contains "techpack.yaml" "id: settings"
 assert_contains "techpack.yaml" "id: gitignore"
@@ -1022,22 +1032,9 @@ minMCSVersion: "0.5.0"
 
 components:
   # ── Infrastructure (plug-and-play) ─────────────────────
-  - id: ollama
-    description: "Local LLM runtime for embeddings and memory operations"
-    brew: ollama
-
-  - id: ollama-models
-    description: "Pull required Ollama models (llama3.2:3b + nomic-embed-text)"
-    dependencies: [ollama]
-    shell: "ollama pull llama3.2:3b && ollama pull nomic-embed-text"
-    type: shellCommand
-    doctorChecks:
-      - type: shellScript
-        name: "Ollama models installed"
-        section: "xgh Infrastructure"
-        command: "ollama list 2>/dev/null | grep -q llama3.2:3b && ollama list 2>/dev/null | grep -q nomic-embed-text"
-        fixCommand: "ollama pull llama3.2:3b && ollama pull nomic-embed-text"
-        isOptional: false
+  - id: vllm-mlx
+    description: "Local OpenAI-compatible proxy for MLX models (LLM + embeddings)"
+    brew: vllm-mlx
 
   - id: qdrant
     description: "Vector store for semantic memory search"
@@ -1117,10 +1114,10 @@ supplementaryDoctorChecks:
     fixCommand: "brew services start qdrant"
     isOptional: false
   - type: shellScript
-    name: "Ollama running"
+    name: "vllm-mlx running"
     section: "xgh Infrastructure"
-    command: "curl -sf http://localhost:11434/api/tags >/dev/null 2>&1"
-    fixCommand: "ollama serve &"
+    command: "curl -sf http://localhost:11434/v1/models >/dev/null 2>&1"
+    fixCommand: "vllm-mlx --model <embedding-model> &"
     isOptional: false
   - type: directoryExists
     name: "Context tree initialized"

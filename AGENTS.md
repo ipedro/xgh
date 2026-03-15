@@ -12,7 +12,7 @@ xgh is a **Model Context Server (MCS) tech pack** for Claude Code that gives AI 
 - **Cipher MCP** — semantic vector memory (Qdrant-backed) for storing and querying past decisions, reasoning chains, and patterns
 - **Context Tree** — a git-committed markdown knowledge base (`.xgh/context-tree/`) that is human-readable, PR-reviewable, and shareable without shared infrastructure
 - **Dual-engine search** — Cipher vector similarity + BM25 keyword search merged with a scored ranking formula
-- **BYOP (Bring Your Own Provider)** — presets for Ollama (local), OpenAI, Anthropic, OpenRouter, or cloud Qdrant
+- **BYOP (Bring Your Own Provider)** — presets for vllm-mlx (local), OpenAI, Anthropic, OpenRouter, or cloud Qdrant
 
 One command installs everything into any project:
 
@@ -31,7 +31,7 @@ curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
 | Skills / commands / agents | Markdown (Claude Code format) |
 | Context tree search | Python 3 (BM25/TF-IDF, Plan 2) |
 | Vector memory | Cipher MCP + Qdrant |
-| LLM / embeddings | Ollama, OpenAI, Anthropic, or OpenRouter (BYOP) |
+| LLM / embeddings | vllm-mlx, OpenAI, Anthropic, or OpenRouter (BYOP) |
 | Tests | Bash with `assert_*` helpers (same pattern throughout) |
 
 ---
@@ -50,8 +50,8 @@ curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
 │   ├── settings.json                # Claude Code tool permissions
 │   ├── hooks-settings.json          # Hook event registrations
 │   └── presets/                     # BYOP provider presets
-│       ├── local.yaml               # Ollama + local Qdrant (default)
-│       ├── local-light.yaml         # Ollama + in-memory vectors
+│       ├── local.yaml               # vllm-mlx + local Qdrant (default)
+│       ├── local-light.yaml         # vllm-mlx + in-memory vectors
 │       ├── openai.yaml              # OpenAI GPT-4o-mini + Qdrant
 │       ├── anthropic.yaml           # Claude Haiku + Qdrant
 │       └── cloud.yaml               # OpenRouter + Qdrant Cloud

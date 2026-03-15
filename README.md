@@ -24,7 +24,7 @@ xgh fixes this.
 - Bash 5+
 - Git
 
-Everything else (Homebrew, Ollama, Qdrant, Node.js for Cipher) is installed automatically.
+Everything else (Homebrew, vllm-mlx, Qdrant, Node.js for Cipher) is installed automatically.
 
 ### Install (fully local, free)
 
@@ -199,7 +199,7 @@ xgh enforces one iron law:
 │  ┌────────────┐  ┌────────────┐  ┌────────────┐           │
 │  │  Vector DB │  │  SQLite    │  │  LLM + Emb │           │
 │  │  (BYOP)   │  │ (sessions) │  │  (BYOP)    │           │
-│  │ qdrant /  │  └────────────┘  │ ollama /   │           │
+│  │ qdrant /  │  └────────────┘  │ vllm-mlx/   │           │
 │  │ in-memory │                  │ openai /   │           │
 │  └────────────┘                  │ anthropic  │           │
 │                                  └────────────┘           │
@@ -235,10 +235,10 @@ xgh is **provider-agnostic**. Choose the preset that matches your infrastructure
 
 | Preset | LLM | Embeddings | Vector Store | Cost |
 |--------|-----|-----------|-------------|------|
-| `local` *(default)* | Ollama llama3.2:3b | Ollama nomic-embed-text | Qdrant (local) | Free |
-| `local-light` | Ollama llama3.2:3b | Ollama nomic-embed-text | In-memory | Free, no persistence |
+| `local` *(default)* | vllm-mlx Llama-3.2-3B | vllm-mlx modernbert-embed | Qdrant (local) | Free |
+| `local-light` | vllm-mlx Llama-3.2-3B | vllm-mlx modernbert-embed | In-memory | Free, no persistence |
 | `openai` | GPT-4o-mini | text-embedding-3-small | Qdrant (local) | ~$0.01/session |
-| `anthropic` | Claude Haiku | Ollama nomic-embed-text | Qdrant (local) | ~$0.01/session |
+| `anthropic` | Claude Haiku | vllm-mlx modernbert-embed | Qdrant (local) | ~$0.01/session |
 | `cloud` | OpenRouter (configurable) | OpenAI embeddings | Qdrant Cloud | ~$0.02/session |
 
 Preset files are in `config/presets/`. Add custom presets or override individual fields with environment variables.

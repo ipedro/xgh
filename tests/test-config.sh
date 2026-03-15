@@ -16,9 +16,9 @@ for preset in config/presets/*.yaml; do
 done
 
 # Local preset defaults
-assert_contains "config/presets/local.yaml" "provider: ollama"
-assert_contains "config/presets/local.yaml" "model: llama3.2:3b"
-assert_contains "config/presets/local.yaml" "model: nomic-embed-text"
+assert_contains "config/presets/local.yaml" "provider: openai"
+assert_contains "config/presets/local.yaml" "model: mlx-community/Llama-3.2-3B-Instruct-4bit"
+assert_contains "config/presets/local.yaml" "model: mlx-community/nomicai-modernbert-embed-base-4bit"
 assert_contains "config/presets/local.yaml" "type: qdrant"
 
 # Cloud presets require API keys

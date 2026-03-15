@@ -35,7 +35,7 @@ trap "rm -rf $TMPDIR" EXIT
 cd "$TMPDIR"
 git init --quiet
 
-# Run install in dry-run mode (skips brew/ollama, uses local files)
+# Run install in dry-run mode (skips brew/vllm-mlx, uses local files)
 export XGH_DRY_RUN=1
 export XGH_TEAM="test-team"
 export XGH_CONTEXT_PATH=".xgh/context-tree"

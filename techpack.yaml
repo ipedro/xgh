@@ -4,22 +4,14 @@ displayName: "XGH — eXtreme Go Horse"
 description: "Context-aware AI coding conventions powered by Cipher memory and a living context tree."
 
 components:
-  - id: ollama
-    type: brew
-    package: ollama
-    description: "Local LLM runtime for embeddings and lightweight inference"
-
-  - id: ollama-models
+  - id: vllm-mlx
     type: shell
     command: |
-      ollama pull llama3.2:3b
-      ollama pull nomic-embed-text
-    description: "Pull required Ollama models for local inference and embeddings"
+      uv tool install git+https://github.com/waybarrios/vllm-mlx.git
+    description: "Local LLM + embeddings server (OpenAI-compatible API via vllm-mlx)"
     doctorChecks:
-      - shellScript: "ollama list | grep -q 'llama3.2:3b'"
-        label: "llama3.2:3b model installed"
-      - shellScript: "ollama list | grep -q 'nomic-embed-text'"
-        label: "nomic-embed-text model installed"
+      - shellScript: "command -v vllm-mlx >/dev/null 2>&1"
+        label: "vllm-mlx is installed"
 
   - id: qdrant
     type: brew
@@ -197,7 +189,7 @@ configureProject:
 supplementaryDoctorChecks:
   - shellScript: "curl -sf http://localhost:6333/healthz > /dev/null 2>&1"
     label: "Qdrant is running on localhost:6333"
-  - shellScript: "curl -sf http://localhost:11434/api/tags > /dev/null 2>&1"
-    label: "Ollama is running on localhost:11434"
+  - shellScript: "curl -sf http://localhost:11434/v1/models > /dev/null 2>&1"
+    label: "vllm-mlx is running on localhost:11434"
   - shellScript: "[ -d \"${MCS_RESOLVED_CONTEXT_TREE_PATH:-.xgh/context-tree}\" ]"
     label: "Context tree directory exists"
