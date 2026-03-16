@@ -66,6 +66,7 @@ assert_file_exists "${XGH_LOCAL_PACK}/plugin/skills/init/init.md"
 assert_file_exists "${XGH_LOCAL_PACK}/plugin/commands/init.md"
 assert_file_exists "${XGH_LOCAL_PACK}/plugin/hooks/session-start.sh"
 assert_file_exists "${XGH_LOCAL_PACK}/plugin/agents/collaboration-dispatcher.md"
+assert_file_exists "${XGH_LOCAL_PACK}/plugin/agents/code-reviewer.md"
 assert_contains    "${XGH_LOCAL_PACK}/plugin/gemini-extension.json" '"name": "xgh"'
 assert_contains    "${XGH_LOCAL_PACK}/plugin/gemini-extension.json" '"version"'
 
