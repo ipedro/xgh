@@ -38,8 +38,8 @@ assert_file_exists "scripts/schedulers/com.xgh.retriever.plist"
 assert_file_exists "scripts/schedulers/com.xgh.analyzer.plist"
 assert_file_exists "scripts/ingest-schedule.sh"
 # techpack references all ingest components
-assert_contains "techpack.yaml" "ingest-retrieve-skill"
-assert_contains "techpack.yaml" "ingest-analyze-skill"
+assert_contains "techpack.yaml" "retrieve-skill"
+assert_contains "techpack.yaml" "analyze-skill"
 assert_contains "techpack.yaml" "workspace-write"
 
 echo ""; echo "Results: $PASS passed, $FAIL failed"
