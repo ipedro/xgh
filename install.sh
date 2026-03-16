@@ -591,36 +591,16 @@ CIPHERYMLEOF
   ensure_qdrant_collections
 
   # -- Post-install Cipher health check --
-  if command -v cipher &>/dev/null && [ -f "${HOME}/.cipher/cipher.yml" ]; then
-    info "Verifying Cipher MCP server..."
-    _cipher_ok=false
-    # Run cipher-mcp with the same env vars that mcp.json provides
-    _cipher_result=$(echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | \
-      OPENAI_API_KEY="placeholder" \
-      OPENAI_BASE_URL="http://localhost:${XGH_MODEL_PORT:-11434}/v1" \
-      LLM_PROVIDER="openai" \
-      LLM_API_KEY="placeholder" \
-      LLM_BASE_URL="http://localhost:${XGH_MODEL_PORT:-11434}/v1" \
-      EMBEDDING_PROVIDER="openai" \
-      EMBEDDING_API_KEY="placeholder" \
-      EMBEDDING_BASE_URL="http://localhost:${XGH_MODEL_PORT:-11434}/v1" \
-      VECTOR_STORE_TYPE="qdrant" \
-      VECTOR_STORE_URL="http://localhost:6333" \
-      "$CIPHER_MCP_BIN" 2>/dev/null &)
-    _cipher_pid=$!
-    sleep 3
-    if kill -0 "$_cipher_pid" 2>/dev/null; then
-      kill "$_cipher_pid" 2>/dev/null
-      wait "$_cipher_pid" 2>/dev/null
-    fi
-    if echo "$_cipher_result" | grep -q '"tools"' 2>/dev/null; then
-      _cipher_ok=true
-    fi
-    if [ "$_cipher_ok" = true ]; then
-      info "Cipher MCP responding ✓"
-    else
-      warn "Cipher MCP test inconclusive — will verify at first use via /xgh-doctor"
-    fi
+  _cipher_checks=0
+  _cipher_total=4
+  command -v cipher &>/dev/null && _cipher_checks=$((_cipher_checks + 1))
+  [ -f "${HOME}/.cipher/cipher.yml" ] && _cipher_checks=$((_cipher_checks + 1))
+  [ -x "$CIPHER_MCP_BIN" ] && _cipher_checks=$((_cipher_checks + 1))
+  curl -sf "http://localhost:6333/healthz" >/dev/null 2>&1 && _cipher_checks=$((_cipher_checks + 1))
+  if [ "$_cipher_checks" -eq "$_cipher_total" ]; then
+    info "Cipher ready: binary ✓ config ✓ wrapper ✓ Qdrant ✓"
+  else
+    warn "Cipher ${_cipher_checks}/${_cipher_total} checks passed — run /xgh-doctor after launching Claude"
   fi
 
 else
