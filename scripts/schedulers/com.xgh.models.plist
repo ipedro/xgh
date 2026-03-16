@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- macOS Apple Silicon only — for Linux/Intel Mac use Ollama (systemctl --user status xgh-models) -->
 <plist version="1.0">
 <dict>
   <key>Label</key>

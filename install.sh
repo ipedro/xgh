@@ -12,6 +12,13 @@ XGH_LLM_MODEL="${XGH_LLM_MODEL:-}"
 XGH_EMBED_MODEL="${XGH_EMBED_MODEL:-}"
 XGH_MODEL_PORT="${XGH_MODEL_PORT:-11434}"
 
+# Determine inference backend: vllm-mlx on Apple Silicon, Ollama everywhere else
+if [[ "$(uname)" == "Darwin" ]] && [[ "$(uname -m)" == "arm64" ]]; then
+  XGH_BACKEND="${XGH_BACKEND:-vllm-mlx}"
+else
+  XGH_BACKEND="${XGH_BACKEND:-ollama}"
+fi
+
 # ── Colors ────────────────────────────────────────────────
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -52,34 +59,46 @@ if [ "$XGH_DRY_RUN" -eq 0 ]; then
     brew install python@3 || warn "Could not install Python 3 — install manually: brew install python@3"
   fi
 
-  # Install uv (Python package installer) if not present
-  if ! command -v uv &>/dev/null; then
-    info "uv (Python installer)"
-    brew install uv
-  fi
+  # ── Backend-specific dependencies ───────────────────────
+  if [ "$XGH_BACKEND" = "vllm-mlx" ]; then
+    # ── Apple Silicon: vllm-mlx + Qdrant via Homebrew ────
 
-  # Install vllm-mlx (local model server)
-  if ! command -v vllm-mlx &>/dev/null; then
-    info "vllm-mlx (local model server for Apple Silicon)"
-    uv tool install "git+https://github.com/waybarrios/vllm-mlx.git"
-  fi
-
-  # Only install Qdrant for presets that need it
-  if [ "$XGH_PRESET" != "local-light" ]; then
-    if ! command -v qdrant &>/dev/null && ! [ -x "${HOME}/.qdrant/bin/qdrant" ]; then
-      info "Installing Qdrant..."
-      brew install qdrant 2>/dev/null || warn "Could not install Qdrant via brew — install manually or ensure ~/.qdrant/bin/qdrant exists"
+    # Install uv (Python package installer) if not present
+    if ! command -v uv &>/dev/null; then
+      info "uv (Python installer)"
+      brew install uv
     fi
 
-    # Fix Qdrant LaunchAgent plist: add MALLOC_CONF and correct WorkingDirectory
-    _QDRANT_BIN=$(command -v qdrant 2>/dev/null || echo "${HOME}/.qdrant/bin/qdrant")
-    _QDRANT_PLIST="${HOME}/Library/LaunchAgents/com.qdrant.server.plist"
-    _QDRANT_STORAGE="${HOME}/.qdrant/storage"
-    mkdir -p "${_QDRANT_STORAGE}"
-    if [ -f "$_QDRANT_PLIST" ]; then
-      # Inject MALLOC_CONF if not already present
-      if ! grep -q "MALLOC_CONF" "$_QDRANT_PLIST" 2>/dev/null; then
-        python3 - "$_QDRANT_PLIST" <<'PYEOF'
+    # Install vllm-mlx (local model server for Apple Silicon)
+    if ! command -v vllm-mlx &>/dev/null; then
+      info "vllm-mlx (local model server for Apple Silicon)"
+      uv tool install "git+https://github.com/waybarrios/vllm-mlx.git"
+    fi
+
+    # Kill any Ollama process squatting on port 11434
+    if pgrep -x ollama >/dev/null 2>&1 || pgrep -x "Ollama" >/dev/null 2>&1; then
+      warn "Ollama is running and will conflict with vllm-mlx on port 11434 — stopping it"
+      osascript -e 'quit app "Ollama"' 2>/dev/null || true
+      pkill -f "[Oo]llama" 2>/dev/null || true
+      sleep 1
+    fi
+
+    # Only install Qdrant for presets that need it
+    if [ "$XGH_PRESET" != "local-light" ]; then
+      if ! command -v qdrant &>/dev/null && ! [ -x "${HOME}/.qdrant/bin/qdrant" ]; then
+        info "Installing Qdrant..."
+        brew install qdrant 2>/dev/null || warn "Could not install Qdrant via brew — install manually or ensure ~/.qdrant/bin/qdrant exists"
+      fi
+
+      # Fix Qdrant LaunchAgent plist: add MALLOC_CONF and correct WorkingDirectory
+      _QDRANT_BIN=$(command -v qdrant 2>/dev/null || echo "${HOME}/.qdrant/bin/qdrant")
+      _QDRANT_PLIST="${HOME}/Library/LaunchAgents/com.qdrant.server.plist"
+      _QDRANT_STORAGE="${HOME}/.qdrant/storage"
+      mkdir -p "${_QDRANT_STORAGE}"
+      if [ -f "$_QDRANT_PLIST" ]; then
+        # Inject MALLOC_CONF if not already present
+        if ! grep -q "MALLOC_CONF" "$_QDRANT_PLIST" 2>/dev/null; then
+          python3 - "$_QDRANT_PLIST" <<'PYEOF'
 import sys, re
 path = sys.argv[1]
 content = open(path).read()
@@ -94,59 +113,152 @@ if '<key>MALLOC_CONF</key>' not in content:
     open(path, 'w').write(content)
     print('Patched MALLOC_CONF into', path)
 PYEOF
-        info "Qdrant plist: injected MALLOC_CONF=background_thread:false"
+          info "Qdrant plist: injected MALLOC_CONF=background_thread:false"
+        fi
+      fi
+
+      # Clear stale WAL locks before starting (harmless if clean)
+      find "${_QDRANT_STORAGE}" -path "*/wal/open-*" -delete 2>/dev/null || true
+
+      # Start Qdrant as a background service if not already running
+      if ! curl -sf http://localhost:6333/healthz >/dev/null 2>&1; then
+        info "Starting Qdrant background service..."
+        if [ -f "$_QDRANT_PLIST" ]; then
+          launchctl unload "$_QDRANT_PLIST" 2>/dev/null || true
+          launchctl load "$_QDRANT_PLIST" 2>/dev/null \
+            || warn "Could not load Qdrant plist — start manually: launchctl load ${_QDRANT_PLIST}"
+        else
+          brew services start qdrant 2>/dev/null || warn "Could not start Qdrant service — start manually: brew services start qdrant"
+        fi
+      else
+        info "Qdrant is already running"
       fi
     fi
 
-    # Clear stale WAL locks before starting (harmless if clean)
-    find "${_QDRANT_STORAGE}" -path "*/wal/open-*" -delete 2>/dev/null || true
+  elif [ "$XGH_BACKEND" = "ollama" ]; then
+    # ── Linux / Intel Mac: Ollama + Qdrant binary ────────
 
-    # Start Qdrant as a background service if not already running
-    if ! curl -sf http://localhost:6333/healthz >/dev/null 2>&1; then
-      info "Starting Qdrant background service..."
-      if [ -f "$_QDRANT_PLIST" ]; then
-        launchctl unload "$_QDRANT_PLIST" 2>/dev/null || true
-        launchctl load "$_QDRANT_PLIST" 2>/dev/null \
-          || warn "Could not load Qdrant plist — start manually: launchctl load ${_QDRANT_PLIST}"
+    # Install Ollama if not present
+    if ! command -v ollama &>/dev/null; then
+      info "Installing Ollama..."
+      curl -fsSL https://ollama.com/install.sh | sh
+    fi
+
+    # Guard: if ollama still not in PATH, abort
+    if ! command -v ollama &>/dev/null; then
+      warn "Ollama not found after install attempt — install manually: curl -fsSL https://ollama.com/install.sh | sh"
+      exit 1
+    fi
+    info "Ollama: $(command -v ollama)"
+
+    # Install Qdrant binary (arch-aware) for presets that need it
+    if [ "$XGH_PRESET" != "local-light" ]; then
+      if ! [ -x "${HOME}/.qdrant/bin/qdrant" ]; then
+        info "Installing Qdrant binary..."
+        mkdir -p "${HOME}/.qdrant/bin"
+        ARCH=$(uname -m)
+        QDRANT_VER=$(curl -sf "https://api.github.com/repos/qdrant/qdrant/releases/latest" | grep '"tag_name"' | cut -d'"' -f4)
+        curl -fsSL "https://github.com/qdrant/qdrant/releases/download/${QDRANT_VER}/qdrant-${ARCH}-unknown-linux-gnu.tar.gz" \
+          | tar -xz -C "${HOME}/.qdrant/bin/"
+        chmod +x "${HOME}/.qdrant/bin/qdrant"
+        info "Qdrant ${QDRANT_VER} → ${HOME}/.qdrant/bin/qdrant"
       else
-        brew services start qdrant 2>/dev/null || warn "Could not start Qdrant service — start manually: brew services start qdrant"
+        info "Qdrant already installed: ${HOME}/.qdrant/bin/qdrant"
       fi
-    else
-      info "Qdrant is already running"
+
+      # Write systemd user service for Qdrant
+      QDRANT_SVC_DIR="${HOME}/.config/systemd/user"
+      mkdir -p "$QDRANT_SVC_DIR"
+      mkdir -p "${HOME}/.xgh/logs" "${HOME}/.qdrant/storage"
+      cat > "${QDRANT_SVC_DIR}/xgh-qdrant.service" <<QDRANTSVCEOF
+[Unit]
+Description=Qdrant vector database (xgh)
+After=network.target
+
+[Service]
+ExecStart=%h/.qdrant/bin/qdrant
+WorkingDirectory=%h/.qdrant/storage
+Restart=always
+RestartSec=5
+Environment=HOME=%h
+Environment=MALLOC_CONF=background_thread:false
+StandardOutput=append:%h/.xgh/logs/qdrant.log
+StandardError=append:%h/.xgh/logs/qdrant.log
+
+[Install]
+WantedBy=default.target
+QDRANTSVCEOF
+      loginctl enable-linger "$USER" 2>/dev/null || true
+      systemctl --user daemon-reload 2>/dev/null || true
+      systemctl --user enable --now xgh-qdrant.service 2>/dev/null \
+        || warn "Could not enable xgh-qdrant.service — start manually: systemctl --user start xgh-qdrant"
     fi
   fi
 
   # ── 2. Model Selection ─────────────────────────────────
   lane "Picking brains 🧠"
 
-  # Detect installed models in HuggingFace cache
+  # Detect installed models in HuggingFace cache (vllm-mlx path)
   HF_CACHE="${HF_HOME:-${HOME}/.cache/huggingface}/hub"
   _model_cached() {
     local slug; slug="models--$(echo "$1" | sed 's|/|--|g')"
     [ -d "${HF_CACHE}/${slug}" ]
   }
 
-  LLM_MODELS=(
+  # vllm-mlx model lists (Apple Silicon)
+  VLLM_LLM_MODELS=(
     "mlx-community/Llama-3.2-3B-Instruct-4bit|Llama 3.2 3B (default, fast, 2GB)"
     "mlx-community/Llama-3.2-1B-Instruct-4bit|Llama 3.2 1B (tiny, 0.7GB)"
     "mlx-community/Mistral-7B-Instruct-v0.3-4bit|Mistral 7B (powerful, 4GB)"
     "mlx-community/Qwen3-4B-4bit|Qwen3 4B (balanced, 2.5GB)"
     "mlx-community/Qwen3-8B-4bit|Qwen3 8B (strong reasoning, 5GB)"
   )
-  EMBED_MODELS=(
+  VLLM_EMBED_MODELS=(
     "mlx-community/nomicai-modernbert-embed-base-8bit|ModernBERT Embed 8-bit (default, 768 dims, best quality)"
     "mlx-community/nomicai-modernbert-embed-base-4bit|ModernBERT Embed 4-bit (smaller, 768 dims)"
     "mlx-community/all-MiniLM-L6-v2-4bit|MiniLM L6 (fast, 384 dims)"
   )
 
-  ORIG_DEFAULT_LLM="mlx-community/Llama-3.2-3B-Instruct-4bit"
-  ORIG_DEFAULT_EMBED="mlx-community/nomicai-modernbert-embed-base-8bit"
+  # Ollama model lists (Linux / Intel Mac)
+  OLLAMA_LLM_MODELS=(
+    "llama3.2:3b|Llama 3.2 3B (default, fast, 2GB)"
+    "llama3.2:1b|Llama 3.2 1B (tiny, 0.7GB)"
+    "mistral:7b|Mistral 7B (powerful, 4GB)"
+    "qwen3:4b|Qwen3 4B (balanced, 2.5GB)"
+    "qwen3:8b|Qwen3 8B (strong reasoning, 5.2GB)"
+  )
+  OLLAMA_EMBED_MODELS=(
+    "nomic-embed-text|Nomic Embed Text (default, 768 dims, best quality)"
+    "mxbai-embed-large|MXBai Embed Large (1024 dims — requires collection recreate)"
+    "all-minilm:22m|MiniLM (384 dims — requires collection recreate)"
+  )
+
+  # Select active arrays and availability helper based on backend
+  if [ "$XGH_BACKEND" = "vllm-mlx" ]; then
+    LLM_MODELS=("${VLLM_LLM_MODELS[@]}")
+    EMBED_MODELS=("${VLLM_EMBED_MODELS[@]}")
+    CUSTOM_LABEL="HuggingFace model ID"
+    _model_available() { _model_cached "$1"; }
+  else
+    LLM_MODELS=("${OLLAMA_LLM_MODELS[@]}")
+    EMBED_MODELS=("${OLLAMA_EMBED_MODELS[@]}")
+    CUSTOM_LABEL="Ollama model name (e.g. llama3.2:3b)"
+    _model_available() { ollama list 2>/dev/null | grep -q "^${1}[[:space:]]"; }
+  fi
+
+  if [ "$XGH_BACKEND" = "vllm-mlx" ]; then
+    ORIG_DEFAULT_LLM="mlx-community/Llama-3.2-3B-Instruct-4bit"
+    ORIG_DEFAULT_EMBED="mlx-community/nomicai-modernbert-embed-base-8bit"
+  else
+    ORIG_DEFAULT_LLM="llama3.2:3b"
+    ORIG_DEFAULT_EMBED="nomic-embed-text"
+  fi
 
   # Prefer an already-installed model as the default (first installed wins)
   DEFAULT_LLM="$ORIG_DEFAULT_LLM"
   for entry in "${LLM_MODELS[@]}"; do
     IFS='|' read -r mid _ <<< "$entry"
-    if _model_cached "$mid"; then
+    if _model_available "$mid"; then
       DEFAULT_LLM="$mid"
       break
     fi
@@ -155,7 +267,7 @@ PYEOF
   DEFAULT_EMBED="$ORIG_DEFAULT_EMBED"
   for entry in "${EMBED_MODELS[@]}"; do
     IFS='|' read -r mid _ <<< "$entry"
-    if _model_cached "$mid"; then
+    if _model_available "$mid"; then
       DEFAULT_EMBED="$mid"
       break
     fi
@@ -187,7 +299,7 @@ PYEOF
     for i in "${!LLM_MODELS[@]}"; do
       IFS='|' read -r model_id model_desc <<< "${LLM_MODELS[$i]}"
       local_tag=""
-      if _model_cached "$model_id"; then
+      if _model_available "$model_id"; then
         local_tag=" ${GREEN}(installed)${NC}"
       fi
       if [ "$model_id" = "$DEFAULT_LLM" ]; then
@@ -196,13 +308,13 @@ PYEOF
         echo -e "    $((i+1))) ${model_desc}${local_tag}"
       fi
     done
-    echo "    c) Custom HuggingFace model ID"
+    echo "    c) Custom ${CUSTOM_LABEL}"
     echo ""
     read -r -p "  🐴 Pick [${DEFAULT_LLM_IDX}]: " llm_choice
     llm_choice="${llm_choice:-$DEFAULT_LLM_IDX}"
 
     if [ "$llm_choice" = "c" ] || [ "$llm_choice" = "C" ]; then
-      read -r -p "  Enter HuggingFace model ID: " XGH_LLM_MODEL
+      read -r -p "  Enter ${CUSTOM_LABEL}: " XGH_LLM_MODEL
     elif [ "$llm_choice" -ge 1 ] 2>/dev/null && [ "$llm_choice" -le "${#LLM_MODELS[@]}" ]; then
       IFS='|' read -r XGH_LLM_MODEL _ <<< "${LLM_MODELS[$((llm_choice-1))]}"
     else
@@ -218,7 +330,7 @@ PYEOF
     for i in "${!EMBED_MODELS[@]}"; do
       IFS='|' read -r model_id model_desc <<< "${EMBED_MODELS[$i]}"
       local_tag=""
-      if _model_cached "$model_id"; then
+      if _model_available "$model_id"; then
         local_tag=" ${GREEN}(installed)${NC}"
       fi
       if [ "$model_id" = "$DEFAULT_EMBED" ]; then
@@ -227,13 +339,13 @@ PYEOF
         echo -e "    $((i+1))) ${model_desc}${local_tag}"
       fi
     done
-    echo "    c) Custom HuggingFace model ID"
+    echo "    c) Custom ${CUSTOM_LABEL}"
     echo ""
     read -r -p "  🐴 Pick [${DEFAULT_EMBED_IDX}]: " embed_choice
     embed_choice="${embed_choice:-$DEFAULT_EMBED_IDX}"
 
     if [ "$embed_choice" = "c" ] || [ "$embed_choice" = "C" ]; then
-      read -r -p "  Enter HuggingFace model ID: " XGH_EMBED_MODEL
+      read -r -p "  Enter ${CUSTOM_LABEL}: " XGH_EMBED_MODEL
     elif [ "$embed_choice" -ge 1 ] 2>/dev/null && [ "$embed_choice" -le "${#EMBED_MODELS[@]}" ]; then
       IFS='|' read -r XGH_EMBED_MODEL _ <<< "${EMBED_MODELS[$((embed_choice-1))]}"
     else
@@ -242,23 +354,31 @@ PYEOF
   fi
   XGH_EMBED_MODEL="${XGH_EMBED_MODEL:-$DEFAULT_EMBED}"
 
+  # Warn if non-768-dim embed model selected on Ollama (existing collections are 768-dim)
+  if [ "$XGH_BACKEND" = "ollama" ] && [[ "$XGH_EMBED_MODEL" != "nomic-embed-text" ]]; then
+    warn "Non-768-dim embed model selected. Existing 768-dim Qdrant collections will be incompatible."
+    warn "  Run with XGH_RESET_COLLECTION=1 if you want to recreate collections."
+  fi
+
   info "LLM model:       ${XGH_LLM_MODEL}"
   info "Embedding model:  ${XGH_EMBED_MODEL}"
 
-  # ── 3. Download models ─────────────────────────────────
-  # _model_cached and HF_CACHE already defined in Model Selection above
-  MODELS_TO_DOWNLOAD=()
-  for m in "$XGH_LLM_MODEL" "$XGH_EMBED_MODEL"; do
-    if _model_cached "$m"; then
-      info "Model already cached: ${m}"
-    else
-      MODELS_TO_DOWNLOAD+=("$m")
-    fi
-  done
+  # ── 3. Download/pull models ────────────────────────────
+  if [ "$XGH_BACKEND" = "vllm-mlx" ]; then
+    # vllm-mlx path: download from HuggingFace
+    # _model_cached and HF_CACHE already defined in Model Selection above
+    MODELS_TO_DOWNLOAD=()
+    for m in "$XGH_LLM_MODEL" "$XGH_EMBED_MODEL"; do
+      if _model_cached "$m"; then
+        info "Model already cached: ${m}"
+      else
+        MODELS_TO_DOWNLOAD+=("$m")
+      fi
+    done
 
-  if [ ${#MODELS_TO_DOWNLOAD[@]} -gt 0 ]; then
-    lane "Downloading models (grab a coffee) ☕"
-    uv run --with huggingface-hub python3 -c "
+    if [ ${#MODELS_TO_DOWNLOAD[@]} -gt 0 ]; then
+      lane "Downloading models (grab a coffee) ☕"
+      uv run --with huggingface-hub python3 -c "
 from huggingface_hub import snapshot_download
 import sys
 for model in sys.argv[1:]:
@@ -269,8 +389,20 @@ for model in sys.argv[1:]:
     except Exception as e:
         print(f'  ⚠ Could not download {model}: {e}')
 " "${MODELS_TO_DOWNLOAD[@]}" || warn "Model pre-download failed — models will download on first use"
+    else
+      info "All models already cached — skipping download"
+    fi
   else
-    info "All models already cached — skipping download"
+    # Ollama path: pull models via ollama pull
+    lane "Pulling Ollama models 🦙"
+    for model in "$XGH_LLM_MODEL" "$XGH_EMBED_MODEL"; do
+      if _model_available "$model"; then
+        info "Already pulled: ${model}"
+      else
+        info "Pulling ${model}..."
+        ollama pull "$model" || warn "Could not pull ${model} — pull manually: ollama pull ${model}"
+      fi
+    done
   fi
 
   # ── 3b. Cipher Infrastructure ──────────────────────────
@@ -556,7 +688,8 @@ QDRANTSTOREEOF
   if [ ! -f "$CIPHER_YML" ]; then
     info "Generating cipher.yml"
     mkdir -p "${HOME}/.cipher"
-    cat > "$CIPHER_YML" <<CIPHERYMLEOF
+    if [ "$XGH_BACKEND" = "vllm-mlx" ]; then
+      cat > "$CIPHER_YML" <<CIPHERYMLEOF
 mcpServers: {}
 
 llm:
@@ -583,22 +716,60 @@ systemPrompt:
     - Explaining complex technical concepts
     - Reasoning through programming challenges
 CIPHERYMLEOF
+    else
+      # Ollama backend: use native Ollama provider/type (no OpenAI-compat shim needed)
+      cat > "$CIPHER_YML" <<CIPHERYMLEOF
+mcpServers: {}
+
+llm:
+  provider: ollama
+  model: ${XGH_LLM_MODEL}
+  maxIterations: 50
+  baseURL: http://localhost:${XGH_MODEL_PORT}
+
+embedding:
+  type: ollama
+  model: ${XGH_EMBED_MODEL}
+  baseURL: http://localhost:${XGH_MODEL_PORT}
+  dimensions: 768
+
+systemPrompt:
+  enabled: true
+  content: |
+    You are an AI programming assistant focused on coding and reasoning tasks. You excel at:
+    - Writing clean, efficient code
+    - Debugging and problem-solving
+    - Code review and optimization
+    - Explaining complex technical concepts
+    - Reasoning through programming challenges
+CIPHERYMLEOF
+    fi
     info "cipher.yml → ${CIPHER_YML}"
   else
-    # Update model names in existing cipher.yml to match current selection
-    info "cipher.yml exists — syncing model names"
-    python3 - "$CIPHER_YML" "$XGH_LLM_MODEL" "$XGH_EMBED_MODEL" "$XGH_MODEL_PORT" <<'SYNCEOF'
+    # Update model names (and provider/type) in existing cipher.yml to match current selection
+    info "cipher.yml exists — syncing model names and backend"
+    python3 - "$CIPHER_YML" "$XGH_LLM_MODEL" "$XGH_EMBED_MODEL" "$XGH_MODEL_PORT" "$XGH_BACKEND" <<'SYNCEOF'
 import sys, re
-path, llm_model, embed_model, port = sys.argv[1:]
+path, llm_model, embed_model, port, backend = sys.argv[1:]
 content = open(path).read()
 # Update embedding model
 content = re.sub(r'(^embedding:.*?^\s+model:\s*)(\S+)', lambda m: m.group(1) + embed_model, content, flags=re.MULTILINE|re.DOTALL, count=1)
 # Update LLM model (only under llm: section, not embedding:)
 content = re.sub(r'(^llm:.*?^\s+model:\s*)(\S+)', lambda m: m.group(1) + llm_model, content, flags=re.MULTILINE|re.DOTALL, count=1)
 # Update port in baseURLs
-content = re.sub(r'(baseURL:\s*http://localhost:)\d+', lambda m: m.group(1) + port, content)
+if backend == 'vllm-mlx':
+    content = re.sub(r'(baseURL:\s*http://localhost:)\d+(/v1)', lambda m: m.group(1) + port + m.group(2), content)
+    content = re.sub(r'(baseURL:\s*http://localhost:)\d+(?!/v1)', lambda m: m.group(1) + port + '/v1', content)
+    # Update provider and type to openai
+    content = re.sub(r'(^llm:.*?^\s+provider:\s*)(\S+)', lambda m: m.group(1) + 'openai', content, flags=re.MULTILINE|re.DOTALL, count=1)
+    content = re.sub(r'(^embedding:.*?^\s+type:\s*)(\S+)', lambda m: m.group(1) + 'openai', content, flags=re.MULTILINE|re.DOTALL, count=1)
+else:
+    content = re.sub(r'(baseURL:\s*http://localhost:)\d+(?:/v1)?', lambda m: m.group(1) + port, content)
+    # Update provider and type to ollama
+    content = re.sub(r'(^llm:.*?^\s+provider:\s*)(\S+)', lambda m: m.group(1) + 'ollama', content, flags=re.MULTILINE|re.DOTALL, count=1)
+    content = re.sub(r'(^embedding:.*?^\s+type:\s*)(\S+)', lambda m: m.group(1) + 'ollama', content, flags=re.MULTILINE|re.DOTALL, count=1)
 open(path, 'w').write(content)
-print(f'  synced: llm={llm_model} embed={embed_model} port={port}')
+print(f'  synced: llm={llm_model} embed={embed_model} port={port} backend={backend}')
 SYNCEOF
   fi
 
@@ -655,8 +826,13 @@ SYNCEOF
 
 else
   info "Dry run — skipping the heavy lifting 🏋️"
-  XGH_LLM_MODEL="${XGH_LLM_MODEL:-mlx-community/Llama-3.2-3B-Instruct-4bit}"
-  XGH_EMBED_MODEL="${XGH_EMBED_MODEL:-mlx-community/nomicai-modernbert-embed-base-8bit}"
+  if [ "$XGH_BACKEND" = "vllm-mlx" ]; then
+    XGH_LLM_MODEL="${XGH_LLM_MODEL:-mlx-community/Llama-3.2-3B-Instruct-4bit}"
+    XGH_EMBED_MODEL="${XGH_EMBED_MODEL:-mlx-community/nomicai-modernbert-embed-base-8bit}"
+  else
+    XGH_LLM_MODEL="${XGH_LLM_MODEL:-llama3.2:3b}"
+    XGH_EMBED_MODEL="${XGH_EMBED_MODEL:-nomic-embed-text}"
+  fi
 fi
 
 # ── 3. Fetch xgh pack ───────────────────────────────────
@@ -1438,8 +1614,9 @@ cat > "$HOME/.xgh/models.env" <<MODELSEOF
 XGH_LLM_MODEL="${XGH_LLM_MODEL}"
 XGH_EMBED_MODEL="${XGH_EMBED_MODEL}"
 XGH_MODEL_PORT="${XGH_MODEL_PORT}"
+XGH_BACKEND="${XGH_BACKEND}"
 MODELSEOF
-# Note: vllm-mlx model server runs as a launchd/systemd daemon (see ingest-schedule.sh)
+# Note: model server runs as a launchd/systemd daemon (see ingest-schedule.sh)
 
 # ── xgh-ingest setup ──────────────────────────────────────
 if [ "$XGH_DRY_RUN" -eq 0 ]; then

@@ -1,7 +1,7 @@
 # Ollama Linux Support
 
 **Date:** 2026-03-16
-**Status:** Ready to implement
+**Status:** Implemented
 **Scope:** Add Ollama as the inference backend for Linux/non-Apple-Silicon systems
 
 ---
@@ -49,7 +49,7 @@ if the user selects a non-768 embed model and an existing 768-dim collection is 
 
 ### Step 1 — Detect platform and set backend variable
 
-- [ ] In `install.sh`, after the OS detection preamble, add:
+- [x] In `install.sh`, after the OS detection preamble, add:
   ```bash
   # Determine inference backend
   if [[ "$(uname)" == "Darwin" ]] && [[ "$(uname -m)" == "arm64" ]]; then
@@ -58,7 +58,7 @@ if the user selects a non-768 embed model and an existing 768-dim collection is 
     XGH_BACKEND="ollama"
   fi
   ```
-- [ ] Export `XGH_BACKEND` and persist it in `~/.xgh/models.env` alongside `XGH_LLM_MODEL` / `XGH_EMBED_MODEL`.
+- [x] Export `XGH_BACKEND` and persist it in `~/.xgh/models.env` alongside `XGH_LLM_MODEL` / `XGH_EMBED_MODEL`.
 
 ---
 
@@ -66,8 +66,8 @@ if the user selects a non-768 embed model and an existing 768-dim collection is 
 
 In the dependencies lane of `install.sh`, the current block installs Homebrew, Node, Python, uv, vllm-mlx, and Qdrant. Wrap the vllm-mlx install block:
 
-- [ ] **macOS arm64 (vllm-mlx path):** keep existing logic unchanged.
-- [ ] **Linux/other (Ollama path):**
+- [x] **macOS arm64 (vllm-mlx path):** keep existing logic unchanged.
+- [x] **Linux/other (Ollama path):**
   - Check `command -v ollama`; if missing, run the official curl installer:
     ```bash
     curl -fsSL https://ollama.com/install.sh | sh
@@ -109,10 +109,10 @@ In the dependencies lane of `install.sh`, the current block installs Homebrew, N
 
 In `install.sh`'s model selection lane, replace the single `LLM_MODELS` / `EMBED_MODELS` arrays with backend-conditional arrays:
 
-- [ ] Define `OLLAMA_LLM_MODELS` and `OLLAMA_EMBED_MODELS` parallel to the existing vllm-mlx arrays.
-- [ ] Select which array to use based on `$XGH_BACKEND`.
-- [ ] Change the custom-entry prompt label: macOS shows "HuggingFace model ID", Linux shows "Ollama model name (e.g. llama3.2:3b)".
-- [ ] The `_model_cached` helper currently checks the HuggingFace disk cache. Add a parallel `_ollama_model_pulled` helper:
+- [x] Define `OLLAMA_LLM_MODELS` and `OLLAMA_EMBED_MODELS` parallel to the existing vllm-mlx arrays.
+- [x] Select which array to use based on `$XGH_BACKEND`.
+- [x] Change the custom-entry prompt label: macOS shows "HuggingFace model ID", Linux shows "Ollama model name (e.g. llama3.2:3b)".
+- [x] The `_model_cached` helper currently checks the HuggingFace disk cache. Add a parallel `_ollama_model_pulled` helper:
   ```bash
   _ollama_model_pulled() { ollama list 2>/dev/null | grep -q "^${1}"; }
   ```
@@ -124,8 +124,8 @@ In `install.sh`'s model selection lane, replace the single `LLM_MODELS` / `EMBED
 
 Replace the `huggingface_hub.snapshot_download` Python block:
 
-- [ ] **vllm-mlx path:** keep existing `uv run --with huggingface-hub python3 ...` block unchanged.
-- [ ] **Ollama path:** for each selected model, run:
+- [x] **vllm-mlx path:** keep existing `uv run --with huggingface-hub python3 ...` block unchanged.
+- [x] **Ollama path:** for each selected model, run:
   ```bash
   ollama pull "${model}"
   ```
@@ -143,8 +143,8 @@ XGH_EMBED_MODEL=...
 XGH_MODEL_PORT=11434
 ```
 
-- [ ] Add `XGH_BACKEND=vllm-mlx` or `XGH_BACKEND=ollama` to this file.
-- [ ] Update the models.env generation block in `install.sh` to include `XGH_BACKEND`.
+- [x] Add `XGH_BACKEND=vllm-mlx` or `XGH_BACKEND=ollama` to this file.
+- [x] Update the models.env generation block in `install.sh` to include `XGH_BACKEND`.
 
 ---
 
@@ -153,7 +153,7 @@ XGH_MODEL_PORT=11434
 Cipher has first-class Ollama support (`type: ollama`, `provider: ollama`). On Linux, generate
 cipher.yml using the native Ollama type rather than the OpenAI-compat shim:
 
-- [ ] Branch the cipher.yml template in install.sh on `$XGH_BACKEND`:
+- [x] Branch the cipher.yml template in install.sh on `$XGH_BACKEND`:
   - **vllm-mlx (macOS):** keep existing `embedding.type: openai` + `baseURL: http://localhost:11434/v1`
   - **ollama (Linux):**
     ```yaml
@@ -168,9 +168,9 @@ cipher.yml using the native Ollama type rather than the OpenAI-compat shim:
       baseURL: http://localhost:11434
       dimensions: 768
     ```
-- [ ] With `type: ollama`, Cipher does NOT go through the OpenAI SDK — the `fix-openai-embeddings.js` patch is **not needed on Linux**. No change to the wrapper, it's a no-op on Ollama.
-- [ ] The cipher.yml `sync` block added on 2026-03-16 must also branch on backend to write the correct type field.
-- [ ] No `OLLAMA_BASE_URL` env var needed in the MCP config — the native Ollama type reads from `baseURL` in cipher.yml directly.
+- [x] With `type: ollama`, Cipher does NOT go through the OpenAI SDK — the `fix-openai-embeddings.js` patch is **not needed on Linux**. No change to the wrapper, it's a no-op on Ollama.
+- [x] The cipher.yml `sync` block added on 2026-03-16 must also branch on backend to write the correct type field.
+- [x] No `OLLAMA_BASE_URL` env var needed in the MCP config — the native Ollama type reads from `baseURL` in cipher.yml directly.
 
 ---
 
@@ -178,7 +178,7 @@ cipher.yml using the native Ollama type rather than the OpenAI-compat shim:
 
 On macOS, if Ollama is installed alongside vllm-mlx, they both try to use port 11434.
 
-- [ ] In the macOS dependency lane (before starting vllm-mlx), add:
+- [x] In the macOS dependency lane (before starting vllm-mlx), add:
   ```bash
   if command -v ollama &>/dev/null && pgrep -x ollama >/dev/null 2>&1; then
     warn "Ollama is running and will conflict with vllm-mlx on port 11434 — stopping Ollama"
@@ -186,7 +186,7 @@ On macOS, if Ollama is installed alongside vllm-mlx, they both try to use port 1
     pkill -f ollama 2>/dev/null || true
   fi
   ```
-- [ ] Post-install note on macOS: "Disable Ollama auto-start to prevent port 11434 conflicts with vllm-mlx."
+- [x] Post-install note on macOS: "Disable Ollama auto-start to prevent port 11434 conflicts with vllm-mlx."
 
 ---
 
@@ -195,28 +195,28 @@ On macOS, if Ollama is installed alongside vllm-mlx, they both try to use port 1
 `curl https://ollama.com/install.sh | sh` installs Ollama with its **own systemd system
 service** (`ollama.service`) that auto-starts. xgh should not create a competing wrapper.
 
-- [ ] In `install_linux()`, after running the Ollama installer, just enable and verify:
+- [x] In `install_linux()`, after running the Ollama installer, just enable and verify:
   ```bash
   systemctl is-active ollama.service >/dev/null 2>&1 \
     || sudo systemctl enable --now ollama.service 2>/dev/null \
     || warn "Could not enable ollama.service — start manually: ollama serve"
   ```
-- [ ] Write a **separate** `~/.config/systemd/user/xgh-qdrant.service` for Qdrant (see Step 2 unit file).
-- [ ] `loginctl enable-linger $USER` before any `systemctl --user` calls.
-- [ ] `uninstall_linux()`: stop/disable `xgh-qdrant.service`; do NOT touch `ollama.service` (other apps may use it).
+- [x] Write a **separate** `~/.config/systemd/user/xgh-qdrant.service` for Qdrant (see Step 2 unit file).
+- [x] `loginctl enable-linger $USER` before any `systemctl --user` calls.
+- [x] `uninstall_linux()`: stop/disable `xgh-qdrant.service`; do NOT touch `ollama.service` (other apps may use it).
 
 ---
 
 ### Step 9 — com.xgh.models.plist: macOS-only, no functional change
 
-- [ ] Add comment: `<!-- macOS Apple Silicon only — for Linux/Intel see systemd/xgh-models.service -->`.
+- [x] Add comment: `<!-- macOS Apple Silicon only — for Linux/Intel see systemd/xgh-models.service -->`.
 
 ---
 
 ### Step 10 — techpack.yaml: add Ollama component
 
-- [ ] Add `ollama` component (Linux/non-arm64 path).
-- [ ] Annotate `vllm-mlx` component as Apple Silicon only.
+- [x] Add `ollama` component (Linux/non-arm64 path).
+- [x] Annotate `vllm-mlx` component as Apple Silicon only.
 
 ---
 
@@ -230,7 +230,7 @@ Ollama's `/v1/embeddings` returns the same JSON shape as vllm-mlx. The existing 
 
 The generated `~/.xgh/start-models.sh` currently calls `exec vllm-mlx serve ...` unconditionally.
 
-- [ ] Branch on `$XGH_BACKEND` in the generation block:
+- [x] Branch on `$XGH_BACKEND` in the generation block:
   - **vllm-mlx:** keep existing command.
   - **ollama:**
     ```bash

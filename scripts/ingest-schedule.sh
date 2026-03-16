@@ -80,31 +80,43 @@ install_linux() {
   crontab "$tmp"
   rm -f "$tmp"
   echo "✓ cron entries installed"
-  # Install models as a systemd user service if models are configured
-  if [ -n "$XGH_LLM_MODEL" ]; then
-    local svc_dir="${HOME}/.config/systemd/user"
-    mkdir -p "$svc_dir"
-    cat > "${svc_dir}/xgh-models.service" <<SVCEOF
+
+  # Ensure Ollama system service is running (installed by curl | sh)
+  if systemctl is-active ollama.service >/dev/null 2>&1; then
+    echo "✓ ollama.service already running"
+  elif systemctl is-enabled ollama.service >/dev/null 2>&1; then
+    sudo systemctl start ollama.service 2>/dev/null \
+      || echo "⚠ Could not start ollama.service — run: sudo systemctl start ollama"
+  else
+    echo "⚠ ollama.service not found — run: curl -fsSL https://ollama.com/install.sh | sh"
+  fi
+
+  # Write and enable xgh-qdrant systemd user service
+  loginctl enable-linger "$USER" 2>/dev/null || true
+  local svc_dir="${HOME}/.config/systemd/user"
+  mkdir -p "$svc_dir"
+  mkdir -p "${XGH_LOG_DIR}" "${HOME}/.qdrant/storage"
+  cat > "${svc_dir}/xgh-qdrant.service" <<QDRANTSVCEOF
 [Unit]
-Description=xgh vllm-mlx model server
+Description=Qdrant vector database (xgh)
 After=network.target
 
 [Service]
-Type=exec
-ExecStart=${VLLM_BIN} serve ${XGH_LLM_MODEL} --embedding-model ${XGH_EMBED_MODEL} --port ${XGH_MODEL_PORT} --host 127.0.0.1
+ExecStart=%h/.qdrant/bin/qdrant
+WorkingDirectory=%h/.qdrant/storage
 Restart=always
 RestartSec=5
-Environment=HOME=${HOME}
-StandardOutput=append:${XGH_LOG_DIR}/vllm-mlx.log
-StandardError=append:${XGH_LOG_DIR}/vllm-mlx.log
+Environment=HOME=%h
+Environment=MALLOC_CONF=background_thread:false
+StandardOutput=append:%h/.xgh/logs/qdrant.log
+StandardError=append:%h/.xgh/logs/qdrant.log
 
 [Install]
 WantedBy=default.target
-SVCEOF
-    systemctl --user daemon-reload 2>/dev/null || true
-    systemctl --user enable --now xgh-models.service 2>/dev/null || true
-    echo "✓ systemd user service xgh-models installed and started"
-  fi
+QDRANTSVCEOF
+  systemctl --user daemon-reload 2>/dev/null || true
+  systemctl --user enable --now xgh-qdrant.service 2>/dev/null || true
+  echo "✓ xgh-qdrant.service installed and started"
 }
 
 uninstall_macos() {
@@ -119,8 +131,11 @@ uninstall_linux() {
   crontab -l 2>/dev/null | grep -v "xgh-retrieve\|xgh-analyze" | crontab - || true
   systemctl --user disable --now xgh-models.service 2>/dev/null || true
   rm -f "${HOME}/.config/systemd/user/xgh-models.service"
+  systemctl --user disable --now xgh-qdrant.service 2>/dev/null || true
+  rm -f "${HOME}/.config/systemd/user/xgh-qdrant.service"
   systemctl --user daemon-reload 2>/dev/null || true
   echo "✓ cron entries and systemd services removed"
+  # Note: ollama.service is intentionally NOT stopped (other apps may use it)
 }
 
 case "${1:-help}" in

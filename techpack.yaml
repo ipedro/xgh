@@ -8,10 +8,23 @@ components:
     type: shell
     command: |
       uv tool install git+https://github.com/waybarrios/vllm-mlx.git
-    description: "Local LLM + embeddings server (OpenAI-compatible API via vllm-mlx)"
+    description: "Local LLM + embeddings server for Apple Silicon (OpenAI-compatible API via vllm-mlx)"
+    platform: darwin/arm64
     doctorChecks:
       - shellScript: "command -v vllm-mlx >/dev/null 2>&1"
-        label: "vllm-mlx is installed"
+        label: "vllm-mlx is installed (Apple Silicon only)"
+
+  - id: ollama
+    type: shell
+    command: |
+      curl -fsSL https://ollama.com/install.sh | sh
+    description: "Local LLM + embeddings server for Linux/Intel Mac (native Ollama backend)"
+    platform: linux
+    doctorChecks:
+      - shellScript: "command -v ollama >/dev/null 2>&1"
+        label: "ollama is installed"
+      - shellScript: "systemctl is-active ollama.service >/dev/null 2>&1"
+        label: "ollama.service is running"
 
   - id: qdrant
     type: brew
