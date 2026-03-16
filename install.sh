@@ -585,7 +585,21 @@ systemPrompt:
 CIPHERYMLEOF
     info "cipher.yml → ${CIPHER_YML}"
   else
-    info "cipher.yml already exists — respecting your config"
+    # Update model names in existing cipher.yml to match current selection
+    info "cipher.yml exists — syncing model names"
+    python3 - "$CIPHER_YML" "$XGH_LLM_MODEL" "$XGH_EMBED_MODEL" "$XGH_MODEL_PORT" <<'SYNCEOF'
+import sys, re
+path, llm_model, embed_model, port = sys.argv[1:]
+content = open(path).read()
+# Update embedding model
+content = re.sub(r'(^embedding:.*?^\s+model:\s*)(\S+)', lambda m: m.group(1) + embed_model, content, flags=re.MULTILINE|re.DOTALL, count=1)
+# Update LLM model (only under llm: section, not embedding:)
+content = re.sub(r'(^llm:.*?^\s+model:\s*)(\S+)', lambda m: m.group(1) + llm_model, content, flags=re.MULTILINE|re.DOTALL, count=1)
+# Update port in baseURLs
+content = re.sub(r'(baseURL:\s*http://localhost:)\d+', lambda m: m.group(1) + port, content)
+open(path, 'w').write(content)
+print(f'  synced: llm={llm_model} embed={embed_model} port={port}')
+SYNCEOF
   fi
 
   # -- Qdrant collections (768-dim Cosine vectors) --
