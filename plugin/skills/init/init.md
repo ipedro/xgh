@@ -41,6 +41,63 @@ Let's get started.
 
 ---
 
+## Step 0: Dependency Check (run before scaffolding)
+
+Check each dependency below in order. Respond per the instructions for each result.
+
+### Cipher MCP
+
+Run in Bash: `claude mcp list 2>/dev/null | grep -i cipher`
+
+- **Found** → continue
+- **Not found** → run `claude mcp add -s user cipher ~/.local/bin/cipher-mcp` and report: "Auto-configured Cipher MCP."
+
+### Qdrant
+
+Run in Bash: `curl -sf --max-time 3 "${QDRANT_URL:-http://localhost:6333}/healthz"`
+
+- **Responds** → continue
+- **Unreachable** → report: "Qdrant is not running. To fix: run `install.sh` to install it locally, or set `XGH_BACKEND=remote` and `XGH_REMOTE_URL=<url>` to use a remote endpoint."
+
+### Inference backend
+
+Run in Bash: `curl -sf --max-time 3 "${XGH_REMOTE_URL:-http://localhost:11434}/v1/models"`
+
+- **Responds** → continue
+- **Unreachable** → report: "Inference backend not running. To fix: run `install.sh` to install vllm-mlx (macOS) or Ollama (Linux), or set `XGH_BACKEND=remote`."
+
+### Partial mode (all three checks fail)
+
+Proceed with scaffolding anyway. After completing, tell the user:
+
+> "xgh memory tools are not yet configured — context tree scaffolded successfully. Run `install.sh` or `/plugin install github:ipedro/xgh` to complete setup. Cipher search will not work until backends are running."
+
+---
+
+## Step 0b: Stale Install Cleanup
+
+Check for old-style per-project skill copies from pre-plugin installs:
+
+Run in Bash:
+
+```bash
+ls .claude/skills/ 2>/dev/null | grep "^xgh-"
+ls .claude/commands/ 2>/dev/null | grep "^xgh-"
+```
+
+If any `xgh-*` entries are found:
+
+1. Remove them:
+   ```bash
+   rm -rf .claude/skills/xgh-* .claude/commands/xgh-* 2>/dev/null || true
+   ```
+
+2. Report: "Removed legacy per-project skill copies. Skills now load from the user-level plugin at `~/.claude/plugins/cache/ipedro/xgh/`."
+
+If none found → continue silently.
+
+---
+
 ## Step 1 — Verify MCP Connections
 
 Run the MCP detection protocol from the `xgh:mcp-setup` skill before proceeding.
