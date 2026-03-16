@@ -44,20 +44,9 @@ echo -e "  ${DIM}Team: ${XGH_TEAM} · Preset: ${XGH_PRESET}${NC}"
 echo ""
 
 # ── 0. Backend / remote URL picker (interactive only) ────
-if [ "$XGH_DRY_RUN" -eq 0 ] && [ -z "${XGH_BACKEND_CHOSEN:-}" ]; then
-  # Only show the picker when the user hasn't already pinned the backend via env
-  if [ "$XGH_BACKEND" != "remote" ] && [ -z "$XGH_BACKEND" ] || \
-     { [ "$XGH_BACKEND" = "vllm-mlx" ] && [ -z "${XGH_BACKEND_SET_BY_ENV:-}" ]; } || \
-     { [ "$XGH_BACKEND" = "ollama" ]   && [ -z "${XGH_BACKEND_SET_BY_ENV:-}" ]; }; then
-    # Suppress the picker if the user set XGH_BACKEND explicitly to vllm-mlx/ollama/remote
-    # (i.e. skip when the var was set before script invocation)
-    : # we always show the picker in interactive mode unless remote was already set
-  fi
-
-  # Interactive backend picker (only when not pre-set)
-  if [ -z "${XGH_BACKEND_ORIG:-}" ]; then
-    XGH_BACKEND_ORIG="${XGH_BACKEND}"
-  fi
+# Skip picker if XGH_BACKEND was explicitly set by the caller
+_XGH_BACKEND_WAS_SET="${XGH_BACKEND}"
+if [ "$XGH_DRY_RUN" -eq 0 ] && [ -z "${_XGH_BACKEND_WAS_SET}" ]; then
   if [ -z "${_XGH_BACKEND_PICKED:-}" ]; then
     echo ""
     echo -e "  ${BOLD}Which inference backend?${NC}"
