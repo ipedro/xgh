@@ -29,7 +29,26 @@ For each active project:
 
 Qdrant: `curl -sf http://localhost:6333/healthz` via Bash — show URL from `cipher.yml`
 
-Cipher MCP: test with `cipher_memory_search` using query `"xgh health check"` — verify it returns without error
+If Qdrant fails, run deeper diagnosis:
+```bash
+# Check launchd status
+launchctl list | grep qdrant
+# Check for crash reason
+tail -20 /tmp/qdrant.log 2>/dev/null | grep -E "ERROR|WARN|Panic"
+tail -5 /tmp/qdrant.error.log 2>/dev/null
+```
+
+Common Qdrant failures and fixes:
+| Error | Fix |
+|---|---|
+| `WouldBlock` / WAL lock (exit 101) | `pkill -f qdrant; rm -f ~/.qdrant/storage/storage/collections/*/0/wal/open-*; launchctl load ~/Library/LaunchAgents/com.qdrant.server.plist` |
+| `jemalloc: background_thread` (warning only) | Add `MALLOC_CONF=background_thread:false` to the plist EnvironmentVariables (cosmetic, not the crash cause) |
+| Missing plist | Re-run `scripts/ingest-schedule.sh install` |
+| Binary missing | `brew install qdrant` or download to `~/.qdrant/bin/qdrant` |
+
+Cipher MCP availability: attempt `cipher_memory_search` with query `"xgh health check"`. If the tool is NOT in the available tool list → report `Cipher MCP ✗ not connected — check ~/.claude.json MCP config`. If the tool returns an error about the embedding service → report `Cipher MCP ✓ connected but ✗ Qdrant offline` with the Qdrant fix instructions above.
+
+**Important:** Cipher MCP availability is determined by whether `mcp__cipher__cipher_memory_search` appears in the tool list, NOT by file presence at `~/.cipher/cipher.yml`.
 
 ## Check 3 — Pipeline freshness
 
@@ -77,7 +96,11 @@ Connectivity
   ✗ Slack: #channel-missing — not found (check channel name in ingest.yaml)
   ✓ Jira: PTECH-31204 exists (23 open issues)
   ✓ Qdrant: localhost:6333 responding
-  ✓ Cipher MCP: responding
+  ✓ Cipher MCP: connected (tool available)
+  # OR if issues:
+  ✗ Qdrant: not responding — WAL lock detected
+    Fix: pkill -f qdrant && rm -f ~/.qdrant/storage/storage/collections/*/0/wal/open-* && launchctl load ~/Library/LaunchAgents/com.qdrant.server.plist
+  ✗ Cipher MCP: not in tool list — check ~/.claude.json has cipher entry
 
 Pipeline
   ✓ Retriever: last run 3 min ago (healthy)

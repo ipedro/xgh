@@ -71,10 +71,46 @@ if [ "$XGH_DRY_RUN" -eq 0 ]; then
       brew install qdrant 2>/dev/null || warn "Could not install Qdrant via brew — install manually or ensure ~/.qdrant/bin/qdrant exists"
     fi
 
+    # Fix Qdrant LaunchAgent plist: add MALLOC_CONF and correct WorkingDirectory
+    _QDRANT_BIN=$(command -v qdrant 2>/dev/null || echo "${HOME}/.qdrant/bin/qdrant")
+    _QDRANT_PLIST="${HOME}/Library/LaunchAgents/com.qdrant.server.plist"
+    _QDRANT_STORAGE="${HOME}/.qdrant/storage"
+    mkdir -p "${_QDRANT_STORAGE}"
+    if [ -f "$_QDRANT_PLIST" ]; then
+      # Inject MALLOC_CONF if not already present
+      if ! grep -q "MALLOC_CONF" "$_QDRANT_PLIST" 2>/dev/null; then
+        python3 - "$_QDRANT_PLIST" <<'PYEOF'
+import sys, re
+path = sys.argv[1]
+content = open(path).read()
+if '<key>MALLOC_CONF</key>' not in content:
+    inject = '''    <key>EnvironmentVariables</key>
+    <dict>
+        <key>MALLOC_CONF</key>
+        <string>background_thread:false</string>
+    </dict>
+'''
+    content = content.replace('</dict>\n</plist>', inject + '</dict>\n</plist>')
+    open(path, 'w').write(content)
+    print('Patched MALLOC_CONF into', path)
+PYEOF
+        info "Qdrant plist: injected MALLOC_CONF=background_thread:false"
+      fi
+    fi
+
+    # Clear stale WAL locks before starting (harmless if clean)
+    find "${_QDRANT_STORAGE}" -path "*/wal/open-*" -delete 2>/dev/null || true
+
     # Start Qdrant as a background service if not already running
     if ! curl -sf http://localhost:6333/healthz >/dev/null 2>&1; then
       info "Starting Qdrant background service..."
-      brew services start qdrant 2>/dev/null || warn "Could not start Qdrant service — start manually: brew services start qdrant"
+      if [ -f "$_QDRANT_PLIST" ]; then
+        launchctl unload "$_QDRANT_PLIST" 2>/dev/null || true
+        launchctl load "$_QDRANT_PLIST" 2>/dev/null \
+          || warn "Could not load Qdrant plist — start manually: launchctl load ${_QDRANT_PLIST}"
+      else
+        brew services start qdrant 2>/dev/null || warn "Could not start Qdrant service — start manually: brew services start qdrant"
+      fi
     else
       info "Qdrant is already running"
     fi

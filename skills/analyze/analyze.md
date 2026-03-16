@@ -34,7 +34,11 @@ If context-mode is not available, use standard Bash but keep script output to su
 
 ## Guard checks
 
-Same as retriever: check config exists, check daily cap via `~/.xgh/lib/usage-tracker.sh`.
+**1. Cipher availability** — Check if the `mcp__cipher__cipher_memory_search` tool is available in the current tool list. Do NOT use file presence (`~/.cipher/cipher.yml`) or env vars as a proxy. If the tool is present and callable → Cipher ✓. If the tool is absent → skip all Cipher steps (Steps 5–8) and log a warning. Print `Cipher MCP ✓ available` or `Cipher MCP ⚠ not available — skipping vector ops`.
+
+**2. Config** — `~/.xgh/ingest.yaml` exists and parses.
+
+**3. Daily cap** — Check via `~/.xgh/lib/usage-tracker.sh`.
 
 ## Step 1 — Read inbox
 
