@@ -1,4 +1,10 @@
-.xgh/local/
+.xgh/connectors.json
+.xgh/models.env
+.xgh/ingest.yaml
+.xgh/schedulers/
+.xgh/logs/
+.xgh/inbox/
 data/cipher-sessions.db*
 .claude/settings.local.json
 .worktrees/
+.mcp.json

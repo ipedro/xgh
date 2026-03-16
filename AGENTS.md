@@ -12,7 +12,8 @@ xgh is a **Model Context Server (MCS) tech pack** for Claude Code that gives AI 
 - **Cipher MCP** — semantic vector memory (Qdrant-backed) for storing and querying past decisions, reasoning chains, and patterns
 - **Context Tree** — a git-committed markdown knowledge base (`.xgh/context-tree/`) that is human-readable, PR-reviewable, and shareable without shared infrastructure
 - **Dual-engine search** — Cipher vector similarity + BM25 keyword search merged with a scored ranking formula
-- **BYOP (Bring Your Own Provider)** — presets for vllm-mlx (local), OpenAI, Anthropic, OpenRouter, or cloud Qdrant
+- **Inference backends** — `vllm-mlx` (macOS Apple Silicon), `ollama` (Linux/Intel Mac), or `remote` (external server URL); auto-detected at install time, overridable via `XGH_BACKEND`
+- **BYOP (Bring Your Own Provider)** — presets for OpenAI, Anthropic, OpenRouter, or cloud Qdrant (separate from the inference backend)
 
 One command installs everything into any project:
 
@@ -31,7 +32,8 @@ curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
 | Skills / commands / agents | Markdown (Claude Code format) |
 | Context tree search | Python 3 (BM25/TF-IDF, Plan 2) |
 | Vector memory | Cipher MCP + Qdrant |
-| LLM / embeddings | vllm-mlx, OpenAI, Anthropic, or OpenRouter (BYOP) |
+| Model server | vllm-mlx (macOS arm64), Ollama (Linux/Intel), or remote URL |
+| LLM / embeddings | vllm-mlx, Ollama, OpenAI, Anthropic, or OpenRouter (BYOP) |
 | Tests | Bash with `assert_*` helpers (same pattern throughout) |
 
 ---
@@ -164,8 +166,12 @@ No build step — this is a shell-based project with no compiled artifacts.
 | Plan 7 | Briefing | ✅ Complete |
 | Ingest | Context ingestion pipeline (25 files, 68 tests) | ✅ Complete |
 | Refresh | Command rename, output style, /xgh-help | ✅ Complete |
+| Plan 8 | Ollama / Linux Support — Ollama backend, backend-aware cipher.yml + MCP env vars | 🔄 In Progress |
+| Plan 9 | Remote Backend — `XGH_BACKEND=remote`, `XGH_REMOTE_URL`, `XGH_SERVE_NETWORK` | 🔄 In Progress |
 
 See `docs/plans/` for detailed implementation plans with task checklists.
+
+> **Note on plans directories:** `docs/plans/` tracks xgh's own development work (these checklists). `.xgh/plans/` is a template directory that xgh creates in user projects for their own work tracking.
 
 ---
 

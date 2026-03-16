@@ -2,6 +2,7 @@
 
 > **Context-aware AI coding conventions powered by Cipher memory and a living context tree.**
 > An open, self-hosted alternative to ByteRover — team knowledge that grows with every session.
+> Auto-detects the right inference backend for your platform.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-initial%20release-brightgreen)](#implementation-status)
@@ -24,7 +25,15 @@ xgh fixes this.
 - Bash 5+
 - Git
 
-Everything else (Homebrew, vllm-mlx, Qdrant, Node.js for Cipher) is installed automatically.
+Everything else (Homebrew/curl, model server, Qdrant, Node.js for Cipher) is installed automatically.
+
+### Platform matrix
+
+| Platform | Auto-detected backend | What installs locally |
+|---|---|---|
+| macOS Apple Silicon | `vllm-mlx` | vllm-mlx + Qdrant (Homebrew) |
+| Linux / Intel Mac | `ollama` | Ollama + Qdrant (binary) |
+| Any — remote server | `remote` | Qdrant only |
 
 ### Install (fully local, free)
 
@@ -32,7 +41,28 @@ Everything else (Homebrew, vllm-mlx, Qdrant, Node.js for Cipher) is installed au
 curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
 ```
 
-### Install with a preset
+The installer auto-detects your platform and picks the right backend.
+
+### Override the backend
+
+```bash
+# Force Ollama on any platform
+XGH_BACKEND=ollama bash install.sh
+
+# Point at another machine's inference server (e.g. Mac Mini → Raspberry Pi)
+XGH_BACKEND=remote XGH_REMOTE_URL=http://192.168.1.x:11434 bash install.sh
+```
+
+### Serve to other devices (server-side flag)
+
+```bash
+# On the machine running the model server — bind to network instead of localhost
+XGH_SERVE_NETWORK=1 bash install.sh
+# Prints: ✓ vllm-mlx bound to 0.0.0.0:11434
+#         On other machines: XGH_BACKEND=remote XGH_REMOTE_URL=http://<your-ip>:11434 bash install.sh
+```
+
+### Install with a cloud preset
 
 ```bash
 # OpenAI (fastest, ~$0.01/session)
@@ -41,10 +71,6 @@ XGH_PRESET=openai XGH_TEAM=my-team \
 
 # Anthropic
 XGH_PRESET=anthropic XGH_TEAM=my-team \
-  curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
-
-# Local with custom team name
-XGH_TEAM=acme-frontend \
   curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
 ```
 
@@ -199,9 +225,11 @@ xgh enforces one iron law:
 │  ┌────────────┐  ┌────────────┐  ┌────────────┐           │
 │  │  Vector DB │  │  SQLite    │  │  LLM + Emb │           │
 │  │  (BYOP)   │  │ (sessions) │  │  (BYOP)    │           │
-│  │ qdrant /  │  └────────────┘  │ vllm-mlx/   │           │
-│  │ in-memory │                  │ openai /   │           │
-│  └────────────┘                  │ anthropic  │           │
+│  │ qdrant /  │  └────────────┘  │ vllm-mlx / │           │
+│  │ in-memory │                  │ ollama /   │           │
+│  └────────────┘                  │ remote /   │           │
+│                                  │ openai /   │           │
+│                                  │ anthropic  │           │
 │                                  └────────────┘           │
 │                         │                                  │
 │                         ▼                                  │
@@ -215,6 +243,10 @@ xgh enforces one iron law:
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+### Backend Selection
+
+xgh auto-detects the inference backend at install time: `vllm-mlx` on macOS Apple Silicon, `ollama` on Linux/Intel Mac, or `remote` when you provide `XGH_REMOTE_URL`. Override with `XGH_BACKEND=<backend>`. On the server side, `XGH_SERVE_NETWORK=1` binds the model server to `0.0.0.0` so remote clients can reach it.
 
 ### Dual-engine search
 
@@ -231,7 +263,9 @@ xgh enforces one iron law:
 
 ## BYOP — Bring Your Own Provider
 
-xgh is **provider-agnostic**. Choose the preset that matches your infrastructure:
+xgh is **provider-agnostic**. **Backend** (local inference server: `vllm-mlx`, `ollama`, or `remote`) is separate from **provider** (cloud API: OpenAI, Anthropic, OpenRouter). The presets below override the provider; the backend is set independently via `XGH_BACKEND`.
+
+Choose the preset that matches your infrastructure:
 
 | Preset | LLM | Embeddings | Vector Store | Cost |
 |--------|-----|-----------|-------------|------|
@@ -302,7 +336,7 @@ xgh includes ready-made agent instruction files for every major AI platform:
 
 ## Implementation Status
 
-All 7 plans are complete. 18 skills, 10 commands, 4 workflow templates, 22 test suites.
+Plans 1–7 are complete. 18 skills, 10 commands, 4 workflow templates, 22 test suites.
 
 | Plan | Scope | Status |
 |------|-------|--------|
@@ -313,6 +347,8 @@ All 7 plans are complete. 18 skills, 10 commands, 4 workflow templates, 22 test 
 | 5 — Multi-Agent Bus | Agent registry, 4 workflow templates, message protocol | ✅ |
 | 6 — Workflow Skills | investigate, implement-design, implement-ticket workflows | ✅ |
 | 7 — Best-of-Both Merge | Sourceable library architecture, flat manifest, structured JSON hooks | ✅ |
+| 8 — Ollama / Linux Support | Ollama backend for Linux/Intel Mac, backend-aware cipher.yml + MCP env vars | 🔄 |
+| 9 — Remote Backend | `XGH_BACKEND=remote` — point at another machine's inference server | 🔄 |
 
 Plan documents are in `docs/plans/`. Design specs are in `docs/superpowers/specs/`.
 
@@ -335,6 +371,13 @@ XGH_DRY_RUN=1 XGH_LOCAL_PACK=. bash install.sh
 
 # Test with a specific preset
 XGH_DRY_RUN=1 XGH_LOCAL_PACK=. XGH_PRESET=openai bash install.sh
+
+# Test with a specific backend
+XGH_DRY_RUN=1 XGH_LOCAL_PACK=. XGH_BACKEND=ollama bash install.sh
+XGH_DRY_RUN=1 XGH_LOCAL_PACK=. XGH_BACKEND=remote XGH_REMOTE_URL=http://192.168.1.x:11434 bash install.sh
+
+# Test network-serve mode (server side)
+XGH_DRY_RUN=1 XGH_LOCAL_PACK=. XGH_SERVE_NETWORK=1 bash install.sh
 
 # Run individual test suites
 bash tests/test-ct-integration.sh    # Full context tree lifecycle

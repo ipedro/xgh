@@ -225,7 +225,7 @@ service** (`ollama.service`) that auto-starts. xgh should not create a competing
 The `_ENV_ARGS` passed to `claude mcp add -s user` are currently hardcoded to `openai` provider
 and localhost URLs. Must be branched per backend.
 
-- [ ] Replace the current flat `_ENV_ARGS` block with a backend-conditional one:
+- [x] Replace the current flat `_ENV_ARGS` block with a backend-conditional one:
 
   **vllm-mlx** (keep existing — provider=openai, /v1 suffix):
   ```
@@ -243,7 +243,7 @@ and localhost URLs. Must be branched per backend.
   Omitting `OPENAI_API_KEY` / `OPENAI_BASE_URL` prevents the cipher-mcp wrapper from
   attempting OpenAI-compat paths when the native Ollama provider is active.
 
-- [ ] Apply the same branching to the fallback `_CIPHER_ENV` JSON heredoc (written directly
+- [x] Apply the same branching to the fallback `_CIPHER_ENV` JSON heredoc (written directly
   to `~/.claude.json` when `claude` CLI is unavailable).
 
 ### Step 11b — API compatibility: no code changes needed

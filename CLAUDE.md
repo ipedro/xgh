@@ -23,7 +23,11 @@ XGH_DRY_RUN=1 XGH_LOCAL_PACK=. bash install.sh
 
 ### Implementation plans
 
-All tasks are tracked with `- [ ]` checkboxes in `docs/plans/`. Work through them in order (Plan 2 → 3 → 4 → 5 → 6). Mark steps complete with `- [x]` as you finish them.
+Plans 1–7 are complete. Active work is tracked with `- [ ]` checkboxes in:
+- `docs/plans/2026-03-16-ollama-linux-support.md` — Ollama backend (Plan 8)
+- `docs/plans/2026-03-16-remote-backend-support.md` — Remote backend (Plan 9)
+
+Mark steps complete with `- [x]` as you finish them.
 
 ### Slash commands available in this repo
 
