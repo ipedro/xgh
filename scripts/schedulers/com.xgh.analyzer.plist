@@ -11,6 +11,7 @@
     <string>/xgh-analyze</string>
     <string>--allowedTools</string>
     <string>mcp__cipher__*,Bash,Read,Write,Glob</string>
+    <string>--dangerously-skip-permissions</string>
     <string>--max-turns</string>
     <string>10</string>
   </array>

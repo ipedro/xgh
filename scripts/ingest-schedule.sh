@@ -73,9 +73,9 @@ install_linux() {
   local tmp
   tmp=$(mktemp)
   crontab -l 2>/dev/null | grep -v "xgh-retrieve\|xgh-analyze" > "$tmp" || true
-  printf "*/5 * * * * %s -p '/xgh-retrieve' --allowedTools 'mcp__claude_ai_Slack__*,mcp__claude_ai_Atlassian__*,Bash,Read,Write,Glob' --max-turns 3 >> %s/retriever.log 2>&1\n" \
+  printf "*/5 * * * * %s -p '/xgh-retrieve' --allowedTools 'mcp__claude_ai_Slack__*,mcp__claude_ai_Atlassian__*,Bash,Read,Write,Glob' --dangerously-skip-permissions --max-turns 3 >> %s/retriever.log 2>&1\n" \
     "$CLAUDE_BIN" "$XGH_LOG_DIR" >> "$tmp"
-  printf "*/30 * * * * %s -p '/xgh-analyze' --allowedTools 'mcp__cipher__*,Bash,Read,Write,Glob' --max-turns 10 >> %s/analyzer.log 2>&1\n" \
+  printf "*/30 * * * * %s -p '/xgh-analyze' --allowedTools 'mcp__cipher__*,Bash,Read,Write,Glob' --dangerously-skip-permissions --max-turns 10 >> %s/analyzer.log 2>&1\n" \
     "$CLAUDE_BIN" "$XGH_LOG_DIR" >> "$tmp"
   crontab "$tmp"
   rm -f "$tmp"
