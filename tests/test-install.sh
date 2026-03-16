@@ -51,10 +51,10 @@ assert_dir_exists ".claude/skills"
 assert_dir_exists ".claude/commands"
 assert_dir_exists ".claude/agents"
 
-# Verify MCP config
-assert_file_exists ".claude/.mcp.json"
-assert_contains ".claude/.mcp.json" "cipher"
-assert_contains ".claude/.mcp.json" "cipher-mcp"
+# Verify MCP config (project-scoped: .mcp.json at project root)
+assert_file_exists ".mcp.json"
+assert_contains ".mcp.json" "cipher"
+assert_contains ".mcp.json" "cipher-mcp"
 
 # Verify hooks installed
 assert_file_exists ".claude/hooks/xgh-session-start.sh"

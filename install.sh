@@ -643,7 +643,7 @@ fi
 VS_TYPE=$(grep 'type:' "$PRESET_FILE" | tail -1 | awk '{print $2}')
 VS_URL=$(grep 'url:' "$PRESET_FILE" | tail -1 | awk '{print $2}' || echo "")
 
-cat > "${CLAUDE_DIR}/mcp.json" <<MCPEOF
+cat > "${PWD}/.mcp.json" <<MCPEOF
 {
   "mcpServers": {
     "cipher": {
@@ -674,6 +674,15 @@ cat > "${CLAUDE_DIR}/mcp.json" <<MCPEOF
   }
 }
 MCPEOF
+
+# Verify cipher is registered
+if command -v claude &>/dev/null && [ "$XGH_DRY_RUN" -eq 0 ]; then
+  if claude mcp list 2>/dev/null | grep -q "cipher"; then
+    info "Cipher MCP ✓ registered"
+  else
+    warn "Cipher MCP not yet visible in 'claude mcp list' — you may need to restart Claude Code"
+  fi
+fi
 
 # ── 5. Hooks ────────────────────────────────────────────
 XGH_HOOKS_SCOPE="${XGH_HOOKS_SCOPE:-}"
