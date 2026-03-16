@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "team": "my-team",
+  "created": "2026-03-16T09:34:00Z",
+  "entries": [
+    {
+      "file": "architecture-overview.md",
+      "title": "xgh Architecture Overview",
+      "type": "architecture",
+      "status": "validated",
+      "importance": 95,
+      "tags": ["architecture", "overview", "core"]
+    },
+    {
+      "file": "ingest-pipeline.md",
+      "title": "Ingest Pipeline — Retrieve → Analyze → Store",
+      "type": "architecture",
+      "status": "validated",
+      "importance": 90,
+      "tags": ["architecture", "pipeline", "ingest"]
+    },
+    {
+      "file": "file-organization.md",
+      "title": "File Organization & Naming Conventions",
+      "type": "architecture",
+      "status": "validated",
+      "importance": 85,
+      "tags": ["architecture", "conventions", "file-structure"]
+    },
+    {
+      "file": "skills-catalog.md",
+      "title": "Skills & Commands Catalog",
+      "type": "reference",
+      "status": "validated",
+      "importance": 80,
+      "tags": ["reference", "skills", "commands"]
+    },
+    {
+      "file": "tech-stack.md",
+      "title": "Tech Stack",
+      "type": "architecture",
+      "status": "validated",
+      "importance": 75,
+      "tags": ["architecture", "tech-stack"]
+    }
+  ]
+}

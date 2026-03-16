@@ -72,7 +72,7 @@ Use the `xgh:curate` skill to:
 
 ### Step 5: Verify Storage
 
-Use the `xgh:memory-verification` skill:
+Verification is built into the curate workflow — see the Verification section of the `xgh:curate` skill.
 
 1. Run `cipher_memory_search` with the title keywords — entry must appear in top 5
 2. Run `cipher_memory_search` with a natural-language question — entry must appear in top 5

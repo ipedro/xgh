@@ -30,35 +30,14 @@ If no URL is provided, prompt the user for a Figma file URL or node URL.
 
 Before starting, auto-detect which MCP servers are available. The skill adapts based on what is configured — no hard dependencies.
 
-**Detection procedure:**
+**MCP detection:** Run the MCP Auto-Detection Protocol from the `xgh:mcp-setup` skill.
+Available integrations are discovered automatically on first invocation.
 
-1. Check if Figma MCP tools are available (look for `get_design_context` in available tools)
-2. Check if Cipher MCP tools are available (look for `cipher_memory_search` in available tools)
-3. Check if Atlassian MCP tools are available (look for `getJiraIssue` in available tools)
-4. Check if Slack MCP tools are available (look for `slack_search_public` in available tools)
-
-**Graceful degradation rules:**
+**Graceful degradation rules (design-specific):**
 - No Figma MCP → Cannot auto-extract design. Ask user to describe the design, paste screenshots, or provide component specs manually. Skip Code Connect and variable extraction.
 - No Cipher MCP → Skip memory search for conventions. Rely on codebase scanning only.
 - No task manager MCP → Skip ticket lookup. Ask user for acceptance criteria directly.
 - No Slack MCP → Skip design discussion search.
-
-**First-use detection pattern:**
-
-Before starting, check available MCP tools:
-1. Test each required MCP by checking if its tools appear in the session
-2. For any missing MCP: "Want me to set up [MCP name]? Run xgh:mcp-setup for [mcp]"
-3. If user skips: proceed with graceful degradation
-4. If user sets up: verify, then continue with full capability
-
-Report which MCPs were detected at the start:
-```
-Available integrations:
-  [x] Figma — will extract design context, states, tokens, Code Connect
-  [x] Cipher Memory — will search UI conventions and component patterns
-  [ ] Jira — not configured, will ask for acceptance criteria directly
-  [ ] Slack — not configured, skipping design discussion search
-```
 
 ---
 

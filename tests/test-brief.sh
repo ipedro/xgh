@@ -32,32 +32,6 @@ assert_contains "$REPO_ROOT/scripts/mcp-detect.sh" "xgh_has_cipher"
 # Must use sourcing guard (not execute-only)
 assert_contains "$REPO_ROOT/scripts/mcp-detect.sh" "XGH_MCP_DETECT_LOADED"
 
-# ── Task 2: briefing skill ───────────────────────────────────────────────────
-
-assert_file_exists "$REPO_ROOT/skills/brief/brief.md"
-
-# YAML frontmatter
-assert_contains "$REPO_ROOT/skills/brief/brief.md" "name: xgh:briefing"
-assert_contains "$REPO_ROOT/skills/brief/brief.md" "description:"
-assert_contains "$REPO_ROOT/skills/brief/brief.md" "type: flexible"
-
-# Required output sections
-assert_contains "$REPO_ROOT/skills/brief/brief.md" "NEEDS YOU NOW"
-assert_contains "$REPO_ROOT/skills/brief/brief.md" "IN PROGRESS"
-assert_contains "$REPO_ROOT/skills/brief/brief.md" "INCOMING"
-assert_contains "$REPO_ROOT/skills/brief/brief.md" "TEAM PULSE"
-assert_contains "$REPO_ROOT/skills/brief/brief.md" "TODAY"
-assert_contains "$REPO_ROOT/skills/brief/brief.md" "SUGGESTED FOCUS"
-
-# Emoji marker
-assert_contains "$REPO_ROOT/skills/brief/brief.md" "🐴🤖"
-
-# Proceed prompt
-assert_contains "$REPO_ROOT/skills/brief/brief.md" "Proceed?"
-
-# References mcp-detect or mcp-setup
-assert_contains "$REPO_ROOT/skills/brief/brief.md" "mcp"
-
 # ── Task 3: briefing command ─────────────────────────────────────────────────
 
 assert_file_exists "$REPO_ROOT/commands/brief.md"

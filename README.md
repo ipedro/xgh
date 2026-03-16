@@ -160,7 +160,7 @@ blast radius of a stolen token...
 |-------|--------------------|--------------------|--------|
 | `draft` | — | — | Normal weight in search results |
 | `validated` | importance ≥ 65 | importance < 30 | Included in session injection |
-| `core` | importance ≥ 85 | importance < 25 | 1.15× score boost, always injected |
+| `core` | importance ≥ 85 | importance < 50 | 1.15× score boost, always injected |
 
 Separate promotion/demotion thresholds prevent maturity flapping.
 

@@ -11,8 +11,8 @@ triggers:
 mcp_dependencies:
   required:
     - cipher: "Cipher MCP — core memory (cipher_memory_search)"
-    - slack: "Slack MCP — channel access (slack_read_channel)"
   optional:
+    - slack: "Slack MCP — channel access (slack_read_channel)"
     - atlassian: "Atlassian MCP — Jira/Confluence (getJiraIssue)"
     - figma: "Figma MCP — design files (get_design_context)"
     - github: "GitHub CLI — gh command available"
@@ -43,45 +43,7 @@ Let's get started.
 
 ## Step 1 — Verify MCP Connections
 
-Run the same checks as the `xgh:mcp-setup` skill: verify that each MCP integration is configured and responsive.
-
-### Critical (must pass to continue)
-
-| MCP | Detection | Test |
-|-----|-----------|------|
-| **Cipher** | `cipher_memory_search` tool available | Run `cipher_memory_search` with query "xgh init test" — any response (including empty results) means it works |
-| **Slack** | `slack_read_channel` tool available | Run `slack_search_channels` with a common term — any response means it works |
-
-If either critical MCP fails, stop and tell the user:
-
-```
-Cipher/Slack MCP is not configured. This is required for xgh to work.
-Run /xgh-setup to configure it, then come back and run /xgh-init again.
-```
-
-### Optional (note and continue)
-
-| MCP | Detection | On failure |
-|-----|-----------|------------|
-| **Atlassian** | `getJiraIssue` tool available | "Atlassian not configured — Jira/Confluence features will be skipped. Run /xgh-setup later to add it." |
-| **Figma** | `get_design_context` tool available | "Figma not configured — design file tracking will be skipped." |
-| **GitHub CLI** | `command -v gh && gh auth status` | "GitHub CLI not configured — repo features will be limited." |
-
-### Output
-
-```
-MCP Connection Status:
-
-  [pass/fail] Cipher        — core memory
-  [pass/fail] Slack         — channel access
-  [pass/fail] Atlassian     — Jira & Confluence
-  [pass/fail] Figma         — design files
-  [pass/fail] GitHub CLI    — repos & PRs
-
-[N/N critical passed. M/M optional passed.]
-```
-
-If all critical passed, proceed. If any optional failed, note which features will be limited and continue.
+Run the MCP detection protocol from the `xgh:mcp-setup` skill before proceeding.
 
 ---
 

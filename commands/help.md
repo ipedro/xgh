@@ -25,7 +25,7 @@ Based on gaps found in Step 1, generate a recommendation table. Examples:
 - If init not done: suggest `/xgh-init`
 - If no projects tracked: suggest `/xgh-track`
 - If codebase not indexed: suggest `/xgh-index`
-- If everything is set up: suggest `/xgh-brief`
+- If everything is set up: suggest `/xgh-briefing`
 
 ## Step 3: Display Output
 
@@ -47,7 +47,7 @@ Output using this exact format:
 
 | Command | What it does |
 |---------|-------------|
-| `/xgh-brief` | Morning briefing — Slack, Jira, GitHub summary |
+| `/xgh-briefing` | Morning briefing — Slack, Jira, GitHub summary |
 | `/xgh-status` | Memory stats and context tree health |
 | `/xgh-ask` | Search your memory with natural language |
 | `/xgh-investigate` | Debug from a Slack thread or bug report |
@@ -73,10 +73,10 @@ Output using this exact format:
 ### Suggested Workflows
 
 **Starting a new session:**
-`/xgh-brief` → see what needs attention → `/xgh-implement` or `/xgh-investigate`
+`/xgh-briefing` → see what needs attention → `/xgh-implement` or `/xgh-investigate`
 
 **Onboarding to a project:**
-`/xgh-track` → `/xgh-index` → `/xgh-brief`
+`/xgh-track` → `/xgh-index` → `/xgh-briefing`
 
 **After completing significant work:**
 `/xgh-curate` to capture what you learned

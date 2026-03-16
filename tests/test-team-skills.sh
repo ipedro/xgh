@@ -24,17 +24,15 @@ assert_contains() {
 
 assert_file_exists "skills/pr-context-bridge/pr-context-bridge.md"
 assert_file_exists "skills/knowledge-handoff/knowledge-handoff.md"
-assert_file_exists "skills/convention-guardian/convention-guardian.md"
-assert_file_exists "skills/cross-team-pollinator/cross-team-pollinator.md"
-assert_file_exists "skills/subagent-pair-programming/subagent-pair-programming.md"
-assert_file_exists "skills/onboarding-accelerator/onboarding-accelerator.md"
+assert_file_exists "skills/team/cross-team-pollinator/cross-team-pollinator.md"
+assert_file_exists "skills/team/subagent-pair-programming/subagent-pair-programming.md"
+assert_file_exists "skills/team/onboarding-accelerator/onboarding-accelerator.md"
 
 assert_contains "skills/pr-context-bridge/pr-context-bridge.md" "PR"
 assert_contains "skills/knowledge-handoff/knowledge-handoff.md" "handoff"
-assert_contains "skills/convention-guardian/convention-guardian.md" "convention"
-assert_contains "skills/cross-team-pollinator/cross-team-pollinator.md" "cross-team"
-assert_contains "skills/subagent-pair-programming/subagent-pair-programming.md" "TDD"
-assert_contains "skills/onboarding-accelerator/onboarding-accelerator.md" "onboarding"
+assert_contains "skills/team/cross-team-pollinator/cross-team-pollinator.md" "cross-team"
+assert_contains "skills/team/subagent-pair-programming/subagent-pair-programming.md" "TDD"
+assert_contains "skills/team/onboarding-accelerator/onboarding-accelerator.md" "onboarding"
 
 echo ""
 echo "Team skills test: $PASS passed, $FAIL failed"

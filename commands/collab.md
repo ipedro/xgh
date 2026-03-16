@@ -237,7 +237,6 @@ Parameters:
 
 ## Composability
 
-- Dispatches **subagent-pair-programming** for TDD workflows within collaboration
-- Uses **convention-guardian** for all agents in the workflow
+- Dispatches **subagent-pair-programming** (`skills/team/subagent-pair-programming/`) for TDD workflows within collaboration
 - Feeds into **pr-context-bridge** when collaboration produces a PR
 - Feeds into **knowledge-handoff** when collaboration completes

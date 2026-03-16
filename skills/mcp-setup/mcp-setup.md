@@ -44,6 +44,31 @@ For each required MCP:
   3. If NOT available → trigger the Setup Flow
 ```
 
+## MCP Auto-Detection Protocol
+
+This is the canonical first-use detection procedure used by all workflow skills (`xgh:design`, `xgh:implement`, `xgh:investigate`, etc.).
+
+**Procedure (run at the start of every workflow skill invocation):**
+
+1. Test each relevant MCP by checking if its sentinel tool appears in the current session
+2. For any missing MCP: inform the user — "Want me to set up [MCP name]? Run `xgh:mcp-setup` for [mcp]"
+3. If user skips: proceed with graceful degradation (skill-specific rules apply)
+4. If user sets up: verify tools appear, then continue with full capability
+5. Report detected integrations before proceeding:
+
+```
+Available integrations:
+  [x] <Integration A> — <what this skill will do with it>
+  [x] <Integration B> — <what this skill will do with it>
+  [ ] <Integration C> — not configured, <graceful fallback description>
+  [ ] <Integration D> — not configured, skipping <feature>
+```
+
+**Rules:**
+- Never hard-fail on a missing optional MCP — always degrade gracefully
+- Always report the integration status before starting work
+- Sentinel tools by integration: Figma → `get_design_context`, Cipher → `cipher_memory_search`, Atlassian/Jira → `getJiraIssue`, Slack → `slack_search_public`, Linear → `linear_*`
+
 ## Setup Flow
 
 ### Step 1: Inform the user

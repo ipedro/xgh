@@ -67,7 +67,7 @@ Start a multi-agent collaboration workflow using the xgh collaboration bus.
 
 ## Message Protocol
 
-All inter-agent messages use the xgh message protocol stored in Cipher workspace. See `skills/agent-collaboration/instructions.md` for full protocol details.
+All inter-agent messages use the xgh message protocol stored in Cipher workspace. See `skills/collab/collab.md` for full protocol details.
 
 ## Dispatcher Agent
 

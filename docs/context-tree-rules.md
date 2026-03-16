@@ -1,18 +1,6 @@
----
-name: context-tree-maintenance
-description: "Scoring updates, maturity promotion/demotion, archival triggers. Periodic maintenance of the context tree to keep knowledge fresh and relevant."
-type: rigid
-triggers:
-  - periodic
-  - after-curate
-  - manual-maintenance
----
+# Context Tree Rules
 
-# xgh:context-tree-maintenance
-
-## Purpose
-
-The context tree is a living knowledge base. Without maintenance, it degrades: importance scores stagnate, obsolete knowledge stays at core maturity, and the tree fills with stale drafts. This skill defines the exact rules for keeping the context tree healthy.
+> Reference documentation for `context-tree.sh` and any agent or tool that maintains the context tree. Defines scoring rules, maturity lifecycle, archival thresholds, and the maintenance procedure.
 
 ## Scoring Rules
 

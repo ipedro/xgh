@@ -33,36 +33,15 @@ If no ticket ID is provided:
 
 Before starting, auto-detect which MCP servers are available. The skill adapts based on what is configured — no hard dependencies.
 
-**Detection procedure:**
+**MCP detection:** Run the MCP Auto-Detection Protocol from the `xgh:mcp-setup` skill.
+Available integrations are discovered automatically on first invocation.
 
-1. Check if Atlassian MCP tools are available (look for `getJiraIssue` in available tools)
-2. Check if Slack MCP tools are available (look for `slack_search_public` in available tools)
-3. Check if Figma MCP tools are available (look for `get_design_context` in available tools)
-4. Check if Cipher MCP tools are available (look for `cipher_memory_search` in available tools)
-
-**Graceful degradation rules:**
+**Graceful degradation rules (implement-specific):**
 - No task manager MCP → Ask user to paste ticket details (title, description, acceptance criteria). Skip ticket updates.
 - No Slack MCP → Skip discussion search. Ask user about team decisions verbally.
 - No Figma MCP → Skip design extraction. Ask user to describe UI requirements or confirm no UI changes.
 - No Cipher MCP → Skip memory search. Rely on codebase scanning only. Save plan to docs/ only.
 - No MCPs at all → Still works. User provides all context manually. Full Superpowers methodology applies.
-
-**First-use detection pattern:**
-
-Before starting, check available MCP tools:
-1. Test each required MCP by checking if its tools appear in the session
-2. For any missing MCP: "Want me to set up [MCP name]? Run xgh:mcp-setup for [mcp]"
-3. If user skips: proceed with graceful degradation
-4. If user sets up: verify, then continue with full capability
-
-Report which MCPs were detected at the start:
-```
-Available integrations:
-  [x] Jira — will fetch ticket PROJ-1234, linked tickets, update status
-  [x] Slack — will search for ticket discussions
-  [ ] Figma — not configured, will ask about design requirements
-  [x] Cipher Memory — will search past work and store learnings
-```
 
 ---
 

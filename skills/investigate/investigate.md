@@ -29,33 +29,14 @@ If no URL is provided, prompt the user to describe the issue or paste a Slack th
 
 Before starting, auto-detect which MCP servers are available. The skill adapts based on what is configured — no hard dependencies.
 
-**Detection procedure:**
+**MCP detection:** Run the MCP Auto-Detection Protocol from the `xgh:mcp-setup` skill.
+Available integrations are discovered automatically on first invocation.
 
-1. Check if Slack MCP tools are available (look for `slack_read_thread` in available tools)
-2. Check if Atlassian/task manager MCP tools are available (look for `getJiraIssue` in available tools)
-3. Check if Cipher MCP tools are available (look for `cipher_memory_search` in available tools)
-
-**Graceful degradation rules:**
+**Graceful degradation rules (investigate-specific):**
 - No Slack MCP → Skip Slack thread reading. Ask user to paste the bug report content directly.
 - No task manager MCP → Skip ticket search/creation. Note in report that no ticket was created.
 - No Cipher MCP → Skip memory search. Proceed with codebase-only investigation. Save report to context tree only.
 - No MCPs at all → Still works. User provides context manually. Full Superpowers debug methodology applies.
-
-**First-use detection pattern:**
-
-Before starting, check available MCP tools:
-1. Test each required MCP by checking if its tools appear in the session
-2. For any missing MCP: "Want me to set up [MCP name]? Run xgh:mcp-setup for [mcp]"
-3. If user skips: proceed with graceful degradation
-4. If user sets up: verify, then continue with full capability
-
-Report which MCPs were detected at the start:
-```
-Available integrations:
-  [x] Slack — will read thread and search related discussions
-  [ ] Jira — not configured, skipping ticket management
-  [x] Cipher Memory — will search past bugs and store findings
-```
 
 ---
 
