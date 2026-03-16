@@ -642,6 +642,8 @@ fi
 # Extract vector store type and URL from preset (simple parsing)
 VS_TYPE=$(grep 'type:' "$PRESET_FILE" | tail -1 | awk '{print $2}')
 VS_URL=$(grep 'url:' "$PRESET_FILE" | tail -1 | awk '{print $2}' || echo "")
+# Detect local vs cloud inference by checking if preset uses a localhost base URL
+PRESET_LLM_URL=$(grep 'baseUrl:\|base_url:' "$PRESET_FILE" | head -1 | awk '{print $2}' 2>/dev/null || echo "")
 
 # Build cipher MCP server config
 CIPHER_MCP_JSON=$(cat <<MCPEOF
@@ -672,6 +674,14 @@ CIPHER_MCP_JSON=$(cat <<MCPEOF
 }
 MCPEOF
 )
+
+# For local presets (localhost base URL), tell Cipher to use local inference via OLLAMA_BASE_URL.
+# Cipher rejects "placeholder" as an API key, but accepts OLLAMA_BASE_URL for keyless local inference.
+if echo "$PRESET_LLM_URL" | grep -q "localhost\|127\.0\.0\.1"; then
+  CIPHER_MCP_JSON=$(echo "$CIPHER_MCP_JSON" | jq \
+    --arg url "http://localhost:${XGH_MODEL_PORT}" \
+    '.env.OLLAMA_BASE_URL = $url')
+fi
 
 # Merge into global settings (~/.claude/settings.json)
 GLOBAL_SETTINGS="${HOME}/.claude/settings.json"
