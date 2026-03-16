@@ -56,7 +56,7 @@ assert_file_exists "skills/onboarding-accelerator/onboarding-accelerator.md"
 # ── Command file exists ───────────────────────────────
 echo ""
 echo "--- Command file ---"
-assert_file_exists "commands/collaborate.md"
+assert_file_exists "commands/xgh-collaborate.md"
 
 # ── Agent file exists ─────────────────────────────────
 echo ""
@@ -87,10 +87,10 @@ done
 # ── Command has workflow templates ────────────────────
 echo ""
 echo "--- Workflow templates in command ---"
-assert_contains "commands/collaborate.md" "plan-review"
-assert_contains "commands/collaborate.md" "parallel-impl"
-assert_contains "commands/collaborate.md" "validation"
-assert_contains "commands/collaborate.md" "security-review"
+assert_contains "commands/xgh-collaborate.md" "plan-review"
+assert_contains "commands/xgh-collaborate.md" "parallel-impl"
+assert_contains "commands/xgh-collaborate.md" "validation"
+assert_contains "commands/xgh-collaborate.md" "security-review"
 
 # ── Agent has dispatch loop ───────────────────────────
 echo ""
