@@ -1,6 +1,7 @@
 {
   "mcpServers": {
     "lossless-claude": {
+      "type": "stdio",
       "command": "lossless-claude",
       "args": ["mcp"]
     }

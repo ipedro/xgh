@@ -630,7 +630,11 @@ if [ "$XGH_DRY_RUN" -eq 0 ]; then
     info "lossless-claude already installed: $(command -v lossless-claude)"
   fi
 
-  lossless-claude install || warn "lossless-claude install failed — run manually: lossless-claude install"
+  if command -v lossless-claude &>/dev/null; then
+    lossless-claude install || warn "lossless-claude install failed — run manually: lossless-claude install"
+  else
+    warn "lossless-claude not found — run manually once installed: lossless-claude install"
+  fi
 fi
 
 # ── 3. Fetch xgh pack ───────────────────────────────────
@@ -673,6 +677,20 @@ if [ -f "$GLOBAL_MCP" ] && jq -e '.mcpServers.cipher' "$GLOBAL_MCP" &>/dev/null;
   jq 'del(.mcpServers.cipher)' "$GLOBAL_MCP" > "${GLOBAL_MCP}.tmp" \
     && mv "${GLOBAL_MCP}.tmp" "$GLOBAL_MCP"
   info "Removed stale cipher entry from ~/.claude/mcp.json"
+fi
+
+# Clean up any stale cipher entry from project-level .claude/.mcp.json
+PROJECT_CLAUDE_MCP="${PWD}/.claude/.mcp.json"
+if [ -f "$PROJECT_CLAUDE_MCP" ]; then
+  LEGACY_KEYS2=$(jq -r '.mcpServers | keys[]' "$PROJECT_CLAUDE_MCP" 2>/dev/null || echo "")
+  if [ "$LEGACY_KEYS2" = "cipher" ]; then
+    rm -f "$PROJECT_CLAUDE_MCP"
+    info "Removed legacy .claude/.mcp.json (cipher entry)"
+  elif echo "$LEGACY_KEYS2" | grep -q "cipher"; then
+    jq 'del(.mcpServers.cipher)' "$PROJECT_CLAUDE_MCP" > "${PROJECT_CLAUDE_MCP}.tmp" \
+      && mv "${PROJECT_CLAUDE_MCP}.tmp" "$PROJECT_CLAUDE_MCP"
+    info "Removed stale cipher entry from .claude/.mcp.json"
+  fi
 fi
 
 # ── 5. Hooks ────────────────────────────────────────────
