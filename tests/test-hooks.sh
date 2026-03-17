@@ -60,12 +60,12 @@ assert_output_contains() {
 }
 
 # ── Basic file existence ──────────────────────────────────
-assert_file_exists "hooks/session-start.sh"
-assert_file_exists "hooks/prompt-submit.sh"
+assert_file_exists "plugin/hooks/session-start.sh"
+assert_file_exists "plugin/hooks/prompt-submit.sh"
 
-assert_not_contains "hooks/session-start.sh" "placeholder"
-assert_not_contains "hooks/prompt-submit.sh" "placeholder"
-assert_not_contains "hooks/session-start.sh" "not yet implemented"
+assert_not_contains "plugin/hooks/session-start.sh" "placeholder"
+assert_not_contains "plugin/hooks/prompt-submit.sh" "placeholder"
+assert_not_contains "plugin/hooks/session-start.sh" "not yet implemented"
 
 # ── session-start: structured JSON output ─────────────────
 # Create a temp context tree with mock .md files
@@ -117,7 +117,7 @@ Should be excluded.
 MDEOF
 
 # Run session-start with the temp context tree
-SS_OUTPUT=$(XGH_CONTEXT_TREE="$TMPDIR_CT" XGH_BRIEFING="off" bash hooks/session-start.sh)
+SS_OUTPUT=$(XGH_CONTEXT_TREE="$TMPDIR_CT" XGH_BRIEFING="off" bash plugin/hooks/session-start.sh)
 
 # Validate JSON and keys
 SS_VALID=$(python3 -c "
@@ -183,7 +183,7 @@ print('yes' if not has_bad else 'no')
 assert_eq "excluded _archived and _index.md" "$SS_NO_ARCHIVED" "yes"
 
 # Validate briefingTrigger with XGH_BRIEFING=compact
-SS_COMPACT=$(XGH_CONTEXT_TREE="$TMPDIR_CT" XGH_BRIEFING="compact" bash hooks/session-start.sh)
+SS_COMPACT=$(XGH_CONTEXT_TREE="$TMPDIR_CT" XGH_BRIEFING="compact" bash plugin/hooks/session-start.sh)
 SS_BT_COMPACT=$(python3 -c "
 import json, sys
 d = json.loads(sys.argv[1])
@@ -192,7 +192,7 @@ print(d.get('briefingTrigger', ''))
 assert_eq "briefingTrigger compact" "$SS_BT_COMPACT" "compact"
 
 # Validate briefingTrigger with XGH_BRIEFING=auto (maps to full)
-SS_AUTO=$(XGH_CONTEXT_TREE="$TMPDIR_CT" XGH_BRIEFING="auto" bash hooks/session-start.sh)
+SS_AUTO=$(XGH_CONTEXT_TREE="$TMPDIR_CT" XGH_BRIEFING="auto" bash plugin/hooks/session-start.sh)
 SS_BT_AUTO=$(python3 -c "
 import json, sys
 d = json.loads(sys.argv[1])
@@ -200,8 +200,43 @@ print(d.get('briefingTrigger', ''))
 " "$SS_AUTO")
 assert_eq "briefingTrigger auto->full" "$SS_BT_AUTO" "full"
 
+# Validate schedulerTrigger=off by default
+SS_SCHED_DEFAULT=$(XGH_CONTEXT_TREE="$TMPDIR_CT" bash plugin/hooks/session-start.sh)
+SS_ST_DEFAULT=$(python3 -c "
+import json, sys
+d = json.loads(sys.argv[1])
+print(d.get('schedulerTrigger', ''))
+" "$SS_SCHED_DEFAULT")
+assert_eq "schedulerTrigger default=off" "$SS_ST_DEFAULT" "off"
+
+# Validate schedulerTrigger=on when XGH_SCHEDULER=on
+SS_SCHED_ON=$(XGH_CONTEXT_TREE="$TMPDIR_CT" XGH_SCHEDULER="on" bash plugin/hooks/session-start.sh)
+SS_ST_ON=$(python3 -c "
+import json, sys
+d = json.loads(sys.argv[1])
+print(d.get('schedulerTrigger', ''))
+" "$SS_SCHED_ON")
+assert_eq "schedulerTrigger on" "$SS_ST_ON" "on"
+
+# Validate schedulerInstructions present when on
+SS_SI=$(python3 -c "
+import json, sys
+d = json.loads(sys.argv[1])
+v = d.get('schedulerInstructions', '')
+print('yes' if v and '/xgh-retrieve' in v and '/xgh-analyze' in v else 'no:' + repr(v))
+" "$SS_SCHED_ON")
+assert_eq "schedulerInstructions contains cron prompts" "$SS_SI" "yes"
+
+# Validate schedulerInstructions absent (null) when off
+SS_SI_OFF=$(python3 -c "
+import json, sys
+d = json.loads(sys.argv[1])
+print('null' if d.get('schedulerInstructions') is None else 'present')
+" "$SS_SCHED_DEFAULT")
+assert_eq "schedulerInstructions null when off" "$SS_SI_OFF" "null"
+
 # ── prompt-submit: structured JSON output ─────────────────
-PS_OUTPUT=$(PROMPT="implement a new login feature" bash hooks/prompt-submit.sh)
+PS_OUTPUT=$(PROMPT="implement a new login feature" bash plugin/hooks/prompt-submit.sh)
 
 PS_VALID=$(python3 -c "
 import json, sys
@@ -226,7 +261,7 @@ print('yes' if len(ctx) > 10 else 'no')
 assert_eq "promptIntent code-change has context" "$PS_CTX" "yes"
 
 # Validate general prompt has additionalContext key
-PS_GENERAL=$(PROMPT="what time is it?" bash hooks/prompt-submit.sh)
+PS_GENERAL=$(PROMPT="what time is it?" bash plugin/hooks/prompt-submit.sh)
 PS_VALID_G=$(python3 -c "
 import json, sys
 d = json.loads(sys.argv[1])
@@ -235,8 +270,8 @@ print('yes' if 'additionalContext' in d else 'no')
 assert_eq "prompt-submit general has additionalContext key" "$PS_VALID_G" "yes"
 
 # Both hooks exit 0
-bash hooks/session-start.sh > /dev/null 2>&1 && PASS=$((PASS + 1)) || { echo "FAIL: session-start.sh non-zero exit"; FAIL=$((FAIL + 1)); }
-bash hooks/prompt-submit.sh > /dev/null 2>&1 && PASS=$((PASS + 1)) || { echo "FAIL: prompt-submit.sh non-zero exit"; FAIL=$((FAIL + 1)); }
+bash plugin/hooks/session-start.sh > /dev/null 2>&1 && PASS=$((PASS + 1)) || { echo "FAIL: session-start.sh non-zero exit"; FAIL=$((FAIL + 1)); }
+bash plugin/hooks/prompt-submit.sh > /dev/null 2>&1 && PASS=$((PASS + 1)) || { echo "FAIL: prompt-submit.sh non-zero exit"; FAIL=$((FAIL + 1)); }
 
 echo ""
 echo "Hooks test: $PASS passed, $FAIL failed"

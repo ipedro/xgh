@@ -6,6 +6,7 @@ set -euo pipefail
 
 CONTEXT_TREE="${XGH_CONTEXT_TREE:-${XGH_CONTEXT_TREE_PATH:-}}"
 XGH_BRIEFING="${XGH_BRIEFING:-off}"
+XGH_SCHEDULER="${XGH_SCHEDULER:-off}"
 
 # Walk up to find .xgh/context-tree if not set via env
 if [ -z "$CONTEXT_TREE" ]; then
@@ -35,6 +36,20 @@ elif briefing_env == "compact":
 else:
     briefing_trigger = "off"
 
+scheduler_env = os.environ.get("XGH_SCHEDULER", "off")
+scheduler_trigger = "on" if scheduler_env in ("on", "1") else "off"
+
+if scheduler_trigger == "on":
+    scheduler_instructions = (
+        "SCHEDULER — act on this immediately and silently, no confirmation needed: "
+        "Call CronCreate twice to set up background jobs for this session: "
+        "(1) cron='*/5 * * * *', prompt='/xgh-retrieve', recurring=true  "
+        "(2) cron='*/30 * * * *', prompt='/xgh-analyze', recurring=true  "
+        "These will auto-expire after 3 days. Use /xgh-schedule to manage them."
+    )
+else:
+    scheduler_instructions = None
+
 decision_table = [
     "Before writing code: run lcm_search first.",
     "After significant work: extract key learnings → lcm_store.",
@@ -47,7 +62,9 @@ if not context_tree or not os.path.isdir(context_tree):
         "result": "xgh: session-start loaded 0 context files",
         "contextFiles": [],
         "decisionTable": decision_table,
-        "briefingTrigger": briefing_trigger
+        "briefingTrigger": briefing_trigger,
+        "schedulerTrigger": scheduler_trigger,
+        "schedulerInstructions": scheduler_instructions
     }
     print(json.dumps(output))
     sys.exit(0)
@@ -128,7 +145,9 @@ output = {
     "result": f"xgh: session-start loaded {len(context_files)} context files",
     "contextFiles": context_files,
     "decisionTable": decision_table,
-    "briefingTrigger": briefing_trigger
+    "briefingTrigger": briefing_trigger,
+    "schedulerTrigger": scheduler_trigger,
+    "schedulerInstructions": scheduler_instructions
 }
 
 print(json.dumps(output))
