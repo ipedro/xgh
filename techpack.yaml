@@ -35,20 +35,11 @@ components:
       - shellScript: "curl -sf --max-time 5 \"${XGH_REMOTE_URL}/v1/models\" >/dev/null 2>&1"
         label: "Remote inference server is reachable"
 
-  - id: qdrant
-    type: brew
-    package: qdrant
-    description: "Vector database for Cipher semantic memory"
-
-  - id: cipher
+  - id: lossless-claude
     type: mcpServer
-    command: "npx -y @byterover/cipher"
-    env:
-      QDRANT_URL: "http://localhost:6333"
-      CIPHER_COLLECTION: "__TEAM_NAME__-memory"
-      CIPHER_SCOPE: "project"
-    scope: project
-    description: "Cipher MCP server — structured reasoning memory with Qdrant backend"
+    command: "lossless-claude"
+    args: ["mcp"]
+    description: "Two-layer memory MCP server (episodic SQLite + semantic Qdrant)"
 
   - id: session-start-hook
     type: hook
