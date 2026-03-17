@@ -47,7 +47,7 @@ From the manifest, calculate:
 ### Step 3: Test lossless-claude Connectivity
 
 Check if `mcp__lossless-claude__lcm_search` is present in the available tool list:
-- Tool absent → lossless-claude MCP not registered. Fix: add lossless-claude entry to `.claude/mcp.json`
+- Tool absent → lossless-claude MCP not registered. Fix: add lossless-claude entry to `.claude/.mcp.json`
 - Tool present but call returns error → daemon not running. Fix: `lossless-claude daemon start`
 
 Run `lcm_search("xgh health check")` to verify connectivity.

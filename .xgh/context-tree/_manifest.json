@@ -43,5 +43,31 @@
       "importance": 75,
       "tags": ["architecture", "tech-stack"]
     }
+  ],
+  "ecosystem": [
+    {
+      "file": "ecosystem/claude-code-community-insights-2026-03-16.md",
+      "title": "Claude Code Community Insights — 16 Mar 2026",
+      "type": "discovery",
+      "status": "draft",
+      "importance": 72,
+      "tags": ["memory-plugin", "context-compaction", "twitter-noise", "memory-drift", "plugin-system", "before_prompt_build", "lossless-claw", "claude-code"]
+    },
+    {
+      "file": "ecosystem/lcm-architecture.md",
+      "title": "LCM — Lossless Context Management Architecture",
+      "type": "discovery",
+      "status": "validated",
+      "importance": 85,
+      "tags": ["DAG", "hierarchical-memory", "SQLite", "context-compaction", "summarization", "LCM", "lossless-claw"]
+    },
+    {
+      "file": "ecosystem/xgh-lcm-integration.md",
+      "title": "xgh + LCM Integration Roadmap",
+      "type": "decision",
+      "status": "draft",
+      "importance": 88,
+      "tags": ["xgh", "LCM", "Cipher", "memory-hierarchy", "DAG", "integration", "post-session-compaction"]
+    }
   ]
 }

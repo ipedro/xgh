@@ -19,7 +19,7 @@ Run all checks and output a structured report. Use `✓` for pass, `✗` for fai
 - `~/.xgh/ingest.yaml` exists and parses: `python3 -c "import yaml; yaml.safe_load(open('...'))" 2>&1`
 - Required fields present: `profile.name`, `profile.slack_id`, `profile.platforms`
 - At least one active project under `projects:`
-- lossless-claude is configured (check `.claude/mcp.json` has `lossless-claude` entry)
+- lossless-claude is configured (check `.claude/.mcp.json` has `lossless-claude` entry)
 
 ## Check 2 — Connectivity
 
@@ -66,7 +66,7 @@ Common Qdrant failures and fixes:
 | Binary missing | `brew install qdrant` or download to `~/.qdrant/bin/qdrant` |
 
 lossless-claude MCP availability: check if `mcp__lossless-claude__lcm_search` is present in the available tool list:
-- Tool absent → lossless-claude MCP not registered. Fix: add lossless-claude entry to `.claude/mcp.json`
+- Tool absent → lossless-claude MCP not registered. Fix: add lossless-claude entry to `.claude/.mcp.json`
 - Tool present but call returns error → daemon not running. Fix: `lossless-claude daemon start`
 
 **Important:** lossless-claude MCP availability is determined by whether `mcp__lossless-claude__lcm_search` appears in the tool list, NOT by file presence on disk.
@@ -126,7 +126,7 @@ Connectivity
   # OR if issues:
   ✗ Qdrant: not responding — WAL lock detected
     Fix: pkill -f qdrant && rm -f ~/.qdrant/storage/storage/collections/*/0/wal/open-* && launchctl load ~/Library/LaunchAgents/com.qdrant.server.plist
-  ✗ lossless-claude: not in tool list — add to .claude/mcp.json (command: lossless-claude, args: [mcp])
+  ✗ lossless-claude: not in tool list — add to .claude/.mcp.json (command: lossless-claude, args: [mcp])
 
 Pipeline
   ✓ Retriever: last run 3 min ago (healthy)

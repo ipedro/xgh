@@ -16,7 +16,7 @@ When a workflow skill needs an MCP server that isn't configured, don't just skip
 Claude Code has two kinds of MCP servers:
 
 1. **Remote MCPs** — first-party, managed by Anthropic (`claude.ai *` in `claude mcp list`). Zero config, OAuth-based. Examples: Gmail, Google Calendar. These come and go as Anthropic adds them.
-2. **Local MCPs** — configured in `.claude/mcp.json`, run via `npx` or a local binary. Require API keys. Examples: Slack, Atlassian, Figma, Linear.
+2. **Local MCPs** — configured in `.claude/.mcp.json`, run via `npx` or a local binary. Require API keys. Examples: Slack, Atlassian, Figma, Linear.
 
 **Detection is runtime-only.** Don't assume which remote MCPs exist — check `claude mcp list` for what's actually connected. The landscape changes as Anthropic adds new connectors.
 
@@ -112,13 +112,13 @@ For services that need a local MCP server:
 
 Steps:
   1. Get your API token from [specific URL]
-  2. I'll add the MCP config to .claude/mcp.json
+  2. I'll add the MCP config to .claude/.mcp.json
   3. Restart this session
 
 Ready? I'll need your [TOKEN_NAME]."
 ```
 
-Then add to `.claude/mcp.json`:
+Then add to `.claude/.mcp.json`:
 ```json
 {
   "mcpServers": {
@@ -148,7 +148,7 @@ Then add to `.claude/mcp.json`:
 ### lossless-claude MCP
 
 lossless-claude should already be configured by xgh install. If missing:
-1. Check if `.claude/mcp.json` exists with lossless-claude config
+1. Check if `.claude/.mcp.json` exists with lossless-claude config
 2. If not: `XGH_LOCAL_PACK=. bash install.sh`
 
 ### GitHub
