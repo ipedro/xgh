@@ -194,7 +194,9 @@ Same substitution table and extraction-before-store requirement as Phase 2.
 - `team/cross-team-pollinator/cross-team-pollinator.md` — mechanical substitution only; `cipher_extract_and_operate_memory` appears only in the tool-reference table, not as an active procedure call.
 - `team/onboarding-accelerator/onboarding-accelerator.md` — mechanical substitution only; same table-only reference.
 - `team/subagent-pair-programming/subagent-pair-programming.md` — mechanical substitution only; same table-only reference.
-- All others (mechanical substitutions only): `ask/ask.md`, `briefing/briefing.md`, `curate/curate.md`, `design/design.md`, `investigate/investigate.md`, `knowledge-handoff/knowledge-handoff.md`, `profile/profile.md`, `retrieve/retrieve.md`, `todo-killer/todo-killer.md`, `track/track.md`.
+- All others (mechanical substitutions only): `ask/ask.md`, `profile/profile.md`, `retrieve/retrieve.md`.
+
+Note: `briefing/briefing.md`, `curate/curate.md`, `design/design.md`, `investigate/investigate.md`, `knowledge-handoff/knowledge-handoff.md`, `todo-killer/todo-killer.md`, `track/track.md` have specific notes above (extraction callers or workspace callers) — they are NOT mechanical-only despite appearing in this list in an earlier draft.
 
 ---
 
