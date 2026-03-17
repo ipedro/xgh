@@ -19,6 +19,6 @@ No arguments. All configuration comes from `~/.xgh/ingest.yaml`.
 
 ## Notes
 
-- Invoked automatically by the scheduler (launchd/cron).
+- Invoked automatically each Claude session via CronCreate when `XGH_SCHEDULER=on`.
 - Also triggered immediately when the retriever detects a critical urgency item.
 - Run `/xgh-doctor` to check pipeline freshness and workspace stats.

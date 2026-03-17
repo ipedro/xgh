@@ -168,11 +168,6 @@ components:
     source: plugin/commands/briefing.md
     description: "Slash command /xgh-briefing — full, compact, or focus briefing modes"
 
-  - id: ingest-schedule
-    type: script
-    source: scripts/ingest-schedule.sh
-    description: "Install/uninstall xgh ingest scheduler — launchd on macOS, cron on Linux"
-
 requiredPlugins:
   - id: context-mode
     marketplace: mksglu/context-mode

@@ -1128,21 +1128,17 @@ if [ "$XGH_DRY_RUN" -eq 0 ]; then
     info "Created ~/.xgh/ingest.yaml — edit your profile, then run /xgh-track to add projects"
   fi
 
-  # Copy scheduler templates
-  cp "${PACK_DIR}/scripts/schedulers/com.xgh.retriever.plist" "$HOME/.xgh/schedulers/"
-  cp "${PACK_DIR}/scripts/schedulers/com.xgh.analyzer.plist"  "$HOME/.xgh/schedulers/"
   # Copy models plist and substitute XGH_MODEL_HOST placeholder
   sed "s/127\.0\.0\.1/${XGH_MODEL_HOST}/g" \
     "${PACK_DIR}/scripts/schedulers/com.xgh.models.plist" \
     > "$HOME/.xgh/schedulers/com.xgh.models.plist"
-  cp "${PACK_DIR}/scripts/ingest-schedule.sh" "$HOME/.xgh/lib/"
-  chmod +x "$HOME/.xgh/lib/ingest-schedule.sh"
 
-  # Auto-install the scheduler
-  if [ "$XGH_DRY_RUN" -eq 0 ]; then
-    bash "$HOME/.xgh/lib/ingest-schedule.sh" install || warn "Could not install scheduler — run ~/.xgh/lib/ingest-schedule.sh install manually"
-  else
-    info "Dry run — skipping scheduler install"
+  # ── Migrate: unload any previously installed OS-level scheduler ──────────────
+  if [ -f "$HOME/.xgh/lib/ingest-schedule.sh" ]; then
+    info "Unloading legacy OS scheduler (replaced by Claude-internal CronCreate)..."
+    bash "$HOME/.xgh/lib/ingest-schedule.sh" uninstall 2>/dev/null || true
+    rm -f "$HOME/.xgh/lib/ingest-schedule.sh"
+    info "Legacy scheduler removed. Enable session scheduling with XGH_SCHEDULER=on."
   fi
   info "Run /xgh-doctor to validate the pipeline"
 fi
@@ -1185,7 +1181,7 @@ echo -e ""
 if [ "$XGH_BACKEND" = "remote" ]; then
   echo -e "  ${DIM}Remote inference: no local model daemon needed.${NC}"
 else
-  echo -e "  ${DIM}Models run automatically as a daemon (launchd/systemd).${NC}"
+  echo -e "  ${DIM}Background jobs run each Claude session. Set XGH_SCHEDULER=on to enable.${NC}"
 fi
 if [ "${XGH_SERVE_NETWORK:-0}" = "1" ] && [ "$XGH_BACKEND" = "vllm-mlx" ]; then
   _LOCAL_IP=$(ipconfig getifaddr en0 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}' || echo "<your-ip>")

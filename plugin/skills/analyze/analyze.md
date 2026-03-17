@@ -4,7 +4,7 @@ description: >
   Headless analyzer loop. Reads ~/.xgh/inbox/, classifies content types, extracts
   structured memories, deduplicates against lossless-claude, writes to workspace or personal
   collection, manages TTL, and generates Obsidian-compatible daily digest.
-  Runs every 30 minutes via launchd/cron.
+  Runs every 30 minutes via CronCreate.
 type: rigid
 triggers:
   - when invoked via /xgh-analyze command

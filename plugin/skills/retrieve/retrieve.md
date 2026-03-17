@@ -3,7 +3,7 @@ name: xgh:retrieve
 description: >
   Headless retrieval loop. Scans configured Slack channels, follows links 1-hop to
   Jira/Confluence/GitHub/Figma, stashes raw content to ~/.xgh/inbox/, and detects urgency.
-  Invoked via /xgh-retrieve command by launchd/cron every 5 minutes.
+  Invoked via /xgh-retrieve command by CronCreate every 5 minutes.
 type: rigid
 triggers:
   - when invoked via /xgh-retrieve command
