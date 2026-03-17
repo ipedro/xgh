@@ -113,6 +113,16 @@ if [ "$XGH_DRY_RUN" -eq 0 ]; then
     brew install node || warn "Could not install Node.js — install manually: brew install node"
   fi
 
+  # context-mode (required — session optimizer, 98% context savings)
+  if command -v claude &>/dev/null; then
+    info "Installing context-mode..."
+    claude plugin marketplace add "mksglu/context-mode" &>/dev/null || true
+    claude plugin install "context-mode@context-mode" &>/dev/null || \
+      warn "Could not install context-mode — install manually: claude plugin install context-mode@context-mode"
+  else
+    warn "Claude CLI not found — install context-mode manually: claude plugin marketplace add mksglu/context-mode && claude plugin install context-mode@context-mode"
+  fi
+
   # Python 3 (required for model downloads and settings merging)
   if ! command -v python3 &>/dev/null; then
     info "Python 3 not found — installing via Homebrew"
@@ -364,6 +374,27 @@ print('yes' if '${1}' in ids else 'no')
     _model_available() { ollama list 2>/dev/null | grep -q "^${1}[[:space:]]"; }
   fi
 
+  # Reorder model lists: installed models first, suggestions after
+  _sort_installed_first() {
+    local _installed=() _rest=()
+    for _entry in "$@"; do
+      IFS='|' read -r _mid _ <<< "$_entry"
+      if _model_available "$_mid"; then
+        _installed+=("$_entry")
+      else
+        _rest+=("$_entry")
+      fi
+    done
+    printf '%s\n' "${_installed[@]+"${_installed[@]}"}" "${_rest[@]+"${_rest[@]}"}"
+  }
+  _sorted=()
+  while IFS= read -r _e; do _sorted+=("$_e"); done < <(_sort_installed_first "${LLM_MODELS[@]}")
+  LLM_MODELS=("${_sorted[@]}")
+  _sorted=()
+  while IFS= read -r _e; do _sorted+=("$_e"); done < <(_sort_installed_first "${EMBED_MODELS[@]}")
+  EMBED_MODELS=("${_sorted[@]}")
+  unset _sorted _e
+
   if [ "$XGH_BACKEND" = "vllm-mlx" ]; then
     ORIG_DEFAULT_LLM="mlx-community/Llama-3.2-3B-Instruct-4bit"
     ORIG_DEFAULT_EMBED="mlx-community/nomicai-modernbert-embed-base-8bit"
@@ -376,24 +407,43 @@ print('yes' if '${1}' in ids else 'no')
     ORIG_DEFAULT_EMBED="nomic-embed-text"
   fi
 
-  # Prefer an already-installed model as the default (first installed wins)
-  DEFAULT_LLM="$ORIG_DEFAULT_LLM"
+  # Read currently configured models from existing cipher.yml (if present)
+  CURRENT_LLM=""
+  CURRENT_EMBED=""
+  if [ -f "${HOME}/.cipher/cipher.yml" ]; then
+    CURRENT_LLM=$(awk '/^llm:$/{f=1;next} f && /^[^[:space:]]/{exit} f && /model:/{sub(/.*model:[[:space:]]*/,""); print; exit}' "${HOME}/.cipher/cipher.yml" 2>/dev/null || true)
+    CURRENT_EMBED=$(awk '/^embedding:$/{f=1;next} f && /^[^[:space:]]/{exit} f && /model:/{sub(/.*model:[[:space:]]*/,""); print; exit}' "${HOME}/.cipher/cipher.yml" 2>/dev/null || true)
+  fi
+
+  # Prefer an already-installed model as the default (current config wins, then first installed)
+  DEFAULT_LLM="${CURRENT_LLM:-$ORIG_DEFAULT_LLM}"
   for entry in "${LLM_MODELS[@]}"; do
     IFS='|' read -r mid _ <<< "$entry"
-    if _model_available "$mid"; then
+    if [ "$mid" = "$CURRENT_LLM" ]; then
       DEFAULT_LLM="$mid"
       break
     fi
   done
+  if [ -z "$CURRENT_LLM" ]; then
+    for entry in "${LLM_MODELS[@]}"; do
+      IFS='|' read -r mid _ <<< "$entry"
+      if _model_available "$mid"; then
+        DEFAULT_LLM="$mid"
+        break
+      fi
+    done
+  fi
 
-  DEFAULT_EMBED="$ORIG_DEFAULT_EMBED"
-  for entry in "${EMBED_MODELS[@]}"; do
-    IFS='|' read -r mid _ <<< "$entry"
-    if _model_available "$mid"; then
-      DEFAULT_EMBED="$mid"
-      break
-    fi
-  done
+  DEFAULT_EMBED="${CURRENT_EMBED:-$ORIG_DEFAULT_EMBED}"
+  if [ -z "$CURRENT_EMBED" ]; then
+    for entry in "${EMBED_MODELS[@]}"; do
+      IFS='|' read -r mid _ <<< "$entry"
+      if _model_available "$mid"; then
+        DEFAULT_EMBED="$mid"
+        break
+      fi
+    done
+  fi
 
   # Find the 1-based index of the default model in a list
   _default_index() {
@@ -421,7 +471,13 @@ print('yes' if '${1}' in ids else 'no')
     for i in "${!LLM_MODELS[@]}"; do
       IFS='|' read -r model_id model_desc <<< "${LLM_MODELS[$i]}"
       local_tag=""
-      if _model_available "$model_id"; then
+      if [ -n "$CURRENT_LLM" ] && [ "$model_id" = "$CURRENT_LLM" ]; then
+        if _model_available "$model_id"; then
+          local_tag=" ${CYAN}(current)${NC} ${GREEN}(installed)${NC}"
+        else
+          local_tag=" ${CYAN}(current)${NC}"
+        fi
+      elif _model_available "$model_id"; then
         local_tag=" ${GREEN}(installed)${NC}"
       fi
       if [ "$model_id" = "$DEFAULT_LLM" ]; then
@@ -452,7 +508,13 @@ print('yes' if '${1}' in ids else 'no')
     for i in "${!EMBED_MODELS[@]}"; do
       IFS='|' read -r model_id model_desc <<< "${EMBED_MODELS[$i]}"
       local_tag=""
-      if _model_available "$model_id"; then
+      if [ -n "$CURRENT_EMBED" ] && [ "$model_id" = "$CURRENT_EMBED" ]; then
+        if _model_available "$model_id"; then
+          local_tag=" ${CYAN}(current)${NC} ${GREEN}(installed)${NC}"
+        else
+          local_tag=" ${CYAN}(current)${NC}"
+        fi
+      elif _model_available "$model_id"; then
         local_tag=" ${GREEN}(installed)${NC}"
       fi
       if [ "$model_id" = "$DEFAULT_EMBED" ]; then
@@ -1599,6 +1661,9 @@ print(datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z'))
   # Write registration entry — preserves installedAt from previous install
   # Note: unquoted heredoc (<<PYEOF) intentionally uses shell variable expansion.
   # All interpolated values (paths, timestamps, sha) are safe: no quotes or newlines.
+  local marketplace_dir="${HOME}/.claude/plugins/marketplaces/${registry}"
+  local known_marketplaces="${HOME}/.claude/plugins/known_marketplaces.json"
+
   python3 - <<PYEOF
 import json, os
 
@@ -1608,7 +1673,12 @@ install_path = "${install_path}"
 version = "${version}"
 git_sha = "${git_sha}"
 now = "${now}"
+marketplace_dir = "${marketplace_dir}"
+known_marketplaces = "${known_marketplaces}"
+registry = "${registry}"
+plugin_name = "${plugin_name}"
 
+# ── Register plugin in installed_plugins.json ──────────────
 try:
     with open(plugins_file) as f:
         data = json.load(f)
@@ -1632,6 +1702,43 @@ with open(plugins_file, "w") as f:
     json.dump(data, f, indent=2)
     f.write("\n")
 print("Registered xgh@ipedro in installed_plugins.json")
+
+# ── Register marketplace in known_marketplaces.json ────────
+try:
+    with open(known_marketplaces) as f:
+        km = json.load(f)
+except Exception:
+    km = {}
+
+if registry not in km:
+    km[registry] = {
+        "source": {
+            "source": "github",
+            "repo": "ipedro/xgh"
+        },
+        "installLocation": marketplace_dir,
+        "lastUpdated": now
+    }
+    os.makedirs(os.path.dirname(known_marketplaces), exist_ok=True)
+    with open(known_marketplaces, "w") as f:
+        json.dump(km, f, indent=2)
+        f.write("\n")
+    print("Registered ipedro marketplace in known_marketplaces.json")
+
+# ── Copy marketplace manifest to marketplace directory ─────
+# Claude Code requires .claude-plugin/marketplace.json in the marketplace dir
+# so it can look up plugins by name when loading installed_plugins.json.
+src_marketplace_json = os.path.join(install_path, ".claude-plugin", "marketplace.json")
+dst_marketplace_dir = os.path.join(marketplace_dir, ".claude-plugin")
+dst_marketplace_json = os.path.join(dst_marketplace_dir, "marketplace.json")
+
+if os.path.exists(src_marketplace_json):
+    os.makedirs(dst_marketplace_dir, exist_ok=True)
+    import shutil
+    shutil.copy2(src_marketplace_json, dst_marketplace_json)
+    print("Copied marketplace.json to marketplace directory")
+else:
+    print("Warning: .claude-plugin/marketplace.json not found in plugin cache — skipping marketplace manifest copy")
 PYEOF
 
   # Detect old-style per-project skill copies and warn
@@ -1802,21 +1909,7 @@ install_plugin() {
 }
 
 if [ "$XGH_DRY_RUN" -eq 0 ] && [ "$XGH_INSTALL_PLUGINS" != "skip" ]; then
-  lane "Optional superpowers 🦸"
-
-  # ── context-mode ────────────────────────────────────────
-  INSTALL_CONTEXT_MODE="n"
-  if [ "$XGH_INSTALL_PLUGINS" = "all" ]; then
-    INSTALL_CONTEXT_MODE="y"
-  elif [ "$XGH_INSTALL_PLUGINS" = "ask" ]; then
-    echo -e "  ${BOLD}context-mode${NC} ${DIM}by mksglu${NC}"
-    echo -e "  ${DIM}Session optimizer — 98% context savings, sandboxed execution, FTS5 search${NC}"
-    echo ""
-    read -r -p "  🤖 Install? [y/N] " INSTALL_CONTEXT_MODE
-  fi
-  if [[ "$(printf '%s' "$INSTALL_CONTEXT_MODE" | tr '[:upper:]' '[:lower:]')" =~ ^y ]]; then
-    install_plugin "mksglu/context-mode" "context-mode@context-mode" "context-mode"
-  fi
+  lane "Superpowers 🦸"
 
   # ── superpowers ─────────────────────────────────────────
   INSTALL_SUPERPOWERS="n"
