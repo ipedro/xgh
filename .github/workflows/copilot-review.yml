@@ -10,6 +10,7 @@ jobs:
     if: github.event.pull_request.draft == false
     permissions:
       pull-requests: write
+      issues: write
     steps:
       - name: Post @copilot review request
         uses: actions/github-script@v7

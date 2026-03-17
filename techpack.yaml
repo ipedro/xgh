@@ -173,7 +173,7 @@ components:
     source: scripts/ingest-schedule.sh
     description: "Install/uninstall xgh ingest scheduler — launchd on macOS, cron on Linux"
 
-optionalPlugins:
+requiredPlugins:
   - id: context-mode
     marketplace: mksglu/context-mode
     plugin: context-mode@context-mode
@@ -184,6 +184,7 @@ optionalPlugins:
       Route heavy operations (briefing fetches, log analysis) through ctx_execute.
       FTS5 keyword search pairs with lossless-claude vector search for dual-engine retrieval.
 
+optionalPlugins:
   - id: superpowers
     marketplace: claude-plugins-official/superpowers
     plugin: superpowers@superpowers

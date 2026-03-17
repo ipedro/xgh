@@ -29,6 +29,10 @@ assert_executable() {
   if [ -x "$1" ]; then PASS=$((PASS + 1)); else echo "FAIL: $1 not executable"; FAIL=$((FAIL + 1)); fi
 }
 
+assert_not_contains() {
+  if ! grep -q "$2" "$1" 2>/dev/null; then PASS=$((PASS + 1)); else echo "FAIL: $1 should not contain '$2'"; FAIL=$((FAIL + 1)); fi
+}
+
 # Setup temp project dir
 TMPDIR=$(mktemp -d)
 trap "rm -rf $TMPDIR" EXIT
@@ -66,6 +70,10 @@ assert_file_exists "${XGH_LOCAL_PACK}/plugin/agents/collaboration-dispatcher.md"
 assert_file_exists "${XGH_LOCAL_PACK}/plugin/agents/code-reviewer.md"
 assert_contains    "${XGH_LOCAL_PACK}/plugin/gemini-extension.json" '"name": "xgh"'
 assert_contains    "${XGH_LOCAL_PACK}/plugin/gemini-extension.json" '"version"'
+
+# Verify lossless-claude MCP and permissions are configured (no cipher remnants)
+assert_contains ".claude/settings.local.json" "lossless-claude"
+assert_not_contains ".claude/settings.local.json" "cipher"
 
 # Verify hooks installed
 assert_file_exists ".claude/hooks/xgh-session-start.sh"
