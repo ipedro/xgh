@@ -7,7 +7,7 @@ description: >
 type: rigid
 triggers:
   - when invoked via /xgh-retrieve command
-  - when invoked headlessly by launchd or cron
+  - when invoked by CronCreate (session scheduler, XGH_SCHEDULER=on)
 mcp_dependencies:
   - mcp__claude_ai_Slack__slack_read_channel
   - mcp__claude_ai_Atlassian__getJiraIssue
@@ -17,11 +17,11 @@ mcp_dependencies:
 
 # xgh:retrieve — Retrieval Loop
 
-Invoked headlessly:
+Invoked by CronCreate:
 ```
-claude -p "/xgh-retrieve" \
-  --allowedTools "mcp__claude_ai_Slack__*,mcp__claude_ai_Atlassian__*,mcp__claude_ai_Figma__*,Bash,Read,Write,Glob" \
-  --max-turns 3
+  prompt: /xgh-retrieve
+  cron: */5 * * * *
+  recurring: true
 ```
 
 ## Context window management
@@ -210,3 +210,15 @@ echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) retriever: N channels, M items stashed, K u
 source ~/.xgh/lib/usage-tracker.sh
 xgh_usage_log "retriever" "$(actual turns used)" 0
 ```
+
+## Output discipline
+
+This skill runs in the main session turn (triggered by CronCreate or manually). To preserve context:
+
+1. Route ALL Bash/Python processing through `ctx_execute` or `ctx_batch_execute` when context-mode is available.
+2. Never print raw inbox content, message bodies, or full API responses to the session.
+3. **End every run with exactly one summary line:**
+   ```
+   Retrieve complete: <N> new items stashed, <M> critical, <K> channels scanned.
+   ```
+   Nothing else after this line.

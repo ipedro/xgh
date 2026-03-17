@@ -8,7 +8,7 @@ description: >
 type: rigid
 triggers:
   - when invoked via /xgh-analyze command
-  - when invoked headlessly by launchd or cron
+  - when invoked by CronCreate (session scheduler, XGH_SCHEDULER=on)
   - when ~/.xgh/inbox/.urgent exists (triggered by retriever on critical items)
 mcp_dependencies:
   - mcp__lossless-claude__lcm_search
@@ -17,11 +17,11 @@ mcp_dependencies:
 
 # xgh:analyze — Analysis Loop
 
-Invoked headlessly:
+Invoked by CronCreate:
 ```
-claude -p "/xgh-analyze" \
-  --allowedTools "mcp__lossless-claude__*,Bash,Read,Write,Glob" \
-  --max-turns 10
+  prompt: /xgh-analyze
+  cron: */30 * * * *
+  recurring: true
 ```
 
 ## Context window management
@@ -219,3 +219,12 @@ echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) analyzer: N items, M written, K duped, P de
 source ~/.xgh/lib/usage-tracker.sh
 xgh_usage_log "analyzer" "<actual turns>" 0
 ```
+
+## Output discipline
+
+1. Route ALL classification, dedup, and digest processing through `ctx_execute` when available.
+2. Never dump raw inbox content into session context.
+3. **End every run with exactly one summary line:**
+   ```
+   Analyze complete: <N> items processed, <M> stored, <K> duplicates skipped.
+   ```

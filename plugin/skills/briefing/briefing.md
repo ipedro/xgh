@@ -178,3 +178,9 @@ Once the briefing is delivered:
 - Feeds into `xgh:implement-ticket` (pre-loaded context for chosen ticket)
 - Feeds into `xgh:investigate` (pre-loaded context for chosen incident)
 - Informs `xgh:convention-guardian` (team pulse surfaces new conventions)
+
+## Output discipline
+
+When invoked by CronCreate or as a background task:
+1. Route all MCP fetches through `ctx_batch_execute` when context-mode is available.
+2. Return the briefing summary inline — concise, structured, no raw API payloads.
