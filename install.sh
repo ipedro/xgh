@@ -220,19 +220,30 @@ print(raw)
 " 2>/dev/null)
 
 if [ -f "$SETTINGS_FILE" ] && [ -s "$SETTINGS_FILE" ]; then
-  # Merge: existing + hooks + permissions
+  # Merge: existing + hooks + permissions — deep-merge hooks.* arrays to preserve co-installed tool hooks
   python3 -c "
-import json, sys
+import json
+
+def deep_merge(base, overlay):
+    result = dict(base)
+    for key, val in overlay.items():
+        if key == 'hooks' and isinstance(result.get('hooks'), dict) and isinstance(val, dict):
+            merged_hooks = dict(result['hooks'])
+            for event, entries in val.items():
+                existing = merged_hooks.get(event, [])
+                existing_cmds = {h['command'] for e in existing for h in e.get('hooks', [])}
+                new_entries = [e for e in entries if not any(h['command'] in existing_cmds for h in e.get('hooks', []))]
+                merged_hooks[event] = existing + new_entries
+            result['hooks'] = merged_hooks
+        else:
+            result[key] = val
+    return result
+
 base = json.load(open('${SETTINGS_FILE}'))
 hooks_data = json.loads('''${RESOLVED_HOOKS}''')
 perms_data = json.load(open('${PERMS_SETTINGS}'))
-for overlay in [hooks_data, perms_data]:
-    for k, v in overlay.items():
-        if k in base and isinstance(base[k], dict) and isinstance(v, dict):
-            base[k].update(v)
-        else:
-            base[k] = v
-json.dump(base, open('${SETTINGS_FILE}', 'w'), indent=2)
+result = deep_merge(deep_merge(base, hooks_data), perms_data)
+json.dump(result, open('${SETTINGS_FILE}', 'w'), indent=2)
 " 2>/dev/null || {
     warn "Could not merge settings — writing fresh"
     python3 -c "
