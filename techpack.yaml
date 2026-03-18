@@ -49,7 +49,7 @@ components:
 
   - id: brief-skill
     type: skill
-    source: plugin/skills/brief/brief.md
+    source: plugin/skills/briefing/briefing.md
     description: "Session briefing skill — checks Slack, Jira, and GitHub and produces an actionable summary"
 
   - id: brief-command

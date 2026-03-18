@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test:
+          - test-config
+          - test-ct-archive
+          - test-ct-crud
+          - test-ct-frontmatter
+          - test-ct-integration
+          - test-ct-manifest
+          - test-ct-scoring
+          - test-ct-search
+          - test-ct-sync
+          - test-hooks
+          - test-install
+          - test-techpack
+          - test-uninstall
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install Python dependencies
+        run: pip install pyyaml
+
+      - name: Run ${{ matrix.test }}
+        run: bash tests/${{ matrix.test }}.sh
+
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install Python dependencies
+        run: pip install pyyaml
+
+      - name: YAML syntax
+        run: bash tests/test-yaml-syntax.sh
+
+      - name: JSON syntax
+        run: bash tests/test-json-syntax.sh
+
+      - name: File references
+        run: bash tests/test-file-refs.sh
+
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Run ShellCheck
+        run: bash tests/test-shellcheck.sh
