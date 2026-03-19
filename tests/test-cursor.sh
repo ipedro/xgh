@@ -15,7 +15,7 @@ assert_contains() {
   if grep -q "$2" "$1" 2>/dev/null; then PASS=$((PASS + 1)); else echo "FAIL: $1 missing '$2'"; FAIL=$((FAIL + 1)); fi
 }
 
-SCRIPT="plugin/scripts/update-cursor.sh"
+SCRIPT="scripts/update-cursor.sh"
 echo "── Cursor update ──"
 
 # Script exists and is executable
@@ -46,7 +46,7 @@ assert_eq "$RESULT_UPDATED" "1710000002.000000"
 rm -rf "$TMPDIR_TEST"
 
 # Retrieve skill references the script
-assert_contains "plugin/skills/retrieve/retrieve.md" 'update-cursor.sh'
+assert_contains "skills/retrieve/retrieve.md" 'update-cursor.sh'
 
 echo ""
 echo "Cursor test: $PASS passed, $FAIL failed"

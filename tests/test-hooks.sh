@@ -60,12 +60,12 @@ assert_output_contains() {
 }
 
 # ── Basic file existence ──────────────────────────────────
-assert_file_exists "plugin/hooks/session-start.sh"
-assert_file_exists "plugin/hooks/prompt-submit.sh"
+assert_file_exists "hooks/session-start.sh"
+assert_file_exists "hooks/prompt-submit.sh"
 
-assert_not_contains "plugin/hooks/session-start.sh" "placeholder"
-assert_not_contains "plugin/hooks/prompt-submit.sh" "placeholder"
-assert_not_contains "plugin/hooks/session-start.sh" "not yet implemented"
+assert_not_contains "hooks/session-start.sh" "placeholder"
+assert_not_contains "hooks/prompt-submit.sh" "placeholder"
+assert_not_contains "hooks/session-start.sh" "not yet implemented"
 
 # ── session-start: structured JSON output ─────────────────
 # Create a temp context tree with mock .md files
@@ -117,7 +117,7 @@ Should be excluded.
 MDEOF
 
 # Run session-start with the temp context tree
-SS_OUTPUT=$(XGH_CONTEXT_TREE="$TMPDIR_CT" XGH_BRIEFING="off" bash plugin/hooks/session-start.sh)
+SS_OUTPUT=$(XGH_CONTEXT_TREE="$TMPDIR_CT" XGH_BRIEFING="off" bash hooks/session-start.sh)
 
 # Validate JSON and keys
 SS_VALID=$(python3 -c "
@@ -171,7 +171,7 @@ print('yes' if not has_bad else 'no')
 assert_eq "excluded _archived and _index.md" "$SS_NO_ARCHIVED" "yes"
 
 # Validate schedulerTrigger=on by default (no env var gate)
-SS_SCHED_DEFAULT=$(XGH_CONTEXT_TREE="$TMPDIR_CT" bash plugin/hooks/session-start.sh)
+SS_SCHED_DEFAULT=$(XGH_CONTEXT_TREE="$TMPDIR_CT" bash hooks/session-start.sh)
 SS_ST_DEFAULT=$(python3 -c "
 import json, sys
 d = json.loads(sys.argv[1])
@@ -192,7 +192,7 @@ assert_eq "schedulerInstructions contains cron prompts" "$SS_SI" "yes"
 PAUSE_FILE="$HOME/.xgh/scheduler-paused"
 mkdir -p "$HOME/.xgh"
 touch "$PAUSE_FILE"
-SS_SCHED_PAUSED=$(XGH_CONTEXT_TREE="$TMPDIR_CT" bash plugin/hooks/session-start.sh)
+SS_SCHED_PAUSED=$(XGH_CONTEXT_TREE="$TMPDIR_CT" bash hooks/session-start.sh)
 rm -f "$PAUSE_FILE"
 SS_ST_PAUSED=$(python3 -c "
 import json, sys
@@ -210,7 +210,7 @@ print('null' if d.get('schedulerInstructions') is None else 'present')
 assert_eq "schedulerInstructions null when paused" "$SS_SI_PAUSED" "null"
 
 # ── prompt-submit: structured JSON output ─────────────────
-PS_OUTPUT=$(PROMPT="implement a new login feature" bash plugin/hooks/prompt-submit.sh)
+PS_OUTPUT=$(PROMPT="implement a new login feature" bash hooks/prompt-submit.sh)
 
 # prompt-submit emits valid JSON (may be empty {} when no nudge needed)
 PS_VALID=$(python3 -c "
@@ -224,11 +224,11 @@ except Exception as e:
 assert_eq "prompt-submit emits valid JSON" "$PS_VALID" "yes"
 
 # Static memory instructions live in xgh-instructions.md (not in hook output)
-PS_STATIC=$(grep -q 'lcm_search' plugin/templates/xgh-instructions.md 2>/dev/null && echo "yes" || echo "no")
+PS_STATIC=$(grep -q 'lcm_search' templates/xgh-instructions.md 2>/dev/null && echo "yes" || echo "no")
 assert_eq "memory instructions in static xgh-instructions.md" "$PS_STATIC" "yes"
 
 # General prompt also emits valid JSON
-PS_GENERAL=$(PROMPT="what time is it?" bash plugin/hooks/prompt-submit.sh)
+PS_GENERAL=$(PROMPT="what time is it?" bash hooks/prompt-submit.sh)
 PS_VALID_G=$(python3 -c "
 import json, sys
 d = json.loads(sys.argv[1])
@@ -237,15 +237,15 @@ print('yes' if isinstance(d, dict) else 'no')
 assert_eq "prompt-submit general emits valid JSON" "$PS_VALID_G" "yes"
 
 # Both hooks exit 0
-bash plugin/hooks/session-start.sh > /dev/null 2>&1 && PASS=$((PASS + 1)) || { echo "FAIL: session-start.sh non-zero exit"; FAIL=$((FAIL + 1)); }
-bash plugin/hooks/prompt-submit.sh > /dev/null 2>&1 && PASS=$((PASS + 1)) || { echo "FAIL: prompt-submit.sh non-zero exit"; FAIL=$((FAIL + 1)); }
+bash hooks/session-start.sh > /dev/null 2>&1 && PASS=$((PASS + 1)) || { echo "FAIL: session-start.sh non-zero exit"; FAIL=$((FAIL + 1)); }
+bash hooks/prompt-submit.sh > /dev/null 2>&1 && PASS=$((PASS + 1)) || { echo "FAIL: prompt-submit.sh non-zero exit"; FAIL=$((FAIL + 1)); }
 
 # ── Context-mode enforcement ──────────────────────────────
 # Context-mode plugin owns its own enforcement via PreToolUse hooks.
 # xgh no longer duplicates this — no pre-read, post-edit, or post-ctx-call hooks.
 
 # Test: schedulerInstructions mentions deep-retrieve
-SS_DEEP=$(XGH_CONTEXT_TREE="$TMPDIR_CT" bash plugin/hooks/session-start.sh)
+SS_DEEP=$(XGH_CONTEXT_TREE="$TMPDIR_CT" bash hooks/session-start.sh)
 SS_DEEP_OK=$(python3 -c "
 import json, sys
 d = json.loads(sys.argv[1])

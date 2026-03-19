@@ -9,7 +9,7 @@ assert_not_contains() {
   if ! grep -q "$2" "$1" 2>/dev/null; then PASS=$((PASS + 1)); else echo "FAIL: $1 should not contain '$2'"; FAIL=$((FAIL + 1)); fi
 }
 
-HOOK="plugin/hooks/session-start.sh"
+HOOK="hooks/session-start.sh"
 
 echo "── Session-start hook ──"
 
