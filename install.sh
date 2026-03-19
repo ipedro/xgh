@@ -52,10 +52,6 @@ echo ""
 if [ "$XGH_DRY_RUN" -eq 0 ]; then
   lane "Saddling up dependencies 🏇"
 
-  # Node.js and npm (required by lossless-claude and helper scripts)
-  if ! command -v node &>/dev/null; then
-    warn "Node.js not found — install manually: brew install node (or: https://nodejs.org)"
-  fi
 
   # context-mode (required — session optimizer, 98% context savings)
   if command -v claude &>/dev/null; then
@@ -81,15 +77,10 @@ lane "Wiring up the memory layer 🧬"
 
 if [ "$XGH_DRY_RUN" -eq 0 ] && [ "${XGH_SKIP_LCM:-0}" -eq 0 ]; then
   if ! command -v lossless-claude &>/dev/null; then
-    if command -v npm &>/dev/null; then
-      info "Installing lossless-claude..."
-      command -v tsc &>/dev/null || npm install -g typescript &>/dev/null || warn "Could not install TypeScript (tsc) — lossless-claude build may fail"
-      npm install -g github:ipedro/lossless-claude &>/dev/null || {
-        warn "Could not install lossless-claude — skipping (set XGH_SKIP_LCM=1 to suppress)"
-      }
-    else
-      warn "npm not found — install Node.js first, then: npm install -g github:ipedro/lossless-claude"
-    fi
+    info "Installing lossless-claude..."
+    curl -fsSL https://raw.githubusercontent.com/ipedro/lossless-claude/main/install.sh | bash 2>/dev/null || {
+      warn "Could not install lossless-claude — skipping (set XGH_SKIP_LCM=1 to suppress)"
+    }
   else
     info "lossless-claude already installed: $(command -v lossless-claude)"
   fi
