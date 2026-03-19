@@ -164,13 +164,13 @@ else:
 " "$SS_OUTPUT")
 assert_eq "decisionTable is array of strings" "$SS_DT_VALID" "yes"
 
-# Validate briefingTrigger reflects env var
+# Validate briefingTrigger is always full (no env var gate)
 SS_BT=$(python3 -c "
 import json, sys
 d = json.loads(sys.argv[1])
 print(d.get('briefingTrigger', ''))
 " "$SS_OUTPUT")
-assert_eq "briefingTrigger is off" "$SS_BT" "off"
+assert_eq "briefingTrigger is always full" "$SS_BT" "full"
 
 # Validate _archived and _index.md are excluded
 SS_NO_ARCHIVED=$(python3 -c "
@@ -182,58 +182,44 @@ print('yes' if not has_bad else 'no')
 " "$SS_OUTPUT")
 assert_eq "excluded _archived and _index.md" "$SS_NO_ARCHIVED" "yes"
 
-# Validate briefingTrigger with XGH_BRIEFING=compact
-SS_COMPACT=$(XGH_CONTEXT_TREE="$TMPDIR_CT" XGH_BRIEFING="compact" bash plugin/hooks/session-start.sh)
-SS_BT_COMPACT=$(python3 -c "
-import json, sys
-d = json.loads(sys.argv[1])
-print(d.get('briefingTrigger', ''))
-" "$SS_COMPACT")
-assert_eq "briefingTrigger compact" "$SS_BT_COMPACT" "compact"
-
-# Validate briefingTrigger with XGH_BRIEFING=auto (maps to full)
-SS_AUTO=$(XGH_CONTEXT_TREE="$TMPDIR_CT" XGH_BRIEFING="auto" bash plugin/hooks/session-start.sh)
-SS_BT_AUTO=$(python3 -c "
-import json, sys
-d = json.loads(sys.argv[1])
-print(d.get('briefingTrigger', ''))
-" "$SS_AUTO")
-assert_eq "briefingTrigger auto->full" "$SS_BT_AUTO" "full"
-
-# Validate schedulerTrigger=off by default
+# Validate schedulerTrigger=on by default (no env var gate)
 SS_SCHED_DEFAULT=$(XGH_CONTEXT_TREE="$TMPDIR_CT" bash plugin/hooks/session-start.sh)
 SS_ST_DEFAULT=$(python3 -c "
 import json, sys
 d = json.loads(sys.argv[1])
 print(d.get('schedulerTrigger', ''))
 " "$SS_SCHED_DEFAULT")
-assert_eq "schedulerTrigger default=off" "$SS_ST_DEFAULT" "off"
+assert_eq "schedulerTrigger default=on" "$SS_ST_DEFAULT" "on"
 
-# Validate schedulerTrigger=on when XGH_SCHEDULER=on
-SS_SCHED_ON=$(XGH_CONTEXT_TREE="$TMPDIR_CT" XGH_SCHEDULER="on" bash plugin/hooks/session-start.sh)
-SS_ST_ON=$(python3 -c "
-import json, sys
-d = json.loads(sys.argv[1])
-print(d.get('schedulerTrigger', ''))
-" "$SS_SCHED_ON")
-assert_eq "schedulerTrigger on" "$SS_ST_ON" "on"
-
-# Validate schedulerInstructions present when on
+# Validate schedulerInstructions present by default
 SS_SI=$(python3 -c "
 import json, sys
 d = json.loads(sys.argv[1])
 v = d.get('schedulerInstructions', '')
 print('yes' if v and '/xgh-retrieve' in v and '/xgh-analyze' in v else 'no:' + repr(v))
-" "$SS_SCHED_ON")
+" "$SS_SCHED_DEFAULT")
 assert_eq "schedulerInstructions contains cron prompts" "$SS_SI" "yes"
 
-# Validate schedulerInstructions absent (null) when off
-SS_SI_OFF=$(python3 -c "
+# Validate schedulerTrigger=paused when pause file exists
+PAUSE_FILE="$HOME/.xgh/scheduler-paused"
+mkdir -p "$HOME/.xgh"
+touch "$PAUSE_FILE"
+SS_SCHED_PAUSED=$(XGH_CONTEXT_TREE="$TMPDIR_CT" bash plugin/hooks/session-start.sh)
+rm -f "$PAUSE_FILE"
+SS_ST_PAUSED=$(python3 -c "
+import json, sys
+d = json.loads(sys.argv[1])
+print(d.get('schedulerTrigger', ''))
+" "$SS_SCHED_PAUSED")
+assert_eq "schedulerTrigger paused when pause file exists" "$SS_ST_PAUSED" "paused"
+
+# Validate schedulerInstructions absent (null) when paused
+SS_SI_PAUSED=$(python3 -c "
 import json, sys
 d = json.loads(sys.argv[1])
 print('null' if d.get('schedulerInstructions') is None else 'present')
-" "$SS_SCHED_DEFAULT")
-assert_eq "schedulerInstructions null when off" "$SS_SI_OFF" "null"
+" "$SS_SCHED_PAUSED")
+assert_eq "schedulerInstructions null when paused" "$SS_SI_PAUSED" "null"
 
 # ── prompt-submit: structured JSON output ─────────────────
 PS_OUTPUT=$(PROMPT="implement a new login feature" bash plugin/hooks/prompt-submit.sh)
