@@ -33,10 +33,6 @@ export HOME="$_HOME_BAK"
 
 # Config template must exist in repo
 assert_file_exists "config/ingest-template.yaml"
-# techpack references all ingest components
-assert_contains "techpack.yaml" "retrieve-skill"
-assert_contains "techpack.yaml" "analyze-skill"
-assert_contains "techpack.yaml" "workspace-write"
 
 echo ""; echo "Results: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1

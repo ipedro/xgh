@@ -10,7 +10,7 @@ xgh is a Bash/YAML/Markdown MCS tech pack — no compiled runtime. Work follows 
 
 ```bash
 # Run tests
-bash tests/test-install.sh && bash tests/test-config.sh && bash tests/test-techpack.sh
+bash tests/test-install.sh && bash tests/test-config.sh
 
 # Dry-run installer (no external deps)
 XGH_DRY_RUN=1 XGH_LOCAL_PACK=. bash install.sh

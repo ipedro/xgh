@@ -11,7 +11,6 @@
 ```bash
 bash tests/test-install.sh
 bash tests/test-config.sh
-bash tests/test-techpack.sh
 bash tests/test-uninstall.sh
 ```
 

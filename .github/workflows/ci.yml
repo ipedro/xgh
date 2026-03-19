@@ -28,7 +28,6 @@ jobs:
           - test-ct-sync
           - test-hooks
           - test-install
-          - test-techpack
           - test-uninstall
     steps:
       - name: Checkout

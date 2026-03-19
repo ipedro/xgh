@@ -20,7 +20,6 @@ xgh is a **Model Context Server (MCS) tech pack** for Claude Code that provides 
 ```bash
 bash tests/test-install.sh
 bash tests/test-config.sh
-bash tests/test-techpack.sh
 bash tests/test-uninstall.sh
 ```
 

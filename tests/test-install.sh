@@ -85,8 +85,6 @@ assert_not_contains ".claude/settings.local.json" "cipher"
 
 # Verify scheduler scripts are NOT installed (replaced by CronCreate)
 assert_not_contains "CLAUDE.local.md" "ingest-schedule"
-# Verify techpack has no ingest-schedule component
-assert_not_contains "${XGH_LOCAL_PACK}/techpack.yaml" "ingest-schedule"
 
 # Verify hooks installed
 assert_file_exists ".claude/hooks/xgh-session-start.sh"

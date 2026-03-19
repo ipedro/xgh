@@ -171,11 +171,9 @@ To add a backend beyond `vllm-mlx`, `ollama`, and `remote`:
 
 9. **`scripts/ingest-schedule.sh`**: add backend branches in `install_macos()`, `install_linux()`, and the `status` subcommand.
 
-10. **`techpack.yaml`**: add a component entry with `platform`, `check`, and `when` fields.
+10. **`skills/doctor/doctor.md`**: add backend-specific connectivity checks.
 
-11. **`skills/doctor/doctor.md`**: add backend-specific connectivity checks.
-
-12. **`docs/plans/`**: write a plan file documenting the steps (follow the existing plan format).
+11. **`docs/plans/`**: write a plan file documenting the steps (follow the existing plan format).
 
 ---
 

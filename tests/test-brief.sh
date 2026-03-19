@@ -50,10 +50,6 @@ assert_contains "$REPO_ROOT/hooks/session-start.sh" "XGH_BRIEFING"
 # Hook must still output JSON with result key
 assert_contains "$REPO_ROOT/hooks/session-start.sh" '"result"'
 
-# ── Task 5: techpack.yaml briefing entries ───────────────────────────────────
-
-assert_contains "$REPO_ROOT/techpack.yaml" "briefing"
-
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

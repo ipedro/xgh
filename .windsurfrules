@@ -19,7 +19,6 @@ Bash/YAML/Markdown MCS tech pack. No compiled artifacts. No npm/cargo/maven buil
 ```bash
 bash tests/test-install.sh
 bash tests/test-config.sh
-bash tests/test-techpack.sh
 bash tests/test-uninstall.sh
 ```
 

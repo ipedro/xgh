@@ -45,7 +45,6 @@ curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
 ├── AGENTS.md                        # ← you are here — canonical agent instructions
 ├── CLAUDE.md                        # Claude Code pointer → AGENTS.md
 ├── README.md                        # Project README with roadmap + progress
-├── techpack.yaml                    # MCS tech pack manifest
 ├── install.sh                       # One-liner installer
 ├── uninstall.sh                     # Clean removal
 ├── config/
@@ -103,7 +102,6 @@ curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
 ├── tests/
 │   ├── test-install.sh
 │   ├── test-config.sh
-│   ├── test-techpack.sh
 │   └── test-uninstall.sh
 └── docs/
     └── plans/                       # Design doc + 6 implementation plans
@@ -142,7 +140,6 @@ curl -fsSL https://raw.githubusercontent.com/ipedro/xgh/main/install.sh | bash
 # Individual test suites
 bash tests/test-install.sh      # Install script integration
 bash tests/test-config.sh       # Config files and presets
-bash tests/test-techpack.sh     # Tech pack schema
 bash tests/test-uninstall.sh    # Uninstall verification
 
 # Dry-run the installer (no external deps required)
