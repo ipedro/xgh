@@ -304,50 +304,12 @@ If **no** (or user skips): Continue to Step 7b.
 
 ---
 
-## Step 7b — Scheduler Setup
+## Step 7b — Scheduler
 
-Check if background scheduling is configured:
+> Scheduler is active by default on every session start. No configuration needed.
+> Use `/xgh-schedule pause` to disable, `/xgh-schedule resume` to re-enable.
 
-1. Check `XGH_SCHEDULER` in the environment:
-   ```bash
-   python3 -c "import os; print(os.environ.get('XGH_SCHEDULER', ''))"
-   ```
-2. Call CronList — check for jobs where prompt is `/xgh-retrieve` or `/xgh-analyze`.
-
-**If already configured** (env var is `on` OR both cron jobs exist): show `✅ Scheduler active` and continue to Step 8.
-
-**If not configured**: Ask:
-
-```
-Enable background scheduling?
-  retrieve: every 5 min  (scans Slack, GitHub for new items)
-  analyze:  every 30 min (classifies and stores to memory)
-
-Jobs auto-expire after 3 days and are re-created each session when XGH_SCHEDULER=on.
-
-Enable? [Y/n]
-```
-
-If **yes**:
-1. Detect shell profile (prefer `~/.zshrc`, fall back to `~/.zprofile`, then `~/.bash_profile`):
-   ```bash
-   python3 -c "
-   import os
-   for f in ['~/.zshrc', '~/.zprofile', '~/.bash_profile', '~/.profile']:
-       p = os.path.expanduser(f)
-       if os.path.exists(p): print(p); break
-   "
-   ```
-2. Append `export XGH_SCHEDULER=on` if not already present:
-   ```bash
-   grep -q 'XGH_SCHEDULER=on' <profile_file> || echo 'export XGH_SCHEDULER=on' >> <profile_file>
-   ```
-3. Register CronCreate jobs immediately:
-   - retrieve: `cron: "*/5 * * * *"`, `prompt: "/xgh-retrieve"`, `recurring: true`
-   - analyze: `cron: "*/30 * * * *"`, `prompt: "/xgh-analyze"`, `recurring: true`
-4. Report: `✅ Scheduler enabled — retrieve (*/5) and analyze (*/30) registered. Added XGH_SCHEDULER=on to <profile>.`
-
-If **no**: `⚠️ Scheduler not enabled. Run /xgh-schedule resume anytime, or add export XGH_SCHEDULER=on to your shell profile.`
+Skip this step — no action required.
 
 ---
 
@@ -372,7 +334,7 @@ xgh setup complete!
 
   Team Profiles: [generated for Alice, Bob / skipped]
   Codebase Index: [indexed / skipped]
-  Scheduler:     [✅ active (*/5, */30) / ⚠️ not enabled]
+  Scheduler:     ✅ active by default
 
   Next steps:
     - Run /xgh-brief to get your first daily briefing
@@ -413,4 +375,4 @@ This skill chains together existing skills rather than duplicating their logic:
 | Step 5 — Team profiles | `xgh:profile` per engineer |
 | Step 6 — Index codebase | `xgh:index` quick mode |
 | Step 7 — Initial curation | `xgh:curate` interactive |
-| Step 7b — Scheduler | CronList + CronCreate + shell profile write |
+| Step 7b — Scheduler | No action (active by default) |

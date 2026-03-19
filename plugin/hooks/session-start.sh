@@ -5,8 +5,6 @@
 set -euo pipefail
 
 CONTEXT_TREE="${XGH_CONTEXT_TREE:-${XGH_CONTEXT_TREE_PATH:-}}"
-XGH_BRIEFING="${XGH_BRIEFING:-off}"
-XGH_SCHEDULER="${XGH_SCHEDULER:-off}"
 
 # Walk up to find .xgh/context-tree if not set via env
 if [ -z "$CONTEXT_TREE" ]; then
@@ -25,7 +23,6 @@ import json, os, sys, re
 from pathlib import Path
 
 context_tree = os.environ.get("XGH_CONTEXT_TREE", os.environ.get("XGH_CONTEXT_TREE_PATH", ""))
-briefing_env = os.environ.get("XGH_BRIEFING", "off")
 max_files = 5
 
 # Detect dispatch file from command center
@@ -43,16 +40,12 @@ if dispatch_path.exists():
     except Exception:
         pass
 
-# Map briefing env values
-if briefing_env in ("auto", "1"):
-    briefing_trigger = "full"
-elif briefing_env == "compact":
-    briefing_trigger = "compact"
-else:
-    briefing_trigger = "off"
+# Briefing always available
+briefing_trigger = "full"
 
-scheduler_env = os.environ.get("XGH_SCHEDULER", "off")
-scheduler_trigger = "on" if scheduler_env in ("on", "1") else "off"
+# Scheduler: check for pause file, otherwise always on
+scheduler_paused = Path.home().joinpath(".xgh", "scheduler-paused").exists()
+scheduler_trigger = "paused" if scheduler_paused else "on"
 
 if scheduler_trigger == "on":
     scheduler_instructions = (
