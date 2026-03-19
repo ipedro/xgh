@@ -159,10 +159,8 @@ assert_contains "${XGH_LOCAL_PACK}/install.sh" 'sha256'
 XGH_SKIP_RTK=1 XGH_DRY_RUN=1 XGH_LOCAL_PACK="${XGH_LOCAL_PACK}" bash "${XGH_LOCAL_PACK}/install.sh" > /tmp/rtk-skip-out.txt 2>&1 || true
 assert_contains /tmp/rtk-skip-out.txt 'XGH_SKIP_RTK'
 
-# Hook registration code exists in install.sh
-assert_contains "${XGH_LOCAL_PACK}/install.sh" 'merge_rtk_hook'
-assert_contains "${XGH_LOCAL_PACK}/install.sh" '"matcher": "Bash"'
-assert_contains "${XGH_LOCAL_PACK}/install.sh" 'rtk hook copilot'
+# Hook registration uses rtk's native init
+assert_contains "${XGH_LOCAL_PACK}/install.sh" 'rtk init -g --auto-patch'
 
 echo ""
 echo "Install test: $PASS passed, $FAIL failed"
