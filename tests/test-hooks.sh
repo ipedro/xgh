@@ -152,17 +152,17 @@ print('yes')
 " "$SS_OUTPUT")
 assert_eq "contextFiles has correct structure" "$SS_CF_VALID" "yes"
 
-# Validate decisionTable is array of strings
+# Validate decisionTable is null (moved to static @xgh.md reference)
 SS_DT_VALID=$(python3 -c "
 import json, sys
 d = json.loads(sys.argv[1])
-dt = d.get('decisionTable', [])
-if isinstance(dt, list) and len(dt) > 0 and all(isinstance(s, str) for s in dt):
+dt = d.get('decisionTable')
+if dt is None:
     print('yes')
 else:
     print('no')
 " "$SS_OUTPUT")
-assert_eq "decisionTable is array of strings" "$SS_DT_VALID" "yes"
+assert_eq "decisionTable is null (static @reference)" "$SS_DT_VALID" "yes"
 
 # Validate briefingTrigger is always full (no env var gate)
 SS_BT=$(python3 -c "
@@ -224,36 +224,29 @@ assert_eq "schedulerInstructions null when paused" "$SS_SI_PAUSED" "null"
 # ── prompt-submit: structured JSON output ─────────────────
 PS_OUTPUT=$(PROMPT="implement a new login feature" bash plugin/hooks/prompt-submit.sh)
 
+# prompt-submit emits valid JSON (may be empty {} when no nudge needed)
 PS_VALID=$(python3 -c "
 import json, sys
 try:
     d = json.loads(sys.argv[1])
-    if 'additionalContext' in d:
-        print('yes')
-    else:
-        print('no:missing:additionalContext, got:' + str(list(d.keys())))
+    print('yes' if isinstance(d, dict) else 'no')
 except Exception as e:
     print('no:' + str(e))
 " "$PS_OUTPUT")
-assert_eq "prompt-submit has additionalContext key" "$PS_VALID" "yes"
+assert_eq "prompt-submit emits valid JSON" "$PS_VALID" "yes"
 
-# Validate code-change context is non-empty
-PS_CTX=$(python3 -c "
-import json, sys
-d = json.loads(sys.argv[1])
-ctx = d.get('additionalContext', '')
-print('yes' if len(ctx) > 10 else 'no')
-" "$PS_OUTPUT")
-assert_eq "promptIntent code-change has context" "$PS_CTX" "yes"
+# Static memory instructions live in xgh-instructions.md (not in hook output)
+PS_STATIC=$(grep -q 'lcm_search' plugin/templates/xgh-instructions.md 2>/dev/null && echo "yes" || echo "no")
+assert_eq "memory instructions in static xgh-instructions.md" "$PS_STATIC" "yes"
 
-# Validate general prompt has additionalContext key
+# General prompt also emits valid JSON
 PS_GENERAL=$(PROMPT="what time is it?" bash plugin/hooks/prompt-submit.sh)
 PS_VALID_G=$(python3 -c "
 import json, sys
 d = json.loads(sys.argv[1])
-print('yes' if 'additionalContext' in d else 'no')
+print('yes' if isinstance(d, dict) else 'no')
 " "$PS_GENERAL")
-assert_eq "prompt-submit general has additionalContext key" "$PS_VALID_G" "yes"
+assert_eq "prompt-submit general emits valid JSON" "$PS_VALID_G" "yes"
 
 # Both hooks exit 0
 bash plugin/hooks/session-start.sh > /dev/null 2>&1 && PASS=$((PASS + 1)) || { echo "FAIL: session-start.sh non-zero exit"; FAIL=$((FAIL + 1)); }
@@ -413,23 +406,17 @@ assert_eq "post-ctx-call increments ctx_calls" "$CTX_AFTER" "1"
 FAKE_HOME=$(mktemp -d)
 mkdir -p "$FAKE_HOME/.claude/plugins/cache/context-mode"
 
-# Test: decision table includes ctx_execute_file guidance
-SS_CTX_OUT=$(HOME="$FAKE_HOME" XGH_CONTEXT_TREE="$TMPDIR_CT" bash plugin/hooks/session-start.sh)
-SS_CTX_DT=$(python3 -c "
-import json, sys
-d = json.loads(sys.argv[1])
-dt = d.get('decisionTable', [])
-has_ctx = any('ctx_execute_file' in s for s in dt)
-print('yes' if has_ctx else 'no')
-" "$SS_CTX_OUT")
-assert_eq "session-start decision table mentions ctx_execute_file" "$SS_CTX_DT" "yes"
+# Test: static instructions file exists with ctx_execute_file guidance
+SS_CTX_STATIC=$(grep -q 'ctx_execute_file' plugin/templates/xgh-instructions.md 2>/dev/null && echo "yes" || echo "no")
+assert_eq "xgh-instructions.md mentions ctx_execute_file" "$SS_CTX_STATIC" "yes"
 
 # Test: ctxModeAvailable key is present
+SS_CTX_OUT2=$(HOME="$FAKE_HOME" XGH_CONTEXT_TREE="$TMPDIR_CT" bash plugin/hooks/session-start.sh)
 SS_CTX_KEY=$(python3 -c "
 import json, sys
 d = json.loads(sys.argv[1])
 print('yes' if 'ctxModeAvailable' in d else 'no')
-" "$SS_CTX_OUT")
+" "$SS_CTX_OUT2")
 assert_eq "session-start has ctxModeAvailable key" "$SS_CTX_KEY" "yes"
 
 # Clean up fake home

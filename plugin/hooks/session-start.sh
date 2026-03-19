@@ -101,13 +101,8 @@ ctx_mode_available = Path.home().joinpath(
     ".claude", "plugins", "cache", "context-mode"
 ).exists()
 
-decision_table = [
-    "Before writing code: run lcm_search first.",
-    "After significant work: extract key learnings → lcm_store.",
-    "For architectural choices: store rationale with lcm_store(text, ['reasoning'])."
-]
-if ctx_mode_available:
-    decision_table.insert(0, "For file analysis: use ctx_execute_file, not Read. Read is only for files about to be Edited.")
+# Decision table moved to plugin/templates/xgh-instructions.md (static @reference)
+decision_table = None
 
 # Initialize context-mode tracking state for this session
 if ctx_mode_available:

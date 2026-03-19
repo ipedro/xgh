@@ -569,27 +569,43 @@ for pattern in ".xgh/local/" "data/cipher-sessions.db*" ".claude/settings.local.
   grep -qxF "$pattern" "$GITIGNORE" 2>/dev/null || echo "$pattern" >> "$GITIGNORE"
 done
 
-# ── 10. CLAUDE.local.md ─────────────────────────────────
-info "Injecting xgh instructions into CLAUDE.local.md"
-CLAUDE_MD="${PWD}/CLAUDE.local.md"
-if ! grep -q "mcs:begin xgh" "$CLAUDE_MD" 2>/dev/null; then
-  TEMPLATE="${PACK_DIR}/templates/instructions.md"
-  if [ -f "$TEMPLATE" ]; then
-    {
-      echo ""
-      echo "<!-- mcs:begin xgh.instructions -->"
-      sed "s/__TEAM_NAME__/${XGH_TEAM}/g; s|__CONTEXT_TREE_PATH__|${XGH_CONTEXT_TREE}|g" "$TEMPLATE"
-      echo "<!-- mcs:end xgh.instructions -->"
-    } >> "$CLAUDE_MD"
-  else
-    cat >> "$CLAUDE_MD" <<CLAUDEEOF
+# ── 10. xgh instructions (@reference) ─────────────────────
+info "Installing xgh agent instructions"
 
-<!-- mcs:begin xgh.instructions -->
-# xgh (extreme-go-horsebot) — Self-Learning Memory
-Team: ${XGH_TEAM} | Context Tree: ${XGH_CONTEXT_TREE}/
-<!-- mcs:end xgh.instructions -->
-CLAUDEEOF
-  fi
+# Copy static instructions to .xgh/xgh.md
+XGH_INSTRUCTIONS_SRC="${PACK_DIR}/templates/xgh-instructions.md"
+XGH_INSTRUCTIONS_DST="${PWD}/.xgh/xgh.md"
+if [ -f "$XGH_INSTRUCTIONS_SRC" ]; then
+  cp "$XGH_INSTRUCTIONS_SRC" "$XGH_INSTRUCTIONS_DST"
+fi
+
+# Add @reference to CLAUDE.local.md (replaces old mcs:begin/end inline block)
+CLAUDE_MD="${PWD}/CLAUDE.local.md"
+
+# Remove old mcs:begin/end block if present (upgrade path)
+if grep -q "mcs:begin xgh" "$CLAUDE_MD" 2>/dev/null; then
+  python3 -c "
+import re, sys
+with open('$CLAUDE_MD') as f:
+    content = f.read()
+content = re.sub(r'\n?<!-- mcs:begin xgh\.instructions -->.*?<!-- mcs:end xgh\.instructions -->\n?', '', content, flags=re.DOTALL)
+with open('$CLAUDE_MD', 'w') as f:
+    f.write(content)
+" 2>/dev/null || true
+fi
+
+# Add @reference if not already present
+if ! grep -q '@.xgh/xgh.md' "$CLAUDE_MD" 2>/dev/null; then
+  # Also inject team-specific context via the existing template
+  TEMPLATE="${PACK_DIR}/templates/instructions.md"
+  {
+    echo ""
+    echo "@.xgh/xgh.md"
+    echo ""
+    if [ -f "$TEMPLATE" ]; then
+      sed "s/__TEAM_NAME__/${XGH_TEAM}/g; s|__CONTEXT_TREE_PATH__|${XGH_CONTEXT_TREE}|g" "$TEMPLATE"
+    fi
+  } >> "$CLAUDE_MD"
 fi
 
 # ── 11. Optional Plugins ──────────────────────────────────
