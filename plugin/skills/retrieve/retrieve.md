@@ -236,20 +236,13 @@ This skill runs in the main session turn (triggered by CronCreate or manually). 
 
 ## Scheduler nudge (manual runs only)
 
-If this skill was invoked manually (not by CronCreate), check after the summary line whether scheduling is active:
+If this skill was invoked manually (not by CronCreate), check after the summary line:
 
-```bash
-python3 -c "import os; print(os.environ.get('XGH_SCHEDULER', ''))"
-```
+Call CronList and look for jobs with prompt `/xgh-retrieve` or `/xgh-analyze`.
 
-Also call CronList and look for jobs with prompt `/xgh-retrieve` or `/xgh-analyze`.
-
-If CronList is unavailable, fall back to the env var check alone.
-
-If neither `XGH_SCHEDULER=on` nor active CronCreate jobs are found, append:
+If no active CronCreate jobs found, append:
 
 ```
-⚠️ Running manually — enable background scheduling to automate this:
-   /xgh-schedule resume                                        (this session)
-   echo 'export XGH_SCHEDULER=on' >> ~/.zshrc && source ~/.zshrc  (persistent)
+⚠️ Running manually — scheduler is paused or not started.
+   /xgh-schedule resume    (enable for this session and future sessions)
 ```

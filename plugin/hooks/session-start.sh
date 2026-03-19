@@ -71,6 +71,31 @@ if scheduler_trigger == "on":
 else:
     scheduler_instructions = None
 
+# Read custom scheduled jobs from ingest.yaml
+custom_jobs = []
+ingest_path = Path.home() / ".xgh" / "ingest.yaml"
+if ingest_path.exists():
+    try:
+        import subprocess as _sp
+        _yq = _sp.run(
+            ["yq", "-o=json", ".schedule.jobs // []", str(ingest_path)],
+            capture_output=True, text=True
+        )
+        if _yq.returncode == 0 and _yq.stdout.strip() not in ("", "null", "[]"):
+            custom_jobs = json.loads(_yq.stdout)
+    except Exception:
+        pass
+
+if scheduler_trigger == "on" and custom_jobs:
+    for idx, j in enumerate(custom_jobs, start=4):
+        skill = j.get("skill", "")
+        cron = j.get("cron", "")
+        if skill and cron:
+            scheduler_instructions += (
+                f" ({idx}) cron='{cron}', "
+                f"prompt='{skill}', recurring=true "
+            )
+
 # Context-mode availability check
 ctx_mode_available = Path.home().joinpath(
     ".claude", "plugins", "cache", "context-mode"
@@ -110,6 +135,7 @@ if not context_tree or not os.path.isdir(context_tree):
         "briefingTrigger": briefing_trigger,
         "schedulerTrigger": scheduler_trigger,
         "schedulerInstructions": scheduler_instructions,
+        "schedulerCustomJobs": custom_jobs,
         "dispatchContext": dispatch_context,
         "ctxModeAvailable": ctx_mode_available
     }
@@ -195,6 +221,7 @@ output = {
     "briefingTrigger": briefing_trigger,
     "schedulerTrigger": scheduler_trigger,
     "schedulerInstructions": scheduler_instructions,
+    "schedulerCustomJobs": custom_jobs,
     "dispatchContext": dispatch_context,
     "ctxModeAvailable": ctx_mode_available
 }

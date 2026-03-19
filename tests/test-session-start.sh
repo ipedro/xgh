@@ -26,6 +26,10 @@ assert_contains "$HOOK" 'find.*inbox/processed.*-delete'
 assert_contains "$HOOK" 'find.*digests.*-delete'
 assert_contains "$HOOK" 'find.*logs.*-delete'
 
+# Gap 7: Custom jobs support
+assert_contains "$HOOK" 'schedulerCustomJobs'
+assert_contains "$HOOK" 'schedule.jobs'
+
 echo ""
 echo "Session-start test: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1

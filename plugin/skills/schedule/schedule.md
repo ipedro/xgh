@@ -39,6 +39,9 @@ Parse the invocation text to determine the subcommand:
 | `off` | → **Off** (cancel all) |
 | `prefs reset <skill>` | → **Reset pref** for skill |
 | `prefs` | → **Show prefs** |
+| `add "<skill>" "<cron>"` | → **Add** custom job |
+| `pause` (no args) | → **Pause all** (touch ~/.xgh/scheduler-paused) |
+| `resume` (no args) | → **Resume all** (rm ~/.xgh/scheduler-paused) |
 
 ---
 
@@ -47,7 +50,7 @@ Parse the invocation text to determine the subcommand:
 Call CronList. Find jobs where prompt matches `/xgh-retrieve`, `/xgh-analyze`, `/xgh-command-center morning`, or `/xgh-command-center pulse`.
 
 If 0 matching jobs found:
-> ⚠️ No active xgh scheduler jobs. Enable with `XGH_SCHEDULER=on` or run `/xgh-schedule resume retrieve` and `/xgh-schedule resume analyze`.
+> ⚠️ No active xgh scheduler jobs. Run `/xgh-schedule resume` to enable.
 
 If jobs found, display:
 
@@ -63,7 +66,7 @@ If jobs found, display:
 | command-center pulse | */15 * * * * | ✅ active | every 15 min |
 ```
 
-Note: CronCreate jobs auto-expire after 3 days. They are re-created automatically on the next session start if `XGH_SCHEDULER=on`.
+Note: CronCreate jobs auto-expire after 3 days. They are re-created automatically on the next session start unless paused (`~/.xgh/scheduler-paused` exists).
 
 Command-center cron jobs are registered by `/xgh-command-center` on first run.
 
@@ -104,6 +107,61 @@ Invoke the target skill directly in this session (not via cron):
 ## Off
 
 Call CronDelete for all jobs (`/xgh-retrieve`, `/xgh-analyze`, `/xgh-deep-retrieve`, and command-center jobs). Report count of jobs cancelled.
+
+---
+
+## Add
+
+Append a custom job to `~/.xgh/ingest.yaml`:
+
+```bash
+python3 -c "
+import yaml, sys, os
+skill, cron = sys.argv[1], sys.argv[2]
+path = os.path.expanduser('~/.xgh/ingest.yaml')
+with open(path) as f:
+    cfg = yaml.safe_load(f) or {}
+jobs = cfg.setdefault('schedule', {}).setdefault('jobs', [])
+jobs = [j for j in jobs if j.get('skill') != skill]
+jobs.append({'skill': skill, 'cron': cron})
+cfg['schedule']['jobs'] = jobs
+with open(path, 'w') as f:
+    yaml.dump(cfg, f, default_flow_style=False)
+print(f'Added: {skill} at {cron}')
+" "<skill>" "<cron>"
+```
+
+Then register immediately via CronCreate: `cron: "<cron>"`, `prompt: "<skill>"`, `recurring: true`.
+
+Report: `✅ Added <skill> (<cron>). Persisted in ingest.yaml — will auto-register on future sessions.`
+
+---
+
+## Pause all
+
+When `pause` is called with no specific job name:
+
+```bash
+touch ~/.xgh/scheduler-paused
+```
+
+Cancel all active CronCreate jobs via CronDelete.
+
+Report: `⏸ All scheduled jobs paused. Resume with /xgh-schedule resume.`
+
+---
+
+## Resume all
+
+When `resume` is called with no specific job name:
+
+```bash
+rm -f ~/.xgh/scheduler-paused
+```
+
+Re-register default crons + custom jobs from ingest.yaml.
+
+Report: `✅ Scheduler resumed. Jobs will re-register on next session start.`
 
 ---
 

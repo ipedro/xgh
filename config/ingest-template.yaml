@@ -97,13 +97,18 @@ retention:
   log_retention: 7d
   decayed_memories: 90d
 
-cipher:
-  workspace_mode: shared
-  workspace_collection: xgh-workspace
-  knowledge_collection: xgh-memory
-  embedding_batch_size: 10
-  search_top_k: 5
-  similarity_threshold: 0.3
+schedule:
+  paused: false
+  jobs:
+    # Default jobs (registered by session-start hook automatically):
+    #   retrieve:      */5 * * * *
+    #   analyze:       */30 * * * *
+    #   deep-retrieve: 0 * * * *
+    #
+    # Add custom periodic jobs below:
+    # - skill: "/xgh-brief"
+    #   cron: "0 8 * * 1-5"
+    #   description: "Weekday morning briefing"
 
 content_types:
   decision:
