@@ -1,13 +1,13 @@
 {
   "name": "xgh",
-  "description": "Persistent memory and team context for AI-assisted development",
-  "version": "1.0.0",
+  "description": "The developer's cockpit — memory, compression, context efficiency, and dev methodology",
+  "version": "2.0.0",
   "author": {
-    "name": "Pedro Alves",
+    "name": "Pedro Almeida",
     "email": "ipedro@users.noreply.github.com"
   },
   "homepage": "https://github.com/ipedro/xgh",
   "repository": "https://github.com/ipedro/xgh",
   "license": "MIT",
-  "keywords": ["memory", "context", "team", "workflow", "cipher"]
+  "keywords": ["memory", "context", "workflow", "cockpit", "devtools"]
 }
