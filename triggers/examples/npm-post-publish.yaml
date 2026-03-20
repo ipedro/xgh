@@ -1,0 +1,65 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# npm Post-Publish Lifecycle Trigger
+# ─────────────────────────────────────────────────────────────────────────────
+# Fires after a successful `npm publish`. Tags a GitHub release and
+# notifies your team on Slack.
+#
+# Requires:
+#   - action_level: create in ~/.xgh/triggers.yaml (for gh release create)
+#   - PostToolUse hook active (run /xgh-setup to configure)
+#   - GITHUB_REPO env var set, or edit the run: block below
+#
+# Copy to: ~/.xgh/triggers/npm-post-publish.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+
+schema_version: 1
+name: npm post-publish
+description: After npm publish — tag GitHub release, notify Slack
+enabled: true
+
+when:
+  source: local              # fires on local bash command events
+  command: "npm publish"     # regex matched against the Bash command
+  exit_code: 0              # only on success
+
+path: standard
+
+# ── Firing policy ──────────────────────────────────────────────────────────
+cooldown: 1m                 # typically one publish per session
+backoff: none                # don't back off — every publish should fire
+max_cooldown: 5m
+
+action_level: create
+
+then:
+  # Step 1: Read version and tag GitHub release [level: create]
+  # All $ITEM_* env vars are available. Add your own repo in GITHUB_REPO.
+  - name: Tag GitHub release
+    shell: bash
+    run: |
+      VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "unknown")
+      PKG_NAME=$(node -p "require('./package.json').name" 2>/dev/null || echo "package")
+      REPO="${GITHUB_REPO:-}"
+      if [ -n "$REPO" ]; then
+        gh release create "v$VERSION" \
+          --repo "$REPO" \
+          --title "$PKG_NAME v$VERSION" \
+          --generate-notes
+        echo "Tagged: v$VERSION for $REPO"
+      else
+        echo "Skipped: GITHUB_REPO not set"
+      fi
+    on_error: continue
+
+  # Step 2: Notify Slack [level: notify]
+  - notify: slack
+    channel: "#releases"
+    message: |
+      📦 Published! {item.title}
+      Run: `npm install <package>@latest`
+    on_error: continue
+
+  # Step 3: DM yourself [level: notify]
+  - notify: dm
+    message: "✅ npm publish succeeded: {item.title}"
+    on_error: continue

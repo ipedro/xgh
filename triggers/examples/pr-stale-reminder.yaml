@@ -1,0 +1,41 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PR Stale Reminder Trigger
+# ─────────────────────────────────────────────────────────────────────────────
+# Fires when a PR has been awaiting review for >24h.
+# Sends a DM to remind you to review or follow up.
+#
+# Requires: action_level: notify (default)
+# Copy to: ~/.xgh/triggers/pr-stale-reminder.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+
+schema_version: 1
+name: PR stale reminder
+description: DM when a PR is awaiting review for more than 24h
+enabled: true
+
+when:
+  source: github             # fires on GitHub inbox items
+  type: awaiting_their_reply # PR waiting on reviewer — from analyze classification
+  project: "*"               # any project
+  match:
+    title: "review|PR|pull request"   # keyword filter (case-insensitive)
+
+path: standard               # no rush — evaluate during 30-min analyze cycle
+
+# ── Firing policy ──────────────────────────────────────────────────────────
+cooldown: 4h                 # remind at most every 4h per PR
+backoff: exponential         # back off if ignored: 4h → 8h → 16h → 24h
+max_cooldown: 24h            # remind at least once a day
+reset_after: 12h             # reset if PR gets activity
+
+action_level: notify
+
+then:
+  # DM yourself with the PR details
+  - notify: dm
+    message: |
+      👀 PR needs review: *{item.title}*
+      Repo: {item.repo} | PR #{item.number}
+      Link: {item.url}
+      Waiting: {item.urgency_score} urgency
+    on_error: continue
