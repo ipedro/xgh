@@ -673,7 +673,48 @@ git commit -m "docs: update provider architecture for dynamic generation"
 
 ---
 
-### Task 9: Final test suite + cleanup
+### Task 9: Create example provider configs
+
+**Files:**
+- Create: `providers/examples/github-cli.yaml`
+- Create: `providers/examples/slack-mcp.yaml`
+- Create: `providers/examples/linear-api.yaml`
+- Create: `providers/examples/README.md`
+
+**Context:** With static specs retired, users need reference examples showing what generated `provider.yaml` files look like for each mode. These are documentation-only — not consumed by any script.
+
+- [ ] **Step 1: Create github-cli example**
+
+Create `providers/examples/github-cli.yaml` showing a complete CLI-mode provider config with per-repo sources, watch_prs with search queries, and cursor strategy.
+
+- [ ] **Step 2: Create slack-mcp example**
+
+Create `providers/examples/slack-mcp.yaml` showing an MCP-mode provider with tools (channels, threads, search), cursor strategy, and tool role conventions.
+
+- [ ] **Step 3: Create linear-api example**
+
+Create `providers/examples/linear-api.yaml` showing an API-mode provider with OpenAPI endpoint config, auth, pagination, and item mapping.
+
+- [ ] **Step 4: Create README**
+
+Create `providers/examples/README.md` explaining:
+- These are reference examples of what `/xgh-track` generates
+- Users should NOT copy these manually — run `/xgh-track` instead
+- The three modes (cli, api, mcp) and when each applies
+- Where generated configs live (`~/.xgh/user_providers/`)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add providers/examples/
+git commit -m "docs: add example provider configs for cli/mcp/api modes"
+```
+
+---
+
+### Task 10: Final test suite + cleanup
+
+(formerly Task 9)
 
 **Files:**
 - All test files
