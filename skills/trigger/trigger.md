@@ -91,7 +91,7 @@ Show the last 10 firing events for a trigger.
    Current cooldown: 20 min (exponential, base 5m, max 6h)
    Silenced: no
 
-   Recent items fired for (last 5):
+   Recent items fired for (last 10):
      2026-03-20T14-30-00Z_p0_jira_MOBILE-1234.md
      2026-03-19T09-15-00Z_p0_jira_MOBILE-1198.md
      2026-03-18T22-00-00Z_p0_jira_MOBILE-1156.md
