@@ -33,7 +33,7 @@ claude plugin install xgh@ipedro
 | Skills / commands / agents | Markdown (Claude Code format) |
 | Context tree search | Python 3 (BM25/TF-IDF, Plan 2) |
 | Persistent memory | lossless-claude (SQLite + FTS5) |
-| Provider framework | Dynamically generated providers in `providers/` (Slack, Jira, GitHub, Figma, Confluence); user overrides in `~/.xgh/user_providers/` |
+| Provider framework | Reference configs in `providers/examples/`; active generated providers in `~/.xgh/user_providers/` (primary location, never touched by installer) |
 | Model server | vllm-mlx (macOS arm64), Ollama (Linux/Intel), or remote URL |
 | LLM | claude-process (via lossless-claude) |
 | Tests | Bash with `assert_*` helpers (same pattern throughout) |
@@ -90,15 +90,9 @@ claude plugin install xgh@ipedro
 │   ├── init.md
 │   └── help.md
 ├── agents/                          # Sub-agent definitions (Plan 5)
-├── providers/                       # Context retrieval providers (Slack, Jira, GitHub, Figma, Confluence)
-│   ├── _template/                   # Template for new providers
-│   ├── examples/                    # Reference configs (not loaded by default)
-│   ├── slack/
-│   ├── jira/
-│   ├── github/
-│   ├── figma/
-│   └── confluence/
-│   # ~/.xgh/user_providers/         # Runtime: user overrides (never touched by installer)
+├── providers/                       # Context retrieval provider reference configs
+│   └── examples/                    # Reference configs (not loaded by default)
+│   # ~/.xgh/user_providers/         # Primary provider location: active generated providers (never touched by installer)
 ├── scripts/
 ├── tests/
 │   └── test-config.sh
