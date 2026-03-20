@@ -31,6 +31,7 @@ assert_contains "$HOOK" 'schedulerCustomJobs'
 assert_contains "$HOOK" 'schedule.jobs'
 
 assert_contains "$HOOK" "retrieve-all.sh"
+assert_contains "$HOOK" "detect-project"
 
 echo ""
 echo "Session-start test: $PASS passed, $FAIL failed"
