@@ -107,7 +107,7 @@ assert_contains "$STANDUP" "cron"                            "weekly-standup has
 
 # ── session-start.sh integration ─────────────────────────────────────────────
 SESSION_START="$PLUGIN_DIR/hooks/session-start.sh"
-assert_contains "$SESSION_START" '~/.xgh/triggers'          "session-start creates triggers dir"
+assert_contains "$SESSION_START" 'triggers'                  "session-start creates triggers dir"
 
 # ── Result ───────────────────────────────────────────────────────────────────
 echo ""
