@@ -40,5 +40,11 @@ assert_file_exists "providers/confluence/spec.md"
 assert_contains "providers/confluence/spec.md" "JIRA_BASE_URL"
 assert_contains "providers/confluence/spec.md" "rest/api/content/search"
 
+# Figma provider
+assert_file_exists "providers/figma/spec.md"
+assert_contains "providers/figma/spec.md" "FIGMA_TOKEN"
+assert_contains "providers/figma/spec.md" "X-Figma-Token"
+assert_contains "providers/figma/spec.md" "comments"
+
 echo ""; echo "Results: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1
