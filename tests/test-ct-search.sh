@@ -128,35 +128,6 @@ print('yes' if any('unrelated' in p for p in paths) else 'no')
 ")
 assert_eq "unrelated entry excluded" "no" "$HAS_UNRELATED"
 
-# ---- Test 6: ct_search_with_cipher merges Cipher results ----
-CIPHER_JSON='[{"path":"auth/oauth.md","similarity":0.95},{"path":"extra/new.md","title":"Extra Entry","similarity":0.8}]'
-MERGED=$(ct_search_with_cipher "$CT" "oauth" "$CIPHER_JSON")
-HAS_EXTRA=$(echo "$MERGED" | python3 -c "
-import json, sys
-rs = json.load(sys.stdin)
-paths = [r['path'] for r in rs]
-print('yes' if 'extra/new.md' in paths else 'no')
-")
-assert_eq "cipher merge includes extra entry" "yes" "$HAS_EXTRA"
-
-# ---- Test 7: Cipher-merged results have cipher_similarity field ----
-HAS_CIPHER_FIELD=$(echo "$MERGED" | python3 -c "
-import json, sys
-rs = json.load(sys.stdin)
-has = all('cipher_similarity' in r for r in rs)
-print('yes' if has else 'no')
-")
-assert_eq "cipher results have cipher_similarity" "yes" "$HAS_CIPHER_FIELD"
-
-# ---- Test 8: Cipher merged results sorted by final_score desc ----
-CIPHER_SORTED=$(echo "$MERGED" | python3 -c "
-import json, sys
-rs = json.load(sys.stdin)
-scores = [r['final_score'] for r in rs]
-print('yes' if scores == sorted(scores, reverse=True) else 'no')
-")
-assert_eq "cipher results sorted" "yes" "$CIPHER_SORTED"
-
 # ---- Test 9: Empty query returns empty results ----
 EMPTY=$(ct_search_run "$CT" "")
 EMPTY_COUNT=$(echo "$EMPTY" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))")

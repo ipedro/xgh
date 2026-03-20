@@ -86,18 +86,13 @@ ct_sync_curate() {
   echo "$rel_path"
 }
 
-# ct_sync_query <root> <query> [cipher_json] [top]
+# ct_sync_query <root> <query> [top]
 ct_sync_query() {
   local root="${1:?root required}"
   local query="${2:-}"
-  local cipher_json="${3:-}"
-  local top="${4:-10}"
+  local top="${3:-10}"
 
-  if [[ -n "$cipher_json" ]]; then
-    ct_search_with_cipher "$root" "$query" "$cipher_json" "$top"
-  else
-    ct_search_run "$root" "$query" "$top"
-  fi
+  ct_search_run "$root" "$query" "$top"
 }
 
 # ct_sync_refresh <root>

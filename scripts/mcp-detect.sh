@@ -8,7 +8,6 @@
 #   xgh_has_jira     && echo "Jira available"
 #   xgh_has_figma    && echo "Figma available"
 #   xgh_has_github   && echo "GitHub CLI available"
-#   xgh_has_cipher   && echo "Cipher available"
 #   detect_mcps      # populates XGH_AVAILABLE_MCPS array
 #   has_mcp "slack"  # returns 0 (true) or 1 (false)
 #
@@ -84,11 +83,6 @@ xgh_has_github() {
 xgh_has_lossless_claude() {
   _xgh_tool_available "lcm_search" || \
   _xgh_tool_available "mcp__lossless-claude__lcm_search"
-}
-
-# Backwards-compat alias
-xgh_has_cipher() {
-  xgh_has_lossless_claude
 }
 
 # ---------------------------------------------------------------------------
