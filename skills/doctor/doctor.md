@@ -198,6 +198,29 @@ For each project with `github:` entries, check `index.last_full` against `index.
 - Overdue per schedule: ⚠
 - Current: ✓
 
+## Check 7 — Providers
+
+List all directories in `~/.xgh/providers/`. For each:
+
+1. Check `provider.yaml` exists and read `mode`
+2. If `mode: bash`: check `fetch.sh` exists and is executable
+   If `mode: mcp`: check `mcp.tools` section is non-empty in provider.yaml
+3. Check `cursor` file — if it exists, report age (how long since last update)
+4. Check last line of `~/.xgh/logs/provider-<name>.log` for errors
+
+Report:
+```
+Providers
+  ✓ github: 3 repos, bash mode, cursor 4 min ago
+  ✓ slack: 2 channels, mcp mode (OAuth), cursor 4 min ago
+  ✗ figma: fetch.sh missing — run /xgh-track to regenerate
+  ⚠ jira: mcp mode, cursor 3 hours ago (stale — check MCP server)
+```
+
+Also check `~/.xgh/tokens.env`:
+- File exists → report which vars are set (without showing values)
+- File missing → `⚠ ~/.xgh/tokens.env not found — token-based providers will fail`
+
 ## Output format
 
 ```
