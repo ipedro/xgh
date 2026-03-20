@@ -318,6 +318,21 @@ This is a new loop in the retrieve skill — the existing Slack/Jira/Figma handl
 
 **Note:** MCP providers require a Claude session to run (CronCreate), unlike bash providers which run headlessly. This is inherent to the MCP model — the tools are only available inside a Claude session.
 
+### Tool role conventions
+
+The `tools:` keys in MCP provider.yaml use **convention-based names** that the retrieve skill understands:
+
+| Key | Role | Retrieve behavior |
+|-----|------|------------------|
+| `channels` | Channel/feed scan | Fetch messages since cursor, iterate all configured channels |
+| `threads` | Thread follow-up | For messages with `latest_reply > cursor`, fetch full thread replies |
+| `search` | Free-text search | Query for mentions, keywords, or specific items |
+| `list` | List items | Generic item listing (issues, PRs, etc.) |
+
+The retrieve skill checks for these keys by name. If `threads` exists, it runs the thread-following logic (24h lookback pass in fast retrieve, 7-day scan in deep-retrieve). If not (e.g., a GitHub CLI provider has no thread concept), thread logic is skipped entirely.
+
+This keeps orchestration logic in the skill and tool discovery in the provider config — providers declare capabilities, skills decide how to use them.
+
 ## Persistence guarantee
 
 `~/.xgh/user_providers/` is user-owned data. The xgh plugin installer (`claude plugin install xgh@ipedro`) and `/xgh-init` must NEVER delete, overwrite, or modify files in this directory. Only `/xgh-track` and `/xgh-track --regenerate` touch it, and only with user confirmation.
