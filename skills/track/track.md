@@ -227,20 +227,49 @@ You already have a GitHub provider (github-cli).
 Replace it? Or rename the existing one to keep both? [Replace/Rename/Skip]
 ```
 
-## Step 4 — Confirm
+## Step 4 — Suggest triggers
 
-```
-✓ Project "passcode-feature" added to ~/.xgh/ingest.yaml
-  Role: ios-lead
-  Channels: #ptech-31204-general, #ptech-31204-engineering
-  Initial backfill: 15 items queued in ~/.xgh/inbox/
-  Providers: 3 configured (2 cli, 1 mcp)
-  Next retriever run will include this project.
+After generating the provider(s), suggest relevant triggers based on provider type and roles.
 
-Run /xgh-doctor to verify the full pipeline is healthy.
-```
+1. Determine provider type from the generated `provider.yaml` (roles: list, alerts, prs, etc.)
+2. Present 3-5 relevant trigger suggestions. Examples by role:
 
-## Step 5 — Scheduler Setup
+   **GitHub (PRs, issues, actions):**
+   1. PR awaiting review >24h → DM you
+   2. CI failure on main branch → notify #engineering
+   3. Security alert (critical) → DM you + create GitHub issue
+   4. New release on watched repo → create upgrade issue
+
+   **Jira (list, comments):**
+   1. P0/blocker issue created → notify #incidents
+   2. Ticket assigned to you → DM you
+   3. Sprint blocked → alert channel
+
+   **Slack (channels, threads):**
+   1. Direct mention in monitored channel → DM you with context
+   2. Message matches crisis keywords → notify #incidents
+
+   **Sentry (alerts):**
+   1. Error spike (>100 in 5min) → notify #engineering
+   2. New issue (critical) → create Jira ticket
+
+   **Local (npm, cargo, gh release):**
+   1. `npm publish` success → tag GitHub release + notify Slack
+
+   **Schedule:**
+   1. Monday 9am → run /xgh-brief and post summary
+
+3. Ask: "Enable any? [1,2,3 / all / none]"
+4. For each selected trigger:
+   - Generate a YAML file in `~/.xgh/triggers/<provider>-<trigger-slug>.yaml`
+   - Use `schema_version: 1`, `enabled: true`, appropriate `backoff: exponential`
+   - Set `path: fast` only for critical/P0 triggers; `path: standard` for everything else
+   - Use conservative `action_level: notify` by default; prompt to elevate if user wants create/autonomous
+   - Write the file using `Write` tool
+5. Confirm: "✅ Created N triggers in ~/.xgh/triggers/"
+   Show the paths of created files.
+
+## Step 6 — Scheduler Setup
 
 Check if background scheduling is active:
 
