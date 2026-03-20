@@ -58,9 +58,24 @@ If context-mode is not available, use standard Bash but keep script output conci
 2. Check daily token cap: source `~/.xgh/lib/usage-tracker.sh`; if `xgh_usage_check_cap` returns non-zero, log and exit.
 3. Check quiet hours/days from `schedule.quiet_hours` and `schedule.quiet_days`. If now is in a quiet period, exit silently.
 
+## Step 0 — Detect project scope
+
+Determine which projects to retrieve for:
+
+1. Run `bash ~/.xgh/scripts/detect-project.sh` and read `XGH_PROJECT` and `XGH_PROJECT_SCOPE`
+2. If `XGH_PROJECT` is non-empty:
+   - Log: `Scoped to project: $XGH_PROJECT (+ dependencies: ...)`
+   - In Step 1, filter `ingest.yaml` projects to only those in `XGH_PROJECT_SCOPE`
+3. If `XGH_PROJECT` is empty:
+   - Log: `All-projects mode (no git project detected)`
+   - Proceed with all active projects (current behavior)
+
+This scoping applies to all subsequent steps — Slack channels, link following, GitHub scans,
+and inbox stashing are limited to the in-scope projects only.
+
 ## Step 1 — Load config and cursors
 
-Read `~/.xgh/ingest.yaml`. Collect all projects where `status: active`.
+Read `~/.xgh/ingest.yaml`. Collect projects where `status: active`. If `XGH_PROJECT_SCOPE` is set, filter to only projects in that scope.
 
 Read `~/.xgh/inbox/.cursors.json` (JSON: `{"#channel-name": "last_iso_timestamp"}`). If missing, initialize to `{}`.
 
