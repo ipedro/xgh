@@ -30,12 +30,23 @@ if [ -d "${_xgh_home}/logs" ]; then
   find "${_xgh_home}/logs/" -type f -mtime +7 -delete 2>/dev/null || true
 fi
 
+# ── Project detection ──
+XGH_PROJECT=""
+XGH_PROJECT_SCOPE=""
+DETECT_SCRIPT="${HOME}/.xgh/scripts/detect-project.sh"
+if [ -x "$DETECT_SCRIPT" ]; then
+    eval "$(bash "$DETECT_SCRIPT" 2>/dev/null)" || true
+fi
+export XGH_PROJECT XGH_PROJECT_SCOPE
+
 python3 << 'PYEOF'
 import json, os, sys, re, glob as _glob
 from pathlib import Path
 
 context_tree = os.environ.get("XGH_CONTEXT_TREE", os.environ.get("XGH_CONTEXT_TREE_PATH", ""))
 max_files = 5
+xgh_project = os.environ.get("XGH_PROJECT", "")
+xgh_scope = os.environ.get("XGH_PROJECT_SCOPE", "")
 
 # Detect dispatch file from command center
 dispatch_context = None
@@ -74,12 +85,14 @@ if scheduler_trigger == "on":
     job_num = 1
     if has_bash_providers:
         scheduler_instructions += (
-            f"({job_num}) cron='*/5 * * * *', prompt='bash ~/.xgh/scripts/retrieve-all.sh || true', recurring=true  "
+            f"({job_num}) cron='*/5 * * * *', prompt='XGH_PROJECT_SCOPE={xgh_scope} bash ~/.xgh/scripts/retrieve-all.sh || true', recurring=true  "
         )
         job_num += 1
     if has_mcp_providers:
         scheduler_instructions += (
-            f"({job_num}) cron='*/5 * * * *', prompt='Read all provider.yaml files in ~/.xgh/providers/. "
+            f"({job_num}) cron='*/5 * * * *', prompt='"
+            + (f"Only process sources for projects: {xgh_scope}. " if xgh_scope else "")
+            + "Read all provider.yaml files in ~/.xgh/providers/. "
             "For each with mode: mcp, call the MCP tools listed in mcp.tools with params filled "
             "from sources and cursor, write results as inbox .md files to ~/.xgh/inbox/, update "
             "cursor files. No analysis — fetch only.', recurring=true  "
@@ -130,6 +143,8 @@ if not context_tree or not os.path.isdir(context_tree):
         "schedulerInstructions": scheduler_instructions,
         "schedulerCustomJobs": custom_jobs,
         "dispatchContext": dispatch_context,
+        "projectName": xgh_project,
+        "projectScope": xgh_scope,
     }
     print(json.dumps(output))
     sys.exit(0)
@@ -214,6 +229,8 @@ output = {
     "schedulerInstructions": scheduler_instructions,
     "schedulerCustomJobs": custom_jobs,
     "dispatchContext": dispatch_context,
+    "projectName": xgh_project,
+    "projectScope": xgh_scope,
 }
 
 print(json.dumps(output))
