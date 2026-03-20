@@ -209,3 +209,25 @@ except FileNotFoundError:
     print('Nothing to reset.')
 " "<skill_name>"
 ```
+
+---
+
+## Schedule-event trigger evaluation
+
+During each scheduled retrieve/analyze cycle, evaluate `source: schedule` triggers.
+
+1. Read `~/.xgh/triggers.yaml` — if `enabled: false`, skip entirely.
+2. Read all `~/.xgh/triggers/*.yaml` where `when.source: schedule`.
+3. For each schedule trigger:
+   a. Parse the `cron:` expression (standard 5-field: min hour dom mon dow).
+   b. Check if the expression matches the current time (within the run window).
+      A cron matches if it would have fired in the last `retrieve_interval` minutes.
+   c. Check cooldown/backoff (same logic as standard path — see xgh:trigger skill).
+   d. If matched and cooldown clear: execute `then:` steps.
+   e. Update `.state.json`.
+4. Log: `Schedule triggers: N evaluated, K fired`
+
+**Cron evaluation note:** Use a simple check — compare cron fields against current
+`date` output. For `0 9 * * MON`: fire if current hour=9, minute<5, weekday=Monday.
+Exact match within the retrieve window (5min) is sufficient; cron-exact precision
+is not required for this use case.
