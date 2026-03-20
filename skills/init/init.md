@@ -51,8 +51,12 @@ Scheduler activates automatically after setup. Let's go.
 ### 0a. Create data directory structure
 
 ```bash
-mkdir -p ~/.xgh/inbox/processed ~/.xgh/logs ~/.xgh/digests ~/.xgh/calibration
+mkdir -p ~/.xgh/inbox/processed ~/.xgh/logs ~/.xgh/digests ~/.xgh/calibration ~/.xgh/user_providers
 ```
+
+> **Persistence guarantee:** `~/.xgh/user_providers/` is user-owned. `/xgh-init` creates
+> the directory but NEVER deletes, overwrites, or modifies its contents. Only `/xgh-track`
+> touches provider files, and only with user confirmation.
 
 ### 0b. Create ingest.yaml from template (if missing)
 
@@ -179,6 +183,29 @@ If none found → continue silently.
 
 ---
 
+## Step 0c: Legacy Provider Migration
+
+Check for old-style provider directories:
+
+```bash
+if [ -d ~/.xgh/providers ] && [ "$(ls -A ~/.xgh/providers 2>/dev/null)" ]; then
+    echo "Found legacy providers in ~/.xgh/providers/"
+    ls ~/.xgh/providers/
+fi
+```
+
+If legacy providers found, offer migration:
+```
+Legacy providers detected. Migrate to ~/.xgh/user_providers/?
+This renames directories to <service>-<mode> format. [Y/n]
+```
+
+If yes: for each provider dir, read mode from provider.yaml, rename to `<service>-<mode>`, move to `~/.xgh/user_providers/`. Rewrite `mode: bash` to `mode: cli`.
+
+If no: continue. Doctor will remind them later.
+
+---
+
 ## Step 1 — Verify MCP Connections
 
 Run the MCP detection protocol from the `xgh:mcp-setup` skill before proceeding.
@@ -267,9 +294,23 @@ If no existing projects (or user wants to add one), invoke the `/xgh-track` work
 - Collect project name, Slack channels, Jira, Confluence, GitHub, Figma sources
 - Ask for `my_role` and `my_intent`
 - Ask for default provider access level
+- Ask for dependencies (other tracked projects)
 - Run initial backfill
 
 Wait for the `/xgh-track` flow to complete before proceeding.
+
+### Configure dependencies for existing projects
+
+If projects already exist and the user kept them, check if any are missing `dependencies:`. For each project without dependencies, ask:
+
+```
+Project "xgh" has no dependencies set.
+Other tracked projects: lossless-claude, context-mode, rtk, inspector
+
+Does "xgh" depend on any of these? (comma-separated, or skip)
+```
+
+This scopes retrieval and briefing — when working in a project's repo, only that project and its dependencies are fetched. Write dependencies to `ingest.yaml` using python3 (same pattern as profile write).
 
 ---
 
