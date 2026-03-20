@@ -87,7 +87,7 @@ Report: `⏸ retrieve paused. Resume with /xgh-schedule resume retrieve.`
 
 Call CronCreate:
 - retrieve-bash: `cron: "*/5 * * * *"`, `prompt: "bash ~/.xgh/scripts/retrieve-all.sh || true"`, `recurring: true`
-- retrieve-mcp: `cron: "*/5 * * * *"`, `prompt: "Read all provider.yaml in ~/.xgh/providers/. For each with mode: mcp, call MCP tools per spec, write inbox items, update cursors."`, `recurring: true` — **only register if at least one `mode: mcp` provider exists**
+- retrieve-mcp: `cron: "*/5 * * * *"`, `prompt: "Read all provider.yaml in ~/.xgh/user_providers/. For each with mode: mcp, call MCP tools per spec, write inbox items, update cursors."`, `recurring: true` — **only register if at least one `mode: mcp` provider exists**
 - analyze: `cron: "*/30 * * * *"`, `prompt: "/xgh-analyze"`, `recurring: true`
 - morning: `cron: "0 8 * * 1-5"`, `prompt: "/xgh-command-center morning"`, `recurring: true`
 - pulse: `cron: "*/15 * * * *"`, `prompt: "/xgh-command-center pulse"`, `recurring: true`
@@ -99,7 +99,7 @@ Report: `✅ retrieve resumed (*/5 * * * *).`
 ## Run
 
 Invoke the target skill directly in this session (not via cron):
-- `run retrieve` → run `bash ~/.xgh/scripts/retrieve-all.sh` AND invoke the MCP fetch prompt (read all `provider.yaml` in `~/.xgh/providers/`, for each with `mode: mcp` call MCP tools per spec, write inbox items, update cursors)
+- `run retrieve` → run `bash ~/.xgh/scripts/retrieve-all.sh` AND invoke the MCP fetch prompt (read all `provider.yaml` in `~/.xgh/user_providers/`, for each with `mode: mcp` call MCP tools per spec, write inbox items, update cursors)
 - `run analyze` → invoke `/xgh-analyze`
 
 ---

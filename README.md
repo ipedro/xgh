@@ -178,7 +178,7 @@ After installing, open a Claude Code session and try these:
 | Skills / commands / agents | Markdown (Claude Code format) |
 | Context tree search | Python 3 (BM25/TF-IDF) |
 | Persistent memory | lossless-claude (SQLite + FTS5) |
-| Provider framework | Dynamically generated providers in `providers/` (Slack, Jira, GitHub, Figma, Confluence); user overrides in `~/.xgh/user_providers/` |
+| Provider framework | Reference configs in `providers/examples/`; active generated providers in `~/.xgh/user_providers/` (primary location, never touched by installer) |
 | LLM | claude-process (via lossless-claude) |
 | Tests | Bash with `assert_*` helpers (33 test suites) |
 

@@ -420,7 +420,7 @@ Verify by checking CronList after the first prompt of any new session.
 
 If no jobs appear, check:
 1. `~/.xgh/scripts/retrieve-all.sh` exists and is executable
-2. At least one provider exists in `~/.xgh/providers/`
+2. At least one provider exists in `~/.xgh/user_providers/`
 3. `~/.xgh/scheduler-paused` does not exist
 
 ---

@@ -23,7 +23,7 @@ mcp_dependencies:
 
 Retrieval operates in three lanes:
 
-1. **Bash providers (automated)** — `retrieve-all.sh` runs `mode: bash` provider `fetch.sh`
+1. **CLI/API providers (automated)** — `retrieve-all.sh` runs `mode: cli/api` provider `fetch.sh`
    scripts via CronCreate. Pure bash, no Claude needed. 1 CronCreate turn.
 
 2. **MCP providers (automated)** — A lightweight CronCreate prompt calls MCP tools for
