@@ -21,5 +21,12 @@ assert_contains "providers/github/spec.md" "cursor"
 assert_contains "providers/github/spec.md" "provider.yaml"
 assert_contains "providers/github/spec.md" "fetch.sh"
 
+# Slack provider
+assert_file_exists "providers/slack/spec.md"
+assert_contains "providers/slack/spec.md" "SLACK_BOT_TOKEN"
+assert_contains "providers/slack/spec.md" "conversations.history"
+assert_contains "providers/slack/spec.md" "cursor"
+assert_contains "providers/slack/spec.md" "fetch.sh"
+
 echo ""; echo "Results: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1
