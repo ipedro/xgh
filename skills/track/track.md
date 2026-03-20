@@ -169,48 +169,63 @@ projects:
     last_scan: null
 ```
 
-## Step 3b — Generate provider scripts
+### Step 3b: Generate provider scripts (dynamic)
 
-For each source type configured in the project, generate fetch scripts:
+> **Persistence guarantee:** Provider scripts are saved to `~/.xgh/user_providers/` which is NEVER
+> touched by plugin installs or `/xgh-init`. Only `/xgh-track` creates or modifies provider files,
+> and only with user confirmation.
 
-1. **Identify configured sources** — check which fields are non-empty in the project config:
-   - `github:` non-empty → generate GitHub provider
-   - `slack:` non-empty → generate Slack provider
-   - `jira:` non-null → generate Jira provider
-   - `confluence:` non-empty → generate Confluence provider
-   - `figma:` non-empty → generate Figma provider
-   - Any other key not in the above list → generate from `_template` spec
+For each service the user wants to track, dynamically generate a provider:
 
-2. **For each source type:**
-   a. Check if `~/.xgh/providers/<name>/provider.yaml` already exists
-      - If exists: update `provider.yaml` with new project sources (merge, don't replace)
-      - If not: read `providers/<name>/spec.md` from the plugin cache and follow its instructions
-   b. **Determine mode:** The spec offers both bash and mcp modes. Ask the user:
-      - "Do you have an API token / CLI auth for `<name>`, or is it connected via MCP/OAuth?"
-      - API token / CLI → `mode: bash`, generate `fetch.sh` + `provider.yaml`
-      - MCP / OAuth → `mode: mcp`, generate `provider.yaml` with `mcp` section (no `fetch.sh`)
-   c. Write files to `~/.xgh/providers/<name>/`
-   d. Initialize cursor to 24h ago if missing
-   e. Test connection per the spec's test instructions (curl for bash, MCP tool call for mcp)
+#### Auto-detection
 
-3. **For bash-mode token-based providers:**
-   - Check if `~/.xgh/tokens.env` exists and contains the required env var
-   - If missing: prompt user for the token, write to `~/.xgh/tokens.env`
-   - Run the connection test from the spec
+Probe the system for available access methods:
 
-4. **Report:**
-   ```
-   Providers configured:
-     ✅ github — 3 repos, bash mode (gh CLI)
-     ✅ slack — 2 channels, mcp mode (OAuth)
-     ✅ jira — 1 project, mcp mode (OAuth)
-     ❌ figma — FIGMA_TOKEN not set in ~/.xgh/tokens.env
-   ```
+| Service | CLI probe | MCP probe | API probe |
+|---------|-----------|-----------|-----------|
+| GitHub | `command -v gh && gh auth status` | Check session tool list for `github` tools | — |
+| Slack | — | Check session tool list for `slack_` tools | Check `tokens.env` for `SLACK_BOT_TOKEN` |
+| Jira | — | Check session tool list for `atlassian` tools | — |
+| Confluence | — | Check session tool list for `atlassian` tools | — |
+| Figma | — | Check session tool list for `figma` tools | — |
+| Generic | Ask for binary name | Ask for MCP server name | Ask for OpenAPI URL |
 
-5. **For unknown providers:** If a source key doesn't match any built-in spec:
-   - Read `providers/_template/spec.md` from plugin cache
-   - Follow its interactive scaffolding flow (6 questions — including mode selection)
-   - Generate provider artifacts in `~/.xgh/providers/<name>/`
+Recommend the best fit:
+- CLI-first services (GitHub, Linear): CLI is richer
+- OAuth-first services (Slack, Jira, Confluence, Figma): MCP is richer
+
+Report findings and let user confirm.
+
+#### Doc reading
+
+Based on detected mode:
+- **CLI:** Run `<binary> --help` and targeted subcommand help. Parse available commands, flags, output formats.
+- **API:** Fetch the OpenAPI spec URL. Identify GET collection endpoints with date filters.
+- **MCP:** List available tools from the MCP server. Identify read/list/search/channels/threads tools.
+
+#### Generation
+
+Generate `provider.yaml` + `fetch.sh` (for cli/api) or `provider.yaml` only (for mcp):
+- Directory: `~/.xgh/user_providers/<service>-<mode>/`
+- `provider.yaml` schema: `service`, `mode` (cli|api|mcp), `cursor_strategy`, plus mode-specific fields
+- For cli/api: `fetch.sh` follows the contract — reads `CURSOR_FILE`, `INBOX_DIR`, `PROVIDER_DIR`, `TOKENS_FILE` env vars
+- Populate repos/endpoints from the project's `ingest.yaml` config
+
+#### Validation
+
+Run the generated fetch.sh with cursor set to now:
+```bash
+CURSOR_FILE="<dir>/cursor" INBOX_DIR="$HOME/.xgh/inbox" PROVIDER_DIR="<dir>" TOKENS_FILE="$HOME/.xgh/tokens.env" bash "<dir>/fetch.sh"
+```
+Confirm exit 0. Report results. If validation fails, show error and offer to retry or skip.
+
+#### Conflict handling
+
+If a provider for this service already exists:
+```
+You already have a GitHub provider (github-cli).
+Replace it? Or rename the existing one to keep both? [Replace/Rename/Skip]
+```
 
 ## Step 4 — Confirm
 
@@ -219,7 +234,7 @@ For each source type configured in the project, generate fetch scripts:
   Role: ios-lead
   Channels: #ptech-31204-general, #ptech-31204-engineering
   Initial backfill: 15 items queued in ~/.xgh/inbox/
-  Providers: 3 configured (2 bash, 1 mcp)
+  Providers: 3 configured (2 cli, 1 mcp)
   Next retriever run will include this project.
 
 Run /xgh-doctor to verify the full pipeline is healthy.
@@ -258,3 +273,14 @@ If **yes**:
 3. Report: `✅ Scheduler enabled — retrieve (*/5) and analyze (*/30) registered.`
 
 If **no**: `⚠️ Scheduler not enabled. Run /xgh-schedule resume anytime.`
+
+## Regeneration
+
+When invoked as `/xgh-track --regenerate <provider-name>`:
+
+1. Read existing `~/.xgh/user_providers/<provider-name>/provider.yaml` for current config
+2. Re-read tool documentation (--help, OpenAPI spec, MCP tool list)
+3. Generate new `fetch.sh` (or update `provider.yaml`)
+4. Validate with a test fetch
+5. Replace old script only after validation passes
+6. Report: "Regenerated <provider-name>. Config preserved, script updated."
