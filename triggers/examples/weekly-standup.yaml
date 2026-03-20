@@ -1,0 +1,53 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Weekly Standup Briefing Trigger
+# ─────────────────────────────────────────────────────────────────────────────
+# Every Monday at 9am, runs /xgh-brief and posts the summary to Slack.
+# Turns xgh into a proactive reporter, not just a reactive assistant.
+#
+# Requires:
+#   - action_level: autonomous in ~/.xgh/triggers.yaml (for dispatch step)
+#   - OR: set action_level: notify and use the DM-only alternative at the bottom
+#
+# Copy to: ~/.xgh/triggers/weekly-standup.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+
+schema_version: 1
+name: Weekly standup briefing
+description: Every Monday 9am — run /xgh-brief and post summary to Slack
+enabled: true
+
+when:
+  source: schedule
+  cron: "0 9 * * MON"       # Every Monday at 9:00am (local timezone)
+
+path: standard               # evaluated during scheduled analyze run
+
+# ── Firing policy ──────────────────────────────────────────────────────────
+cooldown: 6h                 # don't re-fire same morning if analyze runs twice
+backoff: none                # same time every week — no backoff needed
+max_cooldown: 6h
+
+# dispatch: requires action_level: autonomous globally in ~/.xgh/triggers.yaml
+# For notify-only, remove the dispatch step and uncomment the DM-only alternative below
+action_level: autonomous
+
+then:
+  # Step 1: Run /xgh-brief and capture summary [level: autonomous]
+  # Requires: action_level: autonomous in ~/.xgh/triggers.yaml
+  - dispatch: /xgh-brief
+    on_complete:
+      # Post brief to your team channel
+      - notify: slack
+        channel: "#team-updates"
+        message: |
+          🐴 *Weekly Brief — {item.timestamp}*
+          {result.summary}
+      # DM yourself the full brief
+      - notify: dm
+        message: "Your Monday brief is ready: {result.summary}"
+    on_error: continue
+
+  # Alternative (if action_level: autonomous not enabled — set action_level: notify above):
+  # Remove the dispatch block above and uncomment this instead.
+  # - notify: dm
+  #   message: "Monday morning — time to run /xgh-brief!"

@@ -1,0 +1,64 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# P0 Alert Trigger
+# ─────────────────────────────────────────────────────────────────────────────
+# Fires when a P0 or blocker issue lands in your inbox from Jira.
+# Notifies #incidents immediately. If score >= 90, dispatches /xgh-investigate.
+#
+# Requires: action_level: autonomous in ~/.xgh/triggers.yaml (for dispatch step)
+# Copy to: ~/.xgh/triggers/p0-alert.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+
+schema_version: 1
+name: P0 alert
+description: Alert on critical Jira P0/blocker issues and auto-investigate if urgent
+enabled: true
+
+when:
+  source: jira               # fires on Jira inbox items
+  type: p0                   # content type from analyze classification
+  project: "*"               # any project (* = wildcard)
+  match:
+    title: "blocker|critical|P0|sev1"   # case-insensitive keyword match
+    author: "!bot-*"                    # exclude bot authors (! = exclude)
+
+# Fast path: fire during retrieve (5-min window) based on urgency score alone.
+# type: won't match on fast path — use urgency_score + match keywords instead.
+path: fast
+
+# ── Firing policy ──────────────────────────────────────────────────────────
+cooldown: 5m                 # minimum gap between firings
+backoff: exponential         # 5m → 10m → 20m → 40m ... (caps at max_cooldown)
+max_cooldown: 6h             # never wait longer than 6h between re-alerts
+reset_after: 2h              # if quiet for 2h, reset backoff to base cooldown
+
+# ── Actions ────────────────────────────────────────────────────────────────
+# Trigger-level cap. Steps cannot exceed this. Cannot exceed global cap.
+action_level: autonomous
+
+then:
+  # Step 1: Alert the team immediately [level: notify]
+  - notify: slack
+    channel: "#incidents"
+    message: |
+      🚨 *P0 Alert*: {item.title}
+      Project: {item.project} | Score: {item.urgency_score}
+      Ticket: {item.url}
+    on_error: continue        # keep going if Slack is down
+
+  # Step 2: DM yourself [level: notify]
+  - notify: dm
+    message: "P0 needs your attention: {item.title} ({item.url})"
+    on_error: continue
+
+  # Step 3: Auto-investigate if critically urgent [level: autonomous]
+  # Only fires if global action_level >= autonomous
+  - if: item.urgency_score >= 90
+    dispatch: /xgh-investigate
+    args: "{item.url}"
+    on_complete:
+      - notify: slack
+        channel: "#incidents"
+        message: |
+          🔍 Investigation complete for {item.title}:
+          {result.summary}
+    on_error: abort           # don't notify on broken investigation
