@@ -14,5 +14,7 @@ assert_contains "scripts/retrieve-all.sh" "fetch.sh"
 assert_contains "scripts/retrieve-all.sh" "cursor"
 assert_contains "scripts/retrieve-all.sh" "retriever.log"
 
+assert_contains "scripts/retrieve-all.sh" "XGH_PROJECT_SCOPE"
+
 echo ""; echo "Results: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1

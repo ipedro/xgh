@@ -32,6 +32,26 @@ fi
 # Guard: check inbox dir exists
 mkdir -p "$INBOX_DIR" "$HOME/.xgh/logs"
 
+# Project scoping: if XGH_PROJECT_SCOPE is set, only run providers
+# whose sources include at least one project in scope
+SCOPE="${XGH_PROJECT_SCOPE:-}"
+in_scope() {
+    local provider_yaml="$1"
+    # No scope = all providers in scope
+    [ -z "$SCOPE" ] && return 0
+    # Check if any source project matches the scope
+    python3 - "$SCOPE" "$provider_yaml" << 'PYSCOPE'
+import yaml, sys
+scope = set(sys.argv[1].split(','))
+with open(sys.argv[2]) as f:
+    cfg = yaml.safe_load(f)
+for src in cfg.get('sources', []):
+    if isinstance(src, dict) and src.get('project', '') in scope:
+        sys.exit(0)
+sys.exit(1)
+PYSCOPE
+}
+
 # Discover and run providers
 total=0
 success=0
@@ -45,6 +65,11 @@ for provider_dir in "$PROVIDERS_DIR"/*/; do
 
     # Skip MCP-mode providers (no fetch.sh — handled by MCP CronCreate prompt)
     if grep -q "^mode: mcp" "$provider_dir/provider.yaml" 2>/dev/null; then
+        continue
+    fi
+
+    # Skip providers with no sources in current project scope
+    if [ -f "$provider_dir/provider.yaml" ] && ! in_scope "$provider_dir/provider.yaml"; then
         continue
     fi
 
