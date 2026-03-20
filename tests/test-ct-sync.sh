@@ -101,14 +101,14 @@ keywords_val=$(ct_frontmatter_get "$hooks_file" "keywords")
 assert_eq "keywords stored as YAML array" "[useState, useEffect]" "$keywords_val"
 
 # curate with source and from_agent
-ct_sync_curate "$ROOT" "devops" "ci" "CI Pipeline Setup" "CI content." "" "" "manual" "cipher-agent"
+ct_sync_curate "$ROOT" "devops" "ci" "CI Pipeline Setup" "CI content." "" "" "manual" "test-agent"
 
 ci_file="$ROOT/devops/ci/ci-pipeline-setup.md"
 source_val=$(ct_frontmatter_get "$ci_file" "source")
 assert_eq "source stored in frontmatter" "manual" "$source_val"
 
 agent_val=$(ct_frontmatter_get "$ci_file" "from_agent")
-assert_eq "from_agent stored in frontmatter" "cipher-agent" "$agent_val"
+assert_eq "from_agent stored in frontmatter" "test-agent" "$agent_val"
 
 # verify manifest entry
 manifest_list=$(ct_manifest_list "$ROOT")
@@ -119,7 +119,7 @@ echo "-- query --"
 
 # ct_search_run requires bm25.py and actual content; test that query delegates correctly
 # We test basic delegation - with empty query it should return []
-result=$(ct_sync_query "$ROOT" "" "" "10")
+result=$(ct_sync_query "$ROOT" "" "10")
 assert_eq "empty query returns []" "[]" "$result"
 
 # --- refresh tests ---

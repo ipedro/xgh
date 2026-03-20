@@ -27,7 +27,7 @@ assert_executable  "$REPO_ROOT/scripts/mcp-detect.sh"
 assert_contains "$REPO_ROOT/scripts/mcp-detect.sh" "xgh_has_slack"
 assert_contains "$REPO_ROOT/scripts/mcp-detect.sh" "xgh_has_jira"
 assert_contains "$REPO_ROOT/scripts/mcp-detect.sh" "xgh_has_github"
-assert_contains "$REPO_ROOT/scripts/mcp-detect.sh" "xgh_has_cipher"
+assert_contains "$REPO_ROOT/scripts/mcp-detect.sh" "xgh_has_lossless_claude"
 
 # Must use sourcing guard (not execute-only)
 assert_contains "$REPO_ROOT/scripts/mcp-detect.sh" "XGH_MCP_DETECT_LOADED"
