@@ -9,10 +9,6 @@ triggers:
   - when the user runs /xgh-doctor
   - when the user says "check ingest", "health check", "is the pipeline running"
 ---
-> **Context-mode:** Use `ctx_execute_file` for analysis reads; `Read` only for files you will
-> Edit within 1-2 tool calls. Use `ctx_batch_execute` for multi-command research. Full routing
-> rules: `references/context-mode-routing.md`
-
 
 # xgh:doctor — Pipeline Health Check
 
@@ -68,11 +64,9 @@ Check `~/.xgh/logs/analyzer.log` similarly:
 
 ## Check 3b — Context Efficiency
 
-Run both subsections in parallel.
-
 ### RTK — output compression
 
-Instruct the agent to run these checks via `ctx_execute` (or Bash if ctx_execute unavailable):
+Run these checks via Bash:
 
 ```bash
 RTK_BIN=$(command -v rtk 2>/dev/null || echo "${HOME}/.local/bin/rtk")
@@ -128,24 +122,6 @@ Degraded states:
 - Binary missing but hook in settings → `❌ RTK binary missing at {path} — hook registered but inactive`
 - `rtk gain` returns no data → `✅ RTK active — no Bash calls compressed yet this session`
 
-### context-mode — context window protection
-
-Call the `mcp__plugin_context-mode_context-mode__ctx_stats` MCP tool (no parameters). Format its output as:
-
-```
-#### context-mode — context window protection
-| Metric          | Value                  |
-|-----------------|------------------------|
-| Version         | {version} ✅           |
-| Plugin          | registered ✅          |
-| Routing         | system-prompt active ✅|
-| Sandbox calls   | {calls}                |
-| Data sandboxed  | {kb} KB                |
-| Context savings | {ratio}x               |
-```
-
-If `ctx_stats` unavailable: `❌ context-mode not active — run /xgh-setup`
-If no calls yet: `✅ context-mode active — no sandbox calls yet this session`
 
 ## Check 4 — Scheduler
 
@@ -286,16 +262,6 @@ Pipeline
 | Avg compression | 73%                                |
 | Tokens saved    | ~12,400 (this session)            |
 | Top commands    | git log 91% · cargo build 84%     |
-
-### context-mode — context window protection
-| Metric          | Value                  |
-|-----------------|------------------------|
-| Version         | v1.0.22 ✅             |
-| Plugin          | registered ✅          |
-| Routing         | system-prompt active ✅|
-| Sandbox calls   | 14                     |
-| Data sandboxed  | 98.2 KB                |
-| Context savings | 12.4x                  |
 
 Scheduler
   ✓ Scheduler active (always-on)

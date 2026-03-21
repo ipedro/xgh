@@ -7,10 +7,6 @@ triggers:
   - /xgh-briefing compact
   - /xgh-briefing focus
 ---
-> **Context-mode:** Use `ctx_execute_file` for analysis reads; `Read` only for files you will
-> Edit within 1-2 tool calls. Use `ctx_batch_execute` for multi-command research. Full routing
-> rules: `references/context-mode-routing.md`
-
 
 # xgh:briefing — Intelligent Session Briefing
 
@@ -220,5 +216,4 @@ If no active CronCreate jobs are found or the pause file exists, append to the b
 ## Output discipline
 
 When invoked by CronCreate or as a background task:
-1. Route all MCP fetches through `ctx_batch_execute` when context-mode is available.
-2. Return the briefing summary inline — concise, structured, no raw API payloads.
+1. Return the briefing summary inline — concise, structured, no raw API payloads.

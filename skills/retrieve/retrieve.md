@@ -14,10 +14,6 @@ mcp_dependencies:
   - mcp__claude_ai_Atlassian__getConfluencePage
   - mcp__claude_ai_Figma__get_metadata
 ---
-> **Context-mode:** Use `ctx_execute_file` for analysis reads; `Read` only for files you will
-> Edit within 1-2 tool calls. Use `ctx_batch_execute` for multi-command research. Full routing
-> rules: `references/context-mode-routing.md`
-
 
 ## Architecture Note
 
@@ -45,12 +41,6 @@ Invoked by CronCreate:
   recurring: true
 ```
 
-## Context window management
-
-MCP tool calls (Slack, Jira, Confluence, Figma) return directly into context — these cannot be wrapped.
-However, **all Bash processing scripts** (urgency scoring, inbox stashing, link extraction) that may produce >20 lines of output SHOULD be routed through `ctx_execute(language: "python", code: "...")` or `ctx_batch_execute` when the context-mode plugin is available. This keeps only the printed summary in context.
-
-If context-mode is not available, use standard Bash but keep script output concise (print summaries, not raw data).
 
 ## Guard checks (run before anything else)
 
@@ -315,9 +305,8 @@ xgh_usage_log "retriever" "$(actual turns used)" 0
 
 This skill runs in the main session turn (triggered by CronCreate or manually). To preserve context:
 
-1. Route ALL Bash/Python processing through `ctx_execute` or `ctx_batch_execute` when context-mode is available.
-2. Never print raw inbox content, message bodies, or full API responses to the session.
-3. **End every run with exactly one summary line:**
+1. Never print raw inbox content, message bodies, or full API responses to the session.
+2. **End every run with exactly one summary line:**
    ```
    Retrieve complete: <N> new items stashed, <M> critical, <K> channels scanned.
    ```

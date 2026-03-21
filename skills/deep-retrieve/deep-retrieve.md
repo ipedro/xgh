@@ -12,10 +12,6 @@ mcp_dependencies:
   - mcp__claude_ai_Slack__slack_read_channel
   - mcp__claude_ai_Slack__slack_read_thread
 ---
-> **Context-mode:** Use `ctx_execute_file` for analysis reads; `Read` only for files you will
-> Edit within 1-2 tool calls. Use `ctx_batch_execute` for multi-command research. Full routing
-> rules: `references/context-mode-routing.md`
-
 
 # xgh:deep-retrieve — Deep Thread Scan
 
@@ -41,10 +37,6 @@ The fast scan's lookback window misses:
 This scan re-reads channel history and compares each message's live `latest_reply` against
 `last_scan_ts` to detect both cases.
 
-## Context window management
-
-All Bash/Python processing MUST be routed through `ctx_execute` or `ctx_batch_execute` when
-context-mode is available. Never print raw message bodies.
 
 ## Guard checks
 

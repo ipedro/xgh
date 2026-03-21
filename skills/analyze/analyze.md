@@ -14,22 +14,6 @@ mcp_dependencies:
   - mcp__lossless-claude__lcm_search
   - mcp__lossless-claude__lcm_store
 ---
-> **Context-mode:** Use `ctx_execute_file` for analysis reads; `Read` only for files you will
-> Edit within 1-2 tool calls. Use `ctx_batch_execute` for multi-command research. Full routing
-> rules: `references/context-mode-routing.md`
-
-## Context-mode routing
-
-Follow these rules for this skill's file access patterns:
-
-| Phase | File access | Tool |
-|-------|-------------|------|
-| Investigation / context gathering | Understanding files | `ctx_execute_file(path)` |
-| Investigation / context gathering | Running commands, searching | `ctx_batch_execute(commands, queries)` |
-| Implementation | Reading a file to Edit it next | `Read` |
-| Implementation | Running builds, tests | `ctx_execute(language, code)` |
-
-See `references/context-mode-routing.md` for full rules and examples.
 
 # xgh:analyze — Analysis Loop
 
@@ -40,13 +24,6 @@ Invoked by CronCreate:
   recurring: true
 ```
 
-## Context window management
-
-All heavy processing (classification, dedup batching, payload extraction, digest generation) SHOULD be routed through `ctx_execute(language: "python", code: "...")` when the context-mode plugin is available. Only print the summary (counts, errors, top items) — never dump raw inbox content into context.
-
-MCP tool calls (lcm_search for dedup) return directly into context and cannot be wrapped.
-
-If context-mode is not available, use standard Bash but keep script output to summaries only.
 
 ## Guard checks
 
@@ -181,7 +158,7 @@ After classification and memory storage, evaluate standard-path triggers.
    Filter to triggers where `path: standard` OR `path:` is not set (default = standard).
    Skip `source: schedule` triggers (handled by schedule skill).
 3. Read `~/.xgh/triggers/.state.json` (or `{}` if missing).
-4. For each classified inbox item (use `ctx_execute_file` to read frontmatter):
+4. For each classified inbox item:
    For each standard-path trigger:
    a. **Match check:** Evaluate all `when:` fields against the item.
       - `source:` matches item frontmatter `source:` field (`*` = any)
@@ -193,8 +170,7 @@ After classification and memory storage, evaluate standard-path triggers.
    c. **Dedup check:** If item filename in `fired_items` array → skip.
    d. **Execute steps:** For each `then:` step, enforce action_level cap, then execute.
       Use declarative actions (notify, create_issue, dispatch) via appropriate MCP tools.
-      Inline `run:` blocks: execute via `ctx_execute(language: "shell", code: ...)` with
-      all `$ITEM_*` env vars set. Only stdout enters context.
+      Inline `run:` blocks: execute via Bash with all `$ITEM_*` env vars set.
    e. **Update state:** Write updated `.state.json` after each trigger fires.
 5. Log: `Trigger engine: evaluated N triggers against M items — K fired`
 
@@ -255,9 +231,8 @@ xgh_usage_log "analyzer" "<actual turns>" 0
 
 ## Output discipline
 
-1. Route ALL classification, dedup, and digest processing through `ctx_execute` when available.
-2. Never dump raw inbox content into session context.
-3. **End every run with exactly one summary line:**
+1. Never dump raw inbox content into session context.
+2. **End every run with exactly one summary line:**
    ```
    Analyze complete: <N> items processed, <M> stored, <K> duplicates skipped.
    ```

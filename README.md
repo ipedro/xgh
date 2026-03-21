@@ -11,7 +11,6 @@
 |---------------|-------------|------------------|
 | Persistent memory | [lossless-claude](https://github.com/ipedro/lossless-claude) | Automatic |
 | Token compression | [RTK](https://github.com/rtk-ai/rtk) | Automatic |
-| Context efficiency | [context-mode](https://github.com/mksglu/context-mode) | Optional plugin |
 | Dev methodology | [superpowers](https://github.com/obra/superpowers) | Optional plugin |
 
 ## Your controls
@@ -146,15 +145,15 @@ After installing, open a Claude Code session and try these:
 ┌─────────────────────────────────────────────────────────────┐
 │                    xgh — developer's cockpit                 │
 │               23 commands · 5 hooks · context tree           │
-├──────────┬──────────────┬───────────────┬───────────────────┤
-│          │              │               │                   │
-│  lossless-claude   context-mode      RTK          superpowers
-│  (memory)          (efficiency)   (compression)  (methodology)
-│  lcm_search        ctx_execute    rtk rewrite    brainstorming
-│  lcm_store         ctx_search    rtk git/gh/..   writing-plans
-│  lcm_grep          ctx_batch      rtk read        TDD, review
-│          │              │               │                   │
-├──────────┴──────────────┴───────────────┴───────────────────┤
+├──────────┬───────────────┬───────────────────┤
+│          │               │                   │
+│  lossless-claude      RTK          superpowers
+│  (memory)          (compression)  (methodology)
+│  lcm_search        rtk rewrite    brainstorming
+│  lcm_store        rtk git/gh/..   writing-plans
+│  lcm_grep          rtk read        TDD, review
+│          │               │                   │
+├──────────┴───────────────┴───────────────────┤
 │                                                             │
 │  ┌──────────────────────────────┐                           │
 │  │  SQLite + FTS5 (lossless-claude)                         │
