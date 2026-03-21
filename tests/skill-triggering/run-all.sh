@@ -11,7 +11,7 @@
 #   XGH_TEST_BUDGET   — max USD per test invocation (default: 0.50)
 #   XGH_TEST_LOG_DIR  — persistent log directory (default: /tmp/xgh-test-logs)
 #
-# Cost estimate: ~18 prompts × 1 turn ≈ ~$0.90 per full suite run (sonnet).
+# Cost estimate: ~20 prompts × 1 turn ≈ ~$1.00 per full suite run (sonnet).
 #
 # Logs are saved to $XGH_TEST_LOG_DIR (default /tmp/xgh-test-logs):
 #   summary.log          — one-line-per-test results
@@ -19,8 +19,8 @@
 #   agent-xgh--NAME/     — per-agent logs
 #
 # Examples:
-#   ./run-all.sh                                    # run all 18 tests
-#   ./run-all.sh --skills-only                      # run 10 skill tests
+#   ./run-all.sh                                    # run all 20 tests
+#   ./run-all.sh --skills-only                      # run 12 skill tests
 #   ./run-all.sh --agents-only                      # run 8 agent tests
 #   XGH_TEST_MODEL=haiku ./run-all.sh               # cheaper run with haiku
 
@@ -48,6 +48,8 @@ SKILL_TESTS=(
     "xgh:index:index.txt"
     "xgh:trigger:trigger.txt"
     "xgh:schedule:schedule.txt"
+    "xgh:codex:codex.txt"
+    "xgh:gemini:gemini.txt"
 )
 
 # ── Agent tests ─────────────────────────────────────────────────────────────

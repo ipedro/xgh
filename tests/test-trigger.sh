@@ -119,7 +119,7 @@ assert_file_exists "$PLUGIN_DIR/tests/skill-triggering/run-multiturn-test.sh" "r
 PROMPTS_DIR="$PLUGIN_DIR/tests/skill-triggering/prompts"
 assert_dir_exists  "$PROMPTS_DIR"                  "prompts/ dir exists"
 
-# Skill prompt files (10)
+# Skill prompt files (12)
 assert_file_exists "$PROMPTS_DIR/retrieve.txt"     "retrieve prompt exists"
 assert_file_exists "$PROMPTS_DIR/analyze.txt"      "analyze prompt exists"
 assert_file_exists "$PROMPTS_DIR/briefing.txt"     "briefing prompt exists"
@@ -130,6 +130,8 @@ assert_file_exists "$PROMPTS_DIR/doctor.txt"       "doctor prompt exists"
 assert_file_exists "$PROMPTS_DIR/index.txt"        "index prompt exists"
 assert_file_exists "$PROMPTS_DIR/trigger.txt"      "trigger prompt exists"
 assert_file_exists "$PROMPTS_DIR/schedule.txt"     "schedule prompt exists"
+assert_file_exists "$PROMPTS_DIR/codex.txt"        "codex prompt exists"
+assert_file_exists "$PROMPTS_DIR/gemini.txt"       "gemini prompt exists"
 
 # Agent prompt files (8)
 assert_file_exists "$PROMPTS_DIR/agent-code-reviewer.txt"              "agent-code-reviewer prompt exists"
