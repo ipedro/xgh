@@ -14,7 +14,8 @@ Unordered ideas for future features and improvements.
 | 8 | Provider failure recovery | **Done** | — |
 | 9 | Inbox aging | Partial (awaiting-reply only) | Small |
 | 10 | `/xgh-release-notes` | Not started | Medium |
-| 11 | Trigger engine (IFTTT for devs) | Brainstorming | Large |
+| 11 | Trigger engine (IFTTT for devs) | **Done** | — |
+| 12 | Workflow + trigger tests (prompt, hook unit, trigger eval unit+e2e) | Not started | Medium |
 
 ---
 
@@ -112,4 +113,20 @@ The `fetch.sh` contract is read-only today. Add a `push.sh` contract for write-b
 
 ---
 
-*Added: 2026-03-20 | Assessed: 2026-03-20*
+## 12. Workflow + trigger tests — `Effort: Medium`
+
+**Status:** Not started. Design partially brainstormed 2026-03-21.
+
+Three sub-areas:
+
+**12a. Missing workflow skill prompt tests** — add `xgh:trigger` (`/xgh-trigger list`) and `xgh:schedule` ("check background jobs") to `tests/skill-triggering/`. Two new prompt files + two entries in `run-all.sh`.
+
+**12b. PostToolUse hook unit tests** — `tests/test-post-tool-use.sh`. Feed mock hook JSON (with `tool_name: Bash`, `tool_input.command`, `tool_response.exit_code`) directly to `hooks/post-tool-use.sh` via stdin with a fixture trigger YAML in a temp dir. Assert that an inbox item is written with correct `source_type: local_command`, `command`, and `exit_code` fields. Pure bash, no Claude needed.
+
+**12c. Trigger evaluation tests (unit + e2e)**:
+- Unit: `tests/trigger-evaluation/` with fixture YAML + fixture inbox items. Prompt tests via `claude -p` that ask "given this trigger YAML and this inbox item, would this trigger fire?" Verify YES/NO answer. Cover: basic match, cooldown block, silenced_until skip, dedup, action_level gate, fast-path type-field bypass.
+- E2E: place fixture trigger in temp `~/.xgh/triggers/`, fixture inbox item in temp `~/.xgh/inbox/`, run `xgh:analyze` via `claude -p`, check trigger logic was evaluated and output logged correctly.
+
+---
+
+*Added: 2026-03-20 | Updated: 2026-03-21*
