@@ -54,6 +54,7 @@ Output using this exact format:
 | `/xgh-implement` | Implement a ticket with full context |
 | `/xgh-design` | Implement a UI from a Figma design |
 | `/xgh-codex` | Dispatch tasks to Codex CLI (exec or review) |
+| `/xgh-gemini` | Dispatch tasks to Gemini CLI (exec or review) |
 | `/xgh-collab` | Coordinate with other AI agents |
 | `/xgh-curate` | Store knowledge in memory + context tree |
 | `/xgh-profile` | Analyze an engineer's Jira throughput |

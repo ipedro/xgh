@@ -32,6 +32,20 @@ agents:
       review: "codex review [target] -C <dir> [passthrough flags]"
       notes: "Only spawning flags (--full-auto, -C, -o) are injected. All other flags forwarded from user. Requires: npm i -g @openai/codex"
 
+  gemini:
+    type: secondary
+    description: "Google Gemini CLI agent — implementation and code review"
+    capabilities:
+      - implementation
+      - code-review
+      - test-generation
+    integration: bash-invocation
+    invocation:
+      method: bash
+      exec: "gemini -p \"<prompt>\" --yolo [passthrough flags]"
+      review: "gemini -p \"<prompt>\" --approval-mode plan [passthrough flags]"
+      notes: "Only spawning flags (-p, --yolo/--approval-mode) are injected. Working dir via cd, output via redirection. Requires: Gemini CLI"
+
   cursor:
     type: secondary
     description: "Cursor IDE agent — IDE-integrated editing and refactoring"
