@@ -28,6 +28,7 @@ TIMESTAMP=$(date +%s)
 OUTPUT_DIR="/tmp/xgh-skill-tests/${TIMESTAMP}/${SKILL_NAME//:/--}"
 mkdir -p "$OUTPUT_DIR"
 
+[ -f "$PROMPT_FILE" ] || { echo "Error: prompt file not found: $PROMPT_FILE"; exit 1; }
 PROMPT=$(cat "$PROMPT_FILE")
 
 echo "=== xgh Skill Triggering Test ==="
@@ -39,7 +40,6 @@ echo ""
 cp "$PROMPT_FILE" "$OUTPUT_DIR/prompt.txt"
 
 LOG_FILE="$OUTPUT_DIR/claude-output.json"
-cd "$OUTPUT_DIR"
 
 echo "Running claude -p ..."
 # --verbose is required for --output-format stream-json with -p
@@ -69,7 +69,8 @@ fi
 # Show all skills that were triggered
 echo ""
 echo "Skills triggered:"
-grep -o '"skill":"[^"]*"' "$LOG_FILE" 2>/dev/null | sort -u || echo "  (none)"
+SKILLS=$(grep -o '"skill":"[^"]*"' "$LOG_FILE" 2>/dev/null || true)
+if [ -n "$SKILLS" ]; then echo "$SKILLS" | sort -u; else echo "  (none)"; fi
 
 # Show first assistant response (truncated)
 echo ""
