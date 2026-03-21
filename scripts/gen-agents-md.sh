@@ -34,29 +34,33 @@ def load(path):
         return yaml.safe_load(f)
 
 def frontmatter(path):
-    """Extract agent frontmatter fields using direct regex — avoids YAML parse errors
-    from description fields containing colons, <example> blocks, and angle brackets."""
+    """Extract agent frontmatter fields from the opening YAML block."""
     with open(path) as f:
         content = f.read()
     m = re.match(r'^---\n(.*?)\n---', content, re.DOTALL)
     if not m:
         return {}
-    block = m.group(1)
+    try:
+        data = yaml.safe_load(m.group(1)) or {}
+    except yaml.YAMLError as exc:
+        print(f"WARNING: {path}: {exc}", file=sys.stderr)
+        return {}
+    if not isinstance(data, dict):
+        return {}
+
     result = {}
-    # Extract simple scalar fields
     for field in ('name', 'model', 'color'):
-        fm = re.search(rf'^{field}:\s*(.+)$', block, re.MULTILINE)
-        if fm:
-            result[field] = fm.group(1).strip().strip('"\'')
-    # Extract inline list fields: capabilities: [a, b, c] or tools: ["a", "b"]
+        value = data.get(field)
+        if value is not None:
+            result[field] = str(value).strip()
     for field in ('capabilities', 'tools'):
-        fm = re.search(rf'^{field}:\s*\[([^\]]*)\]', block, re.MULTILINE)
-        if fm:
-            items = [x.strip().strip('"\'') for x in fm.group(1).split(',') if x.strip()]
-            result[field] = items
-        elif re.search(rf'^{field}:\s*\[', block, re.MULTILINE):
-            # Unterminated list — emit warning
-            print(f"WARNING: {path}: unterminated list in '{field}' field", file=sys.stderr)
+        value = data.get(field)
+        if value is None:
+            continue
+        if isinstance(value, list):
+            result[field] = [str(item).strip() for item in value if str(item).strip()]
+        else:
+            result[field] = [str(value).strip()]
     return result
 
 def render_capabilities(values):
@@ -84,11 +88,11 @@ trg  = load("config/triggers.yaml")
 ag   = load("config/agents.yaml")
 
 # Load agent frontmatter from agents/*.md
-agent_meta = {}
+agent_files = []
 for path in sorted(glob.glob(os.path.join(ROOT, "agents", "*.md"))):
     fm = frontmatter(path)
     if "name" in fm:
-        agent_meta[fm["name"]] = fm
+        agent_files.append(fm)
 
 out = []
 
@@ -128,13 +132,14 @@ out.append("")
 out.append("---")
 out.append("")
 
-# Agent Roster — rows from configured local agents, metadata from agent markdown frontmatter
+# Agent Roster — rows from agent markdown frontmatter, with config fallbacks where needed
 out.append("## Agent Roster")
 out.append("")
 out.append("| Agent | Model | Capabilities |")
 out.append("|-------|-------|-------------|")
-for name, entry in ag.get('local_agents', {}).items():
-    meta = agent_meta.get(name, {})
+for meta in agent_files:
+    name = meta["name"]
+    entry = ag.get('local_agents', {}).get(name, {})
     model = meta.get('model', entry.get('model', '—'))
     caps = render_capabilities(meta.get('capabilities', entry.get('capabilities', [])))
     out.append(f"| {name} | {model} | {caps} |")

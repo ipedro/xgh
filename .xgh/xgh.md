@@ -1,7 +1,7 @@
 # xgh — Static Agent Instructions
 
 > Loaded via `@` reference in CLAUDE.md. Zero runtime cost.
-> Source: auto-loaded via `@.xgh/xgh.md` in `CLAUDE.local.md`. Not a copy of `templates/xgh-instructions.md` — they serve different purposes.
+> Source: loaded by `CLAUDE.local.md` via `@` reference. Do not confuse with `templates/xgh-instructions.md`.
 
 ## Memory Protocol
 

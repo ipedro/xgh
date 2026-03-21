@@ -8,7 +8,7 @@
 |-----------|-------------|
 | **Narrow scope** | Each agent does ONE thing well — investigation, review, curation, etc. |
 | **Frontmatter contract** | YAML frontmatter: `name`, `description` (with examples), `model`, `color`, `tools` |
-| **Model selection** | `haiku` for cheap/fast tasks, `inherit` for complex reasoning |
+| **Model selection** | Concrete frontmatter models by capability tier: `haiku` for lightweight tasks, `sonnet` for most collaboration/review work, `opus` for the deepest investigations. `inherit` was considered but rejected. |
 | **Minimal tools** | Only grant tools the agent actually needs |
 | **Dispatch examples** | `<example>` blocks in description teach Claude when to use each agent |
 | **Output format** | Standardized sections with headers |
@@ -20,11 +20,11 @@
 
 ### 1. `code-reviewer` (exists)
 
-**Change:** Add YAML frontmatter (`model: inherit`, `color: blue`, `tools: [Read, Grep, Glob]`) with `<example>` dispatch blocks. Clean up stale references to `config/workflows/` (directory doesn't exist). Scope clarification: handles **in-session file-level review** within collaboration workflows — does NOT touch GitHub PR artifacts.
+**Change:** Add YAML frontmatter (`model: sonnet`, `color: yellow`, `tools: [Read, Grep, Glob, Bash]`) with `<example>` dispatch blocks. Clean up stale references to `config/workflows/` (directory doesn't exist). Scope clarification: handles **in-session file-level review** within collaboration workflows — does NOT touch GitHub PR artifacts.
 
 ### 2. `collaboration-dispatcher` (exists)
 
-**Change:** Add YAML frontmatter (`model: inherit`, `color: white`, `tools: [Read, Grep, Glob]`) with `<example>` dispatch blocks. Clean up stale references to `config/agents.yaml` agent types that don't exist yet.
+**Change:** Add YAML frontmatter (`model: sonnet`, `color: green`, `tools: [Read, Grep, Glob]`) with `<example>` dispatch blocks. Clean up stale references to `config/agents.yaml` agent types that don't exist yet.
 
 ---
 
@@ -34,8 +34,8 @@
 
 | Field | Value |
 |-------|-------|
-| **model** | `inherit` |
-| **color** | `green` |
+| **model** | `sonnet` |
+| **color** | `orange` |
 | **tools** | `[Read, Grep, Glob, Bash]` |
 | **scope** | Deep investigation of xgh **retrieval/scheduling/inbox/trigger pipeline** (beyond basic `/xgh-doctor`) |
 
@@ -53,8 +53,8 @@
 
 | Field | Value |
 |-------|-------|
-| **model** | `inherit` |
-| **color** | `cyan` |
+| **model** | `haiku` |
+| **color** | `blue` |
 | **tools** | `[Read, Grep, Glob]` |
 | **scope** | Reviews context tree for freshness, completeness, and relevance |
 
@@ -75,7 +75,7 @@
 
 | Field | Value |
 |-------|-------|
-| **model** | `inherit` |
+| **model** | `opus` |
 | **color** | `red` |
 | **tools** | `[Read, Grep, Glob, Bash]` |
 | **scope** | Systematic debugging of **code-level bugs and non-pipeline issues** |
@@ -99,8 +99,8 @@
 
 | Field | Value |
 |-------|-------|
-| **model** | `inherit` |
-| **color** | `magenta` |
+| **model** | `sonnet` |
+| **color** | `green` |
 | **tools** | `[Read, Grep, Glob, Bash]` |
 | **scope** | Full PR review with cross-referencing (Jira, Slack, conventions) |
 
@@ -124,8 +124,8 @@
 
 | Field | Value |
 |-------|-------|
-| **model** | `inherit` |
-| **color** | `yellow` |
+| **model** | `haiku` |
+| **color** | `blue` |
 | **tools** | `[Read, Grep, Glob, Bash]` |
 | **scope** | Monitors provider health and retrieval quality |
 
@@ -146,7 +146,7 @@
 
 | Field | Value |
 |-------|-------|
-| **model** | `inherit` |
+| **model** | `sonnet` |
 | **color** | `purple` |
 | **tools** | `[Read, Grep, Glob]` |
 | **scope** | Helps new developers or agents get oriented in the codebase and xgh system |

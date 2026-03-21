@@ -56,6 +56,7 @@ claude plugin install xgh@ipedro
 | Agent | Model | Capabilities |
 |-------|-------|-------------|
 | code-reviewer | sonnet | `code-review`, `architecture`, `conventions` |
+| codex-driver | sonnet | `codex-dispatch`, `flag-detection`, `retry-logic`, `result-parsing` |
 | collaboration-dispatcher | sonnet | `dispatch`, `routing`, `coordination` |
 | context-curator | haiku | `context-tree`, `curation`, `indexing` |
 | investigation-lead | opus | `debugging`, `investigation`, `root-cause` |
@@ -63,7 +64,6 @@ claude plugin install xgh@ipedro
 | pipeline-doctor | sonnet | `health-check`, `diagnostics`, `pipeline` |
 | pr-reviewer | sonnet | `pr-review`, `code-review`, `github` |
 | retrieval-auditor | haiku | `retrieval`, `audit`, `memory` |
-| codex-driver | sonnet | `codex-dispatch`, `flag-detection`, `retry-logic`, `result-parsing` |
 
 ---
 

@@ -83,7 +83,7 @@ assert_contains "AGENTS.md" "## Implementation Status"
 
 assert_contains ".xgh/specs/2026-03-21-xgh-agents-design.md" '| 1 | `code-reviewer` | sonnet |'
 assert_contains ".xgh/specs/2026-03-21-xgh-agents-design.md" "sonnet/haiku/opus"
-assert_contains ".xgh/xgh.md" 'Source: auto-loaded via `@.xgh/xgh.md` in `CLAUDE.local.md`.'
+assert_contains ".xgh/xgh.md" 'Source: loaded by `CLAUDE.local.md` via `@` reference.'
 assert_contains "tests/skill-triggering/prompts/track.txt" "add this repo to xgh monitoring"
 assert_contains "tests/skill-triggering/prompts/briefing.txt" "/xgh-briefing"
 
@@ -93,6 +93,18 @@ mkdir -p "$TMP_REPO/scripts" "$TMP_REPO/config" "$TMP_REPO/agents"
 cp scripts/gen-agents-md.sh "$TMP_REPO/scripts/"
 cp config/project.yaml config/team.yaml config/workflow.yaml config/triggers.yaml config/agents.yaml "$TMP_REPO/config/"
 cp agents/*.md "$TMP_REPO/agents/"
+
+python3 - "$TMP_REPO/config/agents.yaml" <<'PY'
+from pathlib import Path
+import sys
+
+import yaml
+
+path = Path(sys.argv[1])
+data = yaml.safe_load(path.read_text())
+data["local_agents"] = {}
+path.write_text(yaml.safe_dump(data, sort_keys=False))
+PY
 
 python3 - "$TMP_REPO/agents/code-reviewer.md" <<'PY'
 from pathlib import Path
@@ -112,8 +124,8 @@ PY
 cat > "$TMP_REPO/agents/bad-frontmatter.md" <<'EOF'
 ---
 name: bad-frontmatter
-description: "valid description"
-capabilities: [unterminated
+description: "unterminated
+capabilities: [still-present]
 ---
 Broken frontmatter fixture for generator warning tests.
 EOF
@@ -125,7 +137,7 @@ else
   FAIL=$((FAIL+1))
 fi
 assert_contains "$TMP_REPO/gen.stderr" "WARNING:"
-assert_contains "$TMP_REPO/gen.stderr" "bad-frontmatter.md"
+assert_contains "$TMP_REPO/gen.stderr" "bad-frontmatter.md:"
 assert_contains "$TMP_REPO/AGENTS.md" '| code-reviewer | haiku | `frontmatter-source` |'
 
 echo ""; echo "Results: $PASS passed, $FAIL failed"
