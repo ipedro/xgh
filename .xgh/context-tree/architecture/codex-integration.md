@@ -24,7 +24,7 @@ On every `codex exec -C <repo>` dispatch, Codex automatically loads context in t
 <repo>/.agents/skills/xgh/context.md ← live project state (via pointer in SKILL.md) ✅ CONFIRMED
 ```
 
-**`~/.codex/AGENTS.md` is the global system prompt** — loaded on every Codex dispatch regardless of repo. Currently empty. Prime real estate for cross-project conventions: commit format, test-before-done rule, scope discipline. Anything that should apply universally goes here; anything project-specific goes in `<repo>/AGENTS.md`.
+**`~/.codex/AGENTS.md` is the global system prompt** — loaded on every Codex dispatch regardless of repo. Seeded with universal conventions: core discipline, self-check protocol, commit format, what never to do, reporting standards, failure handling. Anything that should apply universally goes here; anything project-specific goes in `<repo>/AGENTS.md`.
 
 **`<repo>/AGENTS.md` is the project system prompt** — auto-read via `-C <dir>`. Codex reads it on every dispatch, quotes it verbatim, follows its instructions.
 
