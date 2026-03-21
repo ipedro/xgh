@@ -69,3 +69,5 @@ Save all generated artifacts to the `.xgh/` folder so they are indexed by the co
 4. **Explain deviations**: If you deviate from an established pattern, store a reasoning memory explaining why.
 5. **Be specific in searches**: Use detailed, specific queries when searching memory for better results.
 <!-- mcs:end xgh.instructions -->
+
+@.xgh/xgh.md
