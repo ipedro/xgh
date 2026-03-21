@@ -31,6 +31,13 @@ agents:
       exec: "codex exec \"<prompt>\" --full-auto -C <dir> -o <output> [passthrough flags]"
       review: "codex review [target] -s read-only -C <dir> [passthrough flags]"
       notes: "Only spawning flags (--full-auto, -C, -o) are injected. All other flags forwarded from user. Requires: npm i -g @openai/codex"
+      skill_dir: ".agents/skills/xgh/"
+      rules_file: "AGENTS.md"
+      auto_detect: codex
+      dir_flag: "-C"
+      output_flag: "-o"
+      exec_approval: "--full-auto"
+      review_approval: "-s read-only"
 
   gemini:
     type: secondary
@@ -45,6 +52,35 @@ agents:
       exec: "gemini -p \"<prompt>\" --yolo [passthrough flags]"
       review: "gemini -p \"<prompt>\" --approval-mode plan [passthrough flags]"
       notes: "Only spawning flags (-p, --yolo/--approval-mode) are injected. Working dir via cd, output via redirection. Requires: Gemini CLI"
+      skill_dir: ".gemini/skills/xgh/"
+      rules_file: "GEMINI.md"
+      auto_detect: gemini
+      dir_flag: "cd"
+      output_flag: ">"
+      exec_approval: "--yolo"
+      review_approval: "--approval-mode plan"
+
+  opencode:
+    type: secondary
+    description: "OpenCode CLI agent — implementation and code review (all permissions auto-approved in non-interactive mode)"
+    capabilities:
+      - fast-implementation
+      - code-review
+      - test-generation
+    integration: bash-invocation
+    invocation:
+      method: bash
+      exec_cmd: "opencode run"
+      exec: "cd <dir> && opencode run \"<prompt>\" [passthrough flags] > <output>"
+      review: "cd <dir> && opencode run \"Code review: <prompt>. Do NOT modify any files.\" [passthrough flags]"
+      notes: "Non-interactive mode auto-approves all permissions (no --full-auto equivalent needed). OpenCode natively reads .claude/skills. Working dir via cd, output via redirect. Model: --model <provider>/<name>. Requires: npm i -g opencode-ai"
+      skill_dir: ".opencode/skills/xgh/"
+      rules_file: "AGENTS.md"
+      auto_detect: opencode
+      dir_flag: "cd"
+      output_flag: ">"
+      exec_approval: null  # non-interactive mode auto-approves all permissions
+      review_mode: "prompt-only"  # no dedicated read-only flag; enforced via prompt
 
   cursor:
     type: secondary

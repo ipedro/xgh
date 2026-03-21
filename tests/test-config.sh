@@ -16,5 +16,15 @@ for d in skills commands agents; do
 done
 
 
+# --- agents.yaml: opencode entry ---
+assert_contains "config/agents.yaml" "opencode:"
+assert_contains "config/agents.yaml" "opencode run"
+assert_contains "config/agents.yaml" "auto_detect: opencode"
+
+# --- agents.yaml: registry fields on codex + gemini ---
+assert_contains "config/agents.yaml" "skill_dir:"
+assert_contains "config/agents.yaml" "rules_file:"
+assert_contains "config/agents.yaml" "auto_detect:"
+
 echo ""; echo "Results: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1
