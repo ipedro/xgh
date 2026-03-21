@@ -31,6 +31,7 @@ assert_file_exists "tests/skill-triggering/prompts/codex.txt"
 assert_contains "skills/codex/codex.md" "full-auto"
 assert_contains "skills/codex/codex.md" "Working directory"
 assert_contains "skills/codex/codex.md" "Capture final output"
+assert_contains "skills/codex/codex.md" "read-only"
 
 # --- Skill: dispatch types ---
 assert_contains "skills/codex/codex.md" "codex exec"

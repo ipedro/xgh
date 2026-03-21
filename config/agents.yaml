@@ -29,7 +29,7 @@ agents:
     invocation:
       method: bash
       exec: "codex exec \"<prompt>\" --full-auto -C <dir> -o <output> [passthrough flags]"
-      review: "codex review [target] -C <dir> [passthrough flags]"
+      review: "codex review [target] -s read-only -C <dir> [passthrough flags]"
       notes: "Only spawning flags (--full-auto, -C, -o) are injected. All other flags forwarded from user. Requires: npm i -g @openai/codex"
 
   gemini:

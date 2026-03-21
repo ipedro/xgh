@@ -97,7 +97,8 @@ Parse the user's request to determine dispatch parameters. Only extract what the
 
 | Flag | Purpose |
 |------|---------|
-| `--full-auto` | Non-interactive execution (auto-approve + workspace-write sandbox) |
+| `--full-auto` | Non-interactive execution (auto-approve + workspace-write sandbox) — exec only |
+| `-s read-only` | Read-only sandbox — review only |
 | `-C <dir>` | Working directory (worktree path or current dir) |
 | `-o <file>` | Capture final output to file for results collection |
 
@@ -194,6 +195,7 @@ OUTPUT_FILE="/tmp/codex-review-${TIMESTAMP}.md"
 CMD=(
     codex review
     # Review target flag (e.g., --base main, --uncommitted, --commit <sha>)
+    -s read-only
     -C "$WORK_DIR"
     # User passthrough flags appended here
 )
@@ -287,7 +289,7 @@ lcm_store("Codex dispatch: <type> | model: <model> | isolation: <mode> | <outcom
 |------|---------|-----------|
 | Worktree exec | `--full-auto` | Isolated directory, safe for auto-approve |
 | Same-dir exec | `--full-auto` | User explicitly chose same-dir |
-| Review | N/A (read-only) | `codex review` only reads, never writes |
+| Review | `-s read-only` | Enforced read-only sandbox — no file modifications |
 
 ## Anti-Patterns
 
