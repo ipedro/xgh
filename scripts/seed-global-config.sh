@@ -11,6 +11,11 @@
 
 set -euo pipefail
 
+if [ "$#" -ne 3 ]; then
+  echo "Usage: $0 <target-file> <marker-name> <content-file>" >&2
+  exit 1
+fi
+
 TARGET="$1"
 TARGET="${TARGET/#\~/$HOME}"
 MARKER_NAME="$2"

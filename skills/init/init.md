@@ -105,7 +105,12 @@ Copy the default triggers from `config/triggers.yaml` into `~/.xgh/triggers/` as
 TRIGGERS_CATALOG=$(find ~/.claude/plugins/cache -path "*/xgh/*/config/triggers.yaml" -print -quit 2>/dev/null)
 if [ -n "$TRIGGERS_CATALOG" ]; then
   python3 - "$TRIGGERS_CATALOG" ~/.xgh/triggers << 'PY'
-import sys, yaml, os, re
+import sys, os, re
+try:
+    import yaml
+except ImportError:
+    print("SKIP: pyyaml not installed — run: pip3 install pyyaml", file=sys.stderr)
+    sys.exit(0)
 catalog_path, triggers_dir = sys.argv[1], sys.argv[2]
 os.makedirs(triggers_dir, exist_ok=True)
 catalog = yaml.safe_load(open(catalog_path))
