@@ -25,6 +25,8 @@ assert_contains "config/agents.yaml" "auto_detect: opencode"
 assert_contains "config/agents.yaml" "skill_dir:"
 assert_contains "config/agents.yaml" "rules_file:"
 assert_contains "config/agents.yaml" "auto_detect:"
+assert_contains "config/agents.yaml" "auto_detect: codex"
+assert_contains "config/agents.yaml" "auto_detect: gemini"
 
 echo ""; echo "Results: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1

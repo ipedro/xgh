@@ -70,7 +70,6 @@ agents:
     integration: bash-invocation
     invocation:
       method: bash
-      exec_cmd: "opencode run"
       exec: "cd <dir> && opencode run \"<prompt>\" [passthrough flags] > <output>"
       review: "cd <dir> && opencode run \"Code review: <prompt>. Do NOT modify any files.\" [passthrough flags]"
       notes: "Non-interactive mode auto-approves all permissions (no --full-auto equivalent needed). OpenCode natively reads .claude/skills. Working dir via cd, output via redirect. Model: --model <provider>/<name>. Requires: npm i -g opencode-ai"
