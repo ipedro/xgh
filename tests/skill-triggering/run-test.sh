@@ -43,7 +43,8 @@ LOG_FILE="$OUTPUT_DIR/claude-output.json"
 
 echo "Running claude -p ..."
 # --verbose is required for --output-format stream-json with -p
-timeout 120 claude -p "$PROMPT" \
+# Note: `timeout` is not available on macOS by default; claude has its own session timeout
+claude -p "$PROMPT" \
     --plugin-dir "$PLUGIN_DIR" \
     --dangerously-skip-permissions \
     --verbose \
