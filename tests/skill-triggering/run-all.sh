@@ -9,8 +9,14 @@
 # Environment variables:
 #   XGH_TEST_MODEL    — model to use (default: sonnet)
 #   XGH_TEST_BUDGET   — max USD per test invocation (default: 0.50)
+#   XGH_TEST_LOG_DIR  — persistent log directory (default: /tmp/xgh-test-logs)
 #
 # Cost estimate: ~18 prompts × 1 turn ≈ ~$0.90 per full suite run (sonnet).
+#
+# Logs are saved to $XGH_TEST_LOG_DIR (default /tmp/xgh-test-logs):
+#   summary.log          — one-line-per-test results
+#   skill-xgh--NAME/     — per-skill logs (claude-output.json, prompt.txt, result.txt)
+#   agent-xgh--NAME/     — per-agent logs
 #
 # Examples:
 #   ./run-all.sh                                    # run all 18 tests
@@ -24,6 +30,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROMPTS_DIR="$SCRIPT_DIR/prompts"
 
 FILTER="${1:-all}"   # --skills-only, --agents-only, or all (default)
+
+export XGH_TEST_LOG_DIR="${XGH_TEST_LOG_DIR:-/tmp/xgh-test-logs}"
+mkdir -p "$XGH_TEST_LOG_DIR"
+SUMMARY_LOG="$XGH_TEST_LOG_DIR/summary.log"
 
 # ── Skill tests ─────────────────────────────────────────────────────────────
 # Format: "xgh:skill:prompt_file" — colon separates namespace:skill from filename
@@ -55,8 +65,15 @@ AGENT_TESTS=(
 
 echo "=== xgh Skill & Agent Triggering Test Suite ==="
 echo "Plugin dir: $(cd "$SCRIPT_DIR/../.." && pwd)"
+echo "Model:  ${XGH_TEST_MODEL:-sonnet}"
 echo "Filter: $FILTER"
+echo "Logs:   $XGH_TEST_LOG_DIR"
 echo ""
+
+# Start fresh summary log
+echo "# xgh triggering test results — $(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$SUMMARY_LOG"
+echo "# model=${XGH_TEST_MODEL:-sonnet} filter=$FILTER" >> "$SUMMARY_LOG"
+echo "" >> "$SUMMARY_LOG"
 
 PASSED=0
 FAILED=0
@@ -70,6 +87,7 @@ run_skill_tests() {
 
         if [ ! -f "$FULL_PROMPT" ]; then
             echo "⚠️  SKIP: No prompt file for $SKILL ($FULL_PROMPT)"
+            echo "SKIP [skill] $SKILL — missing prompt" >> "$SUMMARY_LOG"
             continue
         fi
 
@@ -78,9 +96,11 @@ run_skill_tests() {
         if "$SCRIPT_DIR/run-test.sh" "$SKILL" "$FULL_PROMPT"; then
             PASSED=$((PASSED + 1))
             RESULTS+=("✅ [skill] $SKILL")
+            echo "PASS [skill] $SKILL" >> "$SUMMARY_LOG"
         else
             FAILED=$((FAILED + 1))
             RESULTS+=("❌ [skill] $SKILL")
+            echo "FAIL [skill] $SKILL" >> "$SUMMARY_LOG"
         fi
 
         echo ""
@@ -95,6 +115,7 @@ run_agent_tests() {
 
         if [ ! -f "$FULL_PROMPT" ]; then
             echo "⚠️  SKIP: No prompt file for $AGENT ($FULL_PROMPT)"
+            echo "SKIP [agent] $AGENT — missing prompt" >> "$SUMMARY_LOG"
             continue
         fi
 
@@ -103,9 +124,11 @@ run_agent_tests() {
         if "$SCRIPT_DIR/run-agent-test.sh" "$AGENT" "$FULL_PROMPT"; then
             PASSED=$((PASSED + 1))
             RESULTS+=("✅ [agent] $AGENT")
+            echo "PASS [agent] $AGENT" >> "$SUMMARY_LOG"
         else
             FAILED=$((FAILED + 1))
             RESULTS+=("❌ [agent] $AGENT")
+            echo "FAIL [agent] $AGENT" >> "$SUMMARY_LOG"
         fi
 
         echo ""
@@ -131,6 +154,12 @@ for result in "${RESULTS[@]}"; do
 done
 echo ""
 echo "Passed: $PASSED / $((PASSED + FAILED))"
+echo "Logs:   $XGH_TEST_LOG_DIR"
+echo "Summary: $SUMMARY_LOG"
+
+# Append totals to summary
+echo "" >> "$SUMMARY_LOG"
+echo "# total=$((PASSED + FAILED)) passed=$PASSED failed=$FAILED" >> "$SUMMARY_LOG"
 
 if [ "$FAILED" -gt 0 ]; then
     exit 1
