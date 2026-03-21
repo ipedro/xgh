@@ -1,4 +1,29 @@
-# code-reviewer
+---
+name: code-reviewer
+description: Use this agent to review code quality within a collaboration workflow — evaluates implementations against architecture, conventions, and team patterns stored in lossless-claude memory. Handles in-session file-level review; for GitHub PR review, use pr-reviewer instead. Examples:
+
+  <example>
+  Context: Implementation task completed in a collaboration thread
+  user: "the implementation for the new provider is done, can you review it?"
+  assistant: "I'll dispatch the code-reviewer agent to evaluate the implementation against our conventions."
+  <commentary>
+  In-session code review against team patterns. The agent reads the work item from the collaboration thread and evaluates against stored conventions.
+  </commentary>
+  </example>
+
+  <example>
+  Context: Collaboration dispatcher routing a plan-review workflow
+  user: "run the plan-review workflow on this feature"
+  assistant: "I'll use the collaboration-dispatcher to orchestrate this — it will dispatch the code-reviewer for the review step."
+  <commentary>
+  The code-reviewer is commonly dispatched by the collaboration-dispatcher as part of structured workflows.
+  </commentary>
+  </example>
+
+model: inherit
+color: blue
+tools: ["Read", "Grep", "Glob"]
+---
 
 A subagent that performs structured code review using lossless-claude memory. It evaluates implementation quality, flags convention violations, and stores review findings so future sessions can learn from recurring patterns.
 
@@ -129,14 +154,9 @@ Parameters:
 | `lcm_store` | Store review verdict, findings, and feedback |
 | `lcm_search` | Find similar past reviews to apply consistent standards |
 
-## Configuration
-
-- **Agent registry:** `config/agents.yaml` — defines agent types and capabilities
-- **Workflow templates:** `config/workflows/` — defines where code-reviewer fits in each workflow (e.g., `plan-review.yaml`, `security-review.yaml`)
-
 ## Composability
 
-- Dispatched by **collaboration-dispatcher** as part of `plan-review`, `parallel-impl`, and `security-review` workflows
-- Reads implementation output from the implementing agent (claude-code, codex, etc.)
-- Feeds verdict into **collaboration-dispatcher** step routing
+- Can be dispatched standalone or by **collaboration-dispatcher** as part of multi-agent workflows
+- Reads implementation output from the implementing agent
 - Review findings are indexed in lossless-claude for **knowledge-handoff** and future review calibration
+- For GitHub PR-specific review (diff, cross-references), use **pr-reviewer** instead

@@ -1,4 +1,29 @@
-# collaboration-dispatcher
+---
+name: collaboration-dispatcher
+description: Use this agent to orchestrate multi-agent workflows — manages collaboration threads, dispatches work items, monitors progress, and routes messages between agents via lossless-claude memory. Examples:
+
+  <example>
+  Context: User wants to run a structured review workflow
+  user: "run a plan-review on this feature implementation"
+  assistant: "I'll dispatch the collaboration-dispatcher to orchestrate the plan-review workflow."
+  <commentary>
+  The dispatcher coordinates multi-step workflows — it dispatches work to agents, monitors for completion, and routes to the next step.
+  </commentary>
+  </example>
+
+  <example>
+  Context: User wants parallel implementation with review gates
+  user: "have the agents implement these 3 tasks and review each other's work"
+  assistant: "I'll use the collaboration-dispatcher to set up a parallel-impl workflow with review gates."
+  <commentary>
+  The dispatcher handles parallel dispatch and merge reviews — it creates the thread, dispatches work, and enforces gates.
+  </commentary>
+  </example>
+
+model: inherit
+color: white
+tools: ["Read", "Grep", "Glob"]
+---
 
 A subagent that orchestrates multi-agent workflows through lossless-claude workspace memory. It manages the lifecycle of collaboration threads: dispatching work, monitoring progress, routing messages, and reporting completion.
 
@@ -195,13 +220,11 @@ If a step does not complete within a reasonable time:
 
 ## Configuration
 
-- **Agent registry:** `config/agents.yaml` — defines all agents, their types, capabilities, and integrations
-- **Workflow templates:** `config/workflows/` — YAML files defining step ordering, gates, and routing rules
+- **Agent registry:** `config/agents.yaml` — defines agent types, capabilities, and integrations
 - Each stored memory item uses a `thread_id` field in metadata to group all messages within one collaboration thread
 
 ## Composability
 
-- Dispatched by **/xgh-collab** command
-- Dispatches **subagent-pair-programming** for TDD-based work items
-- All dispatched agents use **convention-guardian** for convention compliance
+- Dispatched by **/xgh-collab** command or any agent needing workflow orchestration
+- Dispatches **code-reviewer** for review steps
 - Completed workflows feed into **pr-context-bridge** and **knowledge-handoff**
