@@ -27,21 +27,50 @@ assert_file_exists "skills/codex/codex.md"
 assert_file_exists "commands/codex.md"
 assert_file_exists "tests/skill-triggering/prompts/codex.txt"
 
-# --- Skill content ---
+# --- Skill: spawning management flags ---
+assert_contains "skills/codex/codex.md" "full-auto"
+assert_contains "skills/codex/codex.md" "Working directory"
+assert_contains "skills/codex/codex.md" "Capture final output"
+
+# --- Skill: dispatch types ---
 assert_contains "skills/codex/codex.md" "codex exec"
 assert_contains "skills/codex/codex.md" "codex review"
+
+# --- Skill: isolation modes ---
 assert_contains "skills/codex/codex.md" "worktree"
 assert_contains "skills/codex/codex.md" "same-dir"
+
+# --- Skill: effort/thinking translation ---
+assert_contains "skills/codex/codex.md" "effort"
+assert_contains "skills/codex/codex.md" "thinking"
+assert_contains "skills/codex/codex.md" "model_reasoning_effort"
+assert_contains "skills/codex/codex.md" "xhigh"
+
+# --- Skill: model reference ---
 assert_contains "skills/codex/codex.md" "gpt-5.4"
-assert_contains "skills/codex/codex.md" "full-auto"
+
+# --- Skill: passthrough flags ---
+assert_contains "skills/codex/codex.md" "search"
+assert_contains "skills/codex/codex.md" "ephemeral"
+assert_contains "skills/codex/codex.md" "add-dir"
+
+# --- Skill: background dispatch ---
 assert_contains "skills/codex/codex.md" "run_in_background"
+
+# --- Skill: curate/memory ---
 assert_contains "skills/codex/codex.md" "lossless-claude"
+assert_contains "skills/codex/codex.md" "lcm_store"
+
+# --- Skill: preamble ---
+assert_contains "skills/codex/codex.md" "prefs.json"
 
 # --- Command content ---
 assert_contains "commands/codex.md" "xgh:codex"
 assert_contains "commands/codex.md" "/xgh-codex"
 assert_contains "commands/codex.md" "exec"
 assert_contains "commands/codex.md" "review"
+assert_contains "commands/codex.md" "effort"
+assert_contains "commands/codex.md" "thinking"
 
 # --- Agents.yaml codex entry ---
 assert_contains "config/agents.yaml" "codex:"

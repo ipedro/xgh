@@ -41,6 +41,7 @@ Dispatch implementation tasks or code reviews to Google's Gemini CLI. Supports w
 | `type` | No | `exec` (default) or `review` |
 | `prompt` | Yes | Task description or review instructions |
 | `--model`, `-m` | No | Override model (e.g., `gemini-2.5-flash`). Omit to use CLI default. |
+| `--effort`, `--thinking` | No | Reasoning effort: `low`, `medium`, `high`, `max`/`xhigh`, `minimal`. Both flags are aliases. |
 | `--approval-mode` | No | Override approval mode (`default`, `auto_edit`, `yolo`, `plan`) |
 | `-s` | No | Enable sandbox mode |
 | `[any gemini flag]` | No | All unrecognized flags are forwarded to Gemini CLI as-is |

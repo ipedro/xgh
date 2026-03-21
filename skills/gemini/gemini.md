@@ -62,7 +62,7 @@ json.dump(p, open(path, 'w'), indent=2)
 
 **Background / check-in mode:**
 1. Ask at most 2 essential clarifying questions in the main session.
-2. Collect context: user's request verbatim, dispatch type, current branch.
+2. Collect context: user's request verbatim, dispatch type, model preference, current branch.
 3. Dispatch via Agent tool with `run_in_background: true`. Prompt must be fully self-contained.
 4. Reply: "Gemini dispatch running in background -- I'll post results when done."
 5. When agent completes: post results summary to main session.
@@ -109,6 +109,24 @@ Parse the user's request to determine dispatch parameters. Only extract what the
 | `type` | `exec` | first arg: `exec` or `review` |
 | `isolation` | `worktree` (exec), `same-dir` (review) | `--worktree`, `--same-dir` |
 | `prompt` | -- | remaining text after type |
+| `effort` | CLI default | `--effort <level>` or `--thinking <level>` (translated to Gemini thinking config) |
+
+**Effort level translation** (accepts `--effort`, `--thinking` — maps to Gemini's model-dependent thinking config):
+
+Gemini uses different thinking parameters depending on model generation:
+- **Gemini 2.5 (Flash/Pro):** `thinking_budget` (integer tokens, 0-24576)
+- **Gemini 3+:** `thinking_level` (enum: `MINIMAL`, `LOW`, `MEDIUM`, `HIGH`)
+
+| User says | Gemini 3+ (`thinking_level`) | Gemini 2.5 (`thinking_budget`) |
+|-----------|------------------------------|-------------------------------|
+| `--effort low` / `--thinking low` | `LOW` | `1024` |
+| `--effort medium` / `--thinking medium` | `MEDIUM` | `8192` |
+| `--effort high` / `--thinking high` | `HIGH` | `16384` |
+| `--effort max` / `--thinking max` | `HIGH` | `24576` |
+| `--effort xhigh` / `--thinking xhigh` | `HIGH` | `24576` |
+| `--effort minimal` / `--thinking minimal` | `MINIMAL` | `0` |
+
+`--effort` and `--thinking` are aliases. `max` and `xhigh` (Anthropic/OpenAI jargon) both map to the maximum available. `minimal` maps to Gemini's native `MINIMAL` level. If the user passes a raw integer (e.g., `--thinking 16000`), treat it as a direct `thinking_budget` value for Gemini 2.5 models.
 
 **Passthrough flags** (forwarded verbatim to Gemini CLI if the user includes them):
 
@@ -214,6 +232,7 @@ Present a structured summary to the user:
 | Field | Value |
 |-------|-------|
 | Type | exec / review |
+| Model | (if specified via -m) |
 | Isolation | worktree ($BRANCH) / same-dir |
 | Files changed | N |
 | Duration | Xs |
@@ -253,7 +272,7 @@ git branch -d "$BRANCH"
 Store the dispatch outcome for future reference:
 
 ```
-lcm_store("Gemini dispatch: <type> | isolation: <mode> | <outcome summary>", ["session", "gemini"])
+lcm_store("Gemini dispatch: <type> | model: <model> | isolation: <mode> | <outcome summary>", ["session", "gemini"])
 ```
 
 ---

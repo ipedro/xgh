@@ -27,21 +27,49 @@ assert_file_exists "skills/gemini/gemini.md"
 assert_file_exists "commands/gemini.md"
 assert_file_exists "tests/skill-triggering/prompts/gemini.txt"
 
-# --- Skill content ---
-assert_contains "skills/gemini/gemini.md" "gemini"
-assert_contains "skills/gemini/gemini.md" "worktree"
-assert_contains "skills/gemini/gemini.md" "same-dir"
+# --- Skill: spawning management flags ---
 assert_contains "skills/gemini/gemini.md" "yolo"
 assert_contains "skills/gemini/gemini.md" "approval-mode plan"
-assert_contains "skills/gemini/gemini.md" "run_in_background"
-assert_contains "skills/gemini/gemini.md" "lossless-claude"
 assert_contains "skills/gemini/gemini.md" "headless"
+
+# --- Skill: dispatch types ---
+assert_contains "skills/gemini/gemini.md" "exec"
+assert_contains "skills/gemini/gemini.md" "review"
+
+# --- Skill: isolation modes ---
+assert_contains "skills/gemini/gemini.md" "worktree"
+assert_contains "skills/gemini/gemini.md" "same-dir"
+
+# --- Skill: effort/thinking translation ---
+assert_contains "skills/gemini/gemini.md" "effort"
+assert_contains "skills/gemini/gemini.md" "thinking"
+assert_contains "skills/gemini/gemini.md" "thinking_budget"
+assert_contains "skills/gemini/gemini.md" "thinking_level"
+assert_contains "skills/gemini/gemini.md" "xhigh"
+assert_contains "skills/gemini/gemini.md" "MINIMAL"
+
+# --- Skill: passthrough flags ---
+assert_contains "skills/gemini/gemini.md" "sandbox"
+assert_contains "skills/gemini/gemini.md" "include-directories"
+assert_contains "skills/gemini/gemini.md" "policy"
+
+# --- Skill: background dispatch ---
+assert_contains "skills/gemini/gemini.md" "run_in_background"
+
+# --- Skill: curate/memory ---
+assert_contains "skills/gemini/gemini.md" "lossless-claude"
+assert_contains "skills/gemini/gemini.md" "lcm_store"
+
+# --- Skill: preamble ---
+assert_contains "skills/gemini/gemini.md" "prefs.json"
 
 # --- Command content ---
 assert_contains "commands/gemini.md" "xgh:gemini"
 assert_contains "commands/gemini.md" "/xgh-gemini"
 assert_contains "commands/gemini.md" "exec"
 assert_contains "commands/gemini.md" "review"
+assert_contains "commands/gemini.md" "effort"
+assert_contains "commands/gemini.md" "thinking"
 
 # --- Agents.yaml gemini entry ---
 assert_contains "config/agents.yaml" "gemini:"
