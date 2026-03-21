@@ -7,8 +7,9 @@ tagline: "xgh: Claude on the fastlane"
 emoji: "🐴"
 
 description: |
-  xgh is a Model Context Server (MCS) tech pack for Claude Code that gives AI agents
-  persistent, team-shared memory across sessions. It combines:
+  xgh is declarative AI ops — declare your agent behavior in YAML, converge every
+  AI platform to match. It is a Model Context Server (MCS) tech pack for Claude Code
+  that gives AI agents persistent, team-shared memory across sessions. It combines:
 
   - **lossless-claude** — persistent memory via SQLite + FTS5 for storing and querying
     past decisions, reasoning chains, and patterns

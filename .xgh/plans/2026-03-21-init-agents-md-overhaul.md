@@ -239,3 +239,72 @@
   git commit -m "docs: add init AGENTS.md overhaul plan + design spec"
   git push
   ```
+
+---
+
+## Task 4: Core Values Interview + Injection
+
+**Source:** `.xgh/context-tree/decisions/core-values-init-interview.md`
+
+**Files:**
+- Modify: `skills/init/init.md`
+- Modify: `config/project.yaml` (add `values:` block to schema + xgh's own values)
+- Modify: `hooks/session-start.sh` (inject `values.mission` + `values.principles`)
+- Modify: `skills/seed/seed.md` (include `values:` in seeded `context.md`)
+- Modify: `scripts/gen-agents-md.sh` (add `## Core Values` section to AGENTS.md)
+
+- [ ] **Step 1: Add `values:` schema to config/project.yaml**
+
+  Add xgh's own values as the reference example:
+  ```yaml
+  values:
+    mission: "Make AI agents first-class teammates — reliable, consistent, context-aware."
+    anti_goals:
+      - "No cloud sync, no telemetry, no vendor lock-in"
+      - "Not a wrapper around other tools — xgh orchestrates, not replaces"
+    principles:
+      - "Declare desired state, converge reality to match (declarative AI ops)"
+      - "One source of truth — YAML is authoritative, everything else is derived"
+      - "Drift is the enemy — seeded context must always be re-generatable"
+    done_well: "An agent opens a session, knows the project context, makes decisions consistent with past ones, and never asks the same question twice."
+  ```
+
+- [ ] **Step 2: Add Step 2a to init.md — Core Values Interview**
+
+  Insert after Step 2 (Profile setup). Claude reads `README.md` and `MISSION.md` if present, proposes answers, user confirms or edits. Questions:
+  1. Why does this project exist? (mission)
+  2. What does it refuse to do? (anti_goals — comma-separated)
+  3. What 2-3 principles guide every decision? (principles)
+  4. How do you know when something is done well? (done_well)
+
+  All questions skippable. Write answers to `config/project.yaml` under `values:`.
+
+- [ ] **Step 3: Inject into session-start hook**
+
+  In `hooks/session-start.sh`, prepend a `## Why this project exists` block to the injected context output, sourced from `values.mission` + `values.principles`. Max 5 lines.
+
+- [ ] **Step 4: Include in /xgh-seed context.md**
+
+  In `skills/seed/seed.md`, add `values:` block to the seeded `context.md` template. Position: top of file, before tech stack.
+
+- [ ] **Step 5: Add `## Core Values` to AGENTS.md generator**
+
+  In `scripts/gen-agents-md.sh`, read `proj['values']` and emit a `## Core Values` section after the project description. Show mission + principles as bullets.
+
+- [ ] **Step 6: Update test-config.sh**
+
+  Add assertions:
+  ```bash
+  assert_contains "config/project.yaml" "values:"
+  assert_contains "config/project.yaml" "mission:"
+  assert_contains "config/project.yaml" "principles:"
+  assert_contains "AGENTS.md" "## Core Values"
+  ```
+
+- [ ] **Step 7: Run tests + commit**
+
+  ```bash
+  bash tests/test-config.sh && bash tests/test-skills.sh && bash tests/test-commands.sh
+  git add config/project.yaml skills/init/init.md hooks/session-start.sh skills/seed/seed.md scripts/gen-agents-md.sh tests/test-config.sh
+  git commit -m "feat(init): add core values interview + inject values into agent prompts"
+  ```
