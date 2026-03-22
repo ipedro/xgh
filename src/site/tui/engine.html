@@ -654,25 +654,27 @@ function appendBlank(parent) {
 }
 
 // ── Generic scene player ──────────────────────────────────────────────────────
-async function playScene(demo) {
+async function playScene(demo, { skipInput = false } = {}) {
   // 1. Set divider context
   const labelColor = resolveColor(demo.label_color);
   setDemoContext(demo.label || '', labelColor || 'rgba(255,255,255,0.07)');
 
-  // 2. Type and commit the command/input
-  if (demo.command) {
-    await typeInput(demo.command);
-    if (demoAbort) return;
-    await sleep(200);
-    commitInput(demo.command);
-    cursorEl.classList.add('hidden');
-  } else if (demo.input) {
-    await sleep(800);
-    await typeInput(demo.input);
-    if (demoAbort) return;
-    await sleep(200);
-    commitInput(demo.input);
-    cursorEl.classList.add('hidden');
+  // 2. Type and commit the command/input (skip when called from submitCommand)
+  if (!skipInput) {
+    if (demo.command) {
+      await typeInput(demo.command);
+      if (demoAbort) return;
+      await sleep(200);
+      commitInput(demo.command);
+      cursorEl.classList.add('hidden');
+    } else if (demo.input) {
+      await sleep(800);
+      await typeInput(demo.input);
+      if (demoAbort) return;
+      await sleep(200);
+      commitInput(demo.input);
+      cursorEl.classList.add('hidden');
+    }
   }
 
   const at = assistantTurn();
@@ -922,7 +924,7 @@ async function submitCommand(cmd) {
     // Check if it matches a demo command
     const demo = DEMOS.find(d => d.command && (d.command === cmd || d.command.startsWith(baseCmd)));
     if (demo) {
-      await playScene(demo);
+      await playScene(demo, { skipInput: true });
     } else {
       appendLines(at, [
         `<span class="resp-dim">Unknown command: <span class="resp-red">${esc(cmd)}</span></span>`,
