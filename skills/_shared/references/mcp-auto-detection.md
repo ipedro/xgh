@@ -4,7 +4,10 @@
 
 Before starting any skill, auto-detect which MCP servers are available. Skills adapt based on what is configured — no hard dependencies.
 
-**How to detect:** Check whether the tool functions for each integration are available in the current tool list. Available integrations are discovered automatically on first invocation. Call `xgh:mcp-setup` for any missing MCP the user wants to configure.
+**How to detect:**
+- For MCP integrations: Check whether the tool functions are available in the current tool list.
+- For CLI integrations (GitHub): Check CLI availability via `command -v` or by running a help command.
+Available integrations are discovered automatically on first invocation. Call `xgh:mcp-setup` for any missing MCP the user wants to configure.
 
 ## Common Tool Signatures by Integration
 
@@ -13,7 +16,7 @@ Before starting any skill, auto-detect which MCP servers are available. Skills a
 | lossless-claude | `mcp__lossless-claude__lcm_search` tool available | xgh memory, session state, conventions |
 | Slack MCP | `mcp__claude_ai_Slack__slack_read_thread` tool available | Thread reading, message search |
 | Atlassian/Jira | `mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql` tool available | Ticket history, task management |
-| GitHub CLI | CLI detection: `gh pr list` / `gh issue list` available (no standard MCP server — uses CLI, not tool function detection) | PRs, issues, Actions |
+| GitHub | `gh pr list` / `gh issue list` available (CLI detection; no standard MCP server for GitHub) | PRs, issues, Actions |
 | Figma MCP | `mcp__claude_ai_Figma__get_design_context` tool available | Design extraction, Code Connect |
 | Gmail | `gmail_search_messages` tool available | Email search and reading |
 

@@ -1,4 +1,3 @@
----
 # Shared Dispatch Template
 
 <!-- This file is the single source of truth for the shared dispatch workflow.
@@ -91,7 +90,7 @@ git branch -d "$BRANCH"
 
 ## Step 5: Curate (if lossless-claude available)
 
-Store the dispatch outcome for future reference (replace `<cli>` and `<CLI_LABEL>` with the skill's values):
+Store the dispatch outcome for future reference (replace `<CLI_LABEL>` with the skill's label):
 
 ```
 lcm_store("<CLI_LABEL> dispatch: <type> | model: <model> | isolation: <mode> | <outcome summary>", ["session", "<cli>"])

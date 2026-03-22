@@ -58,10 +58,10 @@ json.dump(p, open(path, 'w'), indent=2)
 4. Reply: "\<SKILL_LABEL\> running in background — I'll post findings when done."
 5. When agent completes: post a ≤5-bullet summary to main session.
 
-**Background / fire-and-forget mode:**
-1. Collect context automatically (no questions).
+**Background / fire-and-forget mode (dispatch-type skills only):**
+1. Collect context automatically (no questions). For dispatch-type skills, include `dispatch type` and `model preference` instead of `current branch` and `recent log`.
 2. Dispatch via Agent tool with `run_in_background: true`.
-3. Reply: "\<SKILL_LABEL\> running in background — I'll post findings when done."
+3. Reply: "\<SKILL_LABEL\> running in background -- I'll post results when done."
 4. When agent completes: post a ≤5-bullet summary.
 
 ---
@@ -73,4 +73,4 @@ json.dump(p, open(path, 'w'), indent=2)
 | `<SKILL_NAME>` | Key used in `~/.xgh/prefs.json` under `skill_mode` | `codex`, `collab`, `gemini`, `implement`, `investigate`, `opencode`, `track` |
 | `<SKILL_LABEL>` | Human-readable label shown in prompts and replies | `Codex dispatch`, `Collab`, `Gemini dispatch`, `Implementation`, `Investigation`, `OpenCode dispatch`, `Track` |
 
-> **Note on dispatch-type skills (codex, gemini, opencode):** Background check-in context also includes `dispatch type` and `model preference` instead of `current branch` and `recent log`. Replies use `--` dash style ("... -- I'll post results when done.") instead of em-dash.
+> **Note on dispatch-type skills (codex, gemini, opencode):** The fire-and-forget mode includes `dispatch type` and `model preference` instead of `current branch` and `recent log` in the collected context, and uses `--` dash style in replies. Other skills use the standard check-in mode shown above.
