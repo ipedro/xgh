@@ -1,10 +1,10 @@
 name: claude
-title: "Claude Code"
-version: "v2.1.81"
+title: "Lossless Claude"
+version: "v2.0.0"
 
 path:
-  text: "x.com/ipedro"
-  url: "https://x.com/ipedro"
+  text: "claude plugin install xgh@extreme-go-horse"
+  url: "#install"
 
 prompt: "›"
 
@@ -13,12 +13,11 @@ titlebar:
   detail: "— bun • claude --dangerously-skip-permissions — 102×31"
 
 models:
-  - "Sonnet 4.6 with medium effort · Claude Max"
-  - "Sonnet 4.6 with high effort · Claude Max"
-  - "Opus 4.6 with medium effort · Claude Max"
-  - "Opus 4.6 · Claude Max"
-  - "Haiku 4.5 · Claude Max"
-  - "Sonnet 4.6 · Claude Pro"
+  - "medium effort"
+  - "high effort"
+  - "max effort"
+  - "low effort"
+  - "xhigh effort"
 
 theme:
   bg: "#0d0e17"

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Claude Code — TUI Demo</title>
+  <title>Lossless Claude — TUI Demo</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
   <style>
@@ -253,18 +253,17 @@
 if (typeof window.__TUI_SHELL === 'undefined') {
   window.__TUI_SHELL = {
     name: "claude",
-    title: "Claude Code",
-    version: "v2.1.81",
-    path: { text: "x.com/ipedro", url: "https://x.com/ipedro" },
+    title: "Lossless Claude",
+    version: "v2.0.0",
+    path: { text: "claude plugin install xgh@extreme-go-horse", url: "#install" },
     prompt: "›",
     titlebar: { text: "extreme-go-horse", detail: "— bun • claude --dangerously-skip-permissions — 102×31" },
     models: [
-      "Sonnet 4.6 with medium effort · Claude Max",
-      "Sonnet 4.6 with high effort · Claude Max",
-      "Opus 4.6 with medium effort · Claude Max",
-      "Opus 4.6 · Claude Max",
-      "Haiku 4.5 · Claude Max",
-      "Sonnet 4.6 · Claude Pro"
+      "medium effort",
+      "high effort",
+      "max effort",
+      "low effort",
+      "xhigh effort"
     ],
     theme: {
       bg: "#0d0e17", window: "#1a1b26", titlebar: "#16171f",
@@ -356,11 +355,11 @@ if (typeof window.__TUI_COMMANDS === 'undefined') {
 // ── Data injection points ─────────────────────────────────────────────────────
 window.__TUI_SHELL = {
   "name": "claude",
-  "title": "Claude Code",
-  "version": "v2.1.81",
+  "title": "Lossless Claude",
+  "version": "v2.0.0",
   "path": {
-    "text": "x.com/ipedro",
-    "url": "https://x.com/ipedro"
+    "text": "claude plugin install xgh@extreme-go-horse",
+    "url": "#install"
   },
   "prompt": "\u203a",
   "titlebar": {
@@ -368,12 +367,11 @@ window.__TUI_SHELL = {
     "detail": "\u2014 bun \u2022 claude --dangerously-skip-permissions \u2014 102\u00d731"
   },
   "models": [
-    "Sonnet 4.6 with medium effort \u00b7 Claude Max",
-    "Sonnet 4.6 with high effort \u00b7 Claude Max",
-    "Opus 4.6 with medium effort \u00b7 Claude Max",
-    "Opus 4.6 \u00b7 Claude Max",
-    "Haiku 4.5 \u00b7 Claude Max",
-    "Sonnet 4.6 \u00b7 Claude Pro"
+    "medium effort",
+    "high effort",
+    "max effort",
+    "low effort",
+    "xhigh effort"
   ],
   "theme": {
     "bg": "#0d0e17",
