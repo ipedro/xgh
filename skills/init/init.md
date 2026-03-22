@@ -123,7 +123,7 @@ command -v lossless-claude
   ```
   lossless-claude not found. Install it?
 
-  curl -fsSL https://raw.githubusercontent.com/ipedro/lossless-claude/main/install.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/extreme-go-horse/lossless-claude/main/install.sh | bash
   ```
   If user says yes, run the installer. If no, continue — memory features will be unavailable.
 
@@ -201,7 +201,7 @@ If any `xgh-*` entries are found:
    rm -f .claude/hooks/continuous-learning-activator.sh 2>/dev/null || true
    ```
 
-2. Report: "Removed legacy per-project skill copies. Skills now load from the user-level plugin at `~/.claude/plugins/cache/ipedro/xgh/`."
+2. Report: "Removed legacy per-project skill copies. Skills now load from the user-level plugin at `~/.claude/plugins/cache/extreme-go-horse/xgh/`."
 
 If none found → continue silently.
 

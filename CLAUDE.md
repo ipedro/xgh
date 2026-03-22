@@ -15,7 +15,7 @@ bash tests/test-config.sh
 ### Install
 
 ```bash
-claude plugin install xgh@ipedro
+claude plugin install xgh@extreme-go-horse
 /xgh-init
 ```
 

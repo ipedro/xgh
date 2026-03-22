@@ -9,7 +9,7 @@
 
 | What you need | What does it | Installed by xgh |
 |---------------|-------------|------------------|
-| Persistent memory | [lossless-claude](https://github.com/ipedro/lossless-claude) | Automatic |
+| Persistent memory | [lossless-claude](https://github.com/extreme-go-horse/lossless-claude) | Automatic |
 | Token compression | [RTK](https://github.com/rtk-ai/rtk) | Automatic |
 | Dev methodology | [superpowers](https://github.com/obra/superpowers) | Optional plugin |
 
@@ -53,7 +53,7 @@
 <summary><b>Claude Code</b> (recommended)</summary>
 
 ```bash
-claude plugin install xgh@ipedro
+claude plugin install xgh@extreme-go-horse
 ```
 
 Then run first-time setup:
