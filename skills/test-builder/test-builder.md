@@ -7,7 +7,7 @@ description: "This skill should be used when the user runs /xgh-test-builder or 
 
 ## Step 1 — Resolve active project
 
-Follow the shared project resolution protocol in `skills/_shared/references/project-resolution.md`. Store the resolved project name for use in subsequent steps. If resolution fails, stop and tell the user to run `/xgh:config add-project`.
+Follow the shared project resolution protocol in `skills/_shared/references/project-resolution.md`. Store the resolved project name for use in subsequent steps. If resolution fails, follow the error-specific guidance in the shared protocol.
 
 ## Argument Parsing
 

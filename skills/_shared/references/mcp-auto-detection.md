@@ -13,7 +13,7 @@ Before starting any skill, auto-detect which MCP servers are available. Skills a
 | lossless-claude | `mcp__lossless-claude__lcm_search` tool available | xgh memory, session state, conventions |
 | Slack MCP | `mcp__claude_ai_Slack__slack_read_thread` tool available | Thread reading, message search |
 | Atlassian/Jira | `mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql` tool available | Ticket history, task management |
-| GitHub CLI | `gh pr list` / `gh issue list` available | PRs, issues, Actions |
+| GitHub CLI | CLI detection: `gh pr list` / `gh issue list` available (no standard MCP server — uses CLI, not tool function detection) | PRs, issues, Actions |
 | Figma MCP | `mcp__claude_ai_Figma__get_design_context` tool available | Design extraction, Code Connect |
 | Gmail | `gmail_search_messages` tool available | Email search and reading |
 

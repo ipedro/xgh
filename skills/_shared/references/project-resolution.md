@@ -22,7 +22,7 @@ import sys, os
 try:
     import yaml
 except ImportError:
-    import subprocess, importlib
+    import subprocess
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pyyaml', '-q'])
     import yaml
 
