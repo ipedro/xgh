@@ -156,11 +156,14 @@ body_match = re.search(r'<body>(.*)</body>', tui_html, re.DOTALL)
 tui_body = body_match.group(1).strip() if body_match else ''
 
 # Scope TUI CSS so it doesn't leak into the landing page
-# Replace bare `body {` with `.tui-embed {` and strip html/:root rules
-tui_style = re.sub(r'\bbody\s*\{', '.tui-embed {', tui_style)
+# Strip html/:root rules entirely
 tui_style = re.sub(r'\bhtml\s*\{[^}]*\}', '', tui_style)
-# :root vars are already injected by the landing page, remove TUI's copy
 tui_style = re.sub(r':root\s*\{[^}]*\}', '', tui_style)
+# Replace body selector with .tui-embed
+tui_style = re.sub(r'\bbody\s*\{', '.tui-embed {', tui_style)
+# Scope universal selector: *, *::before, *::after → .tui-embed *, ...
+# Lookbehind/lookahead exclude * inside CSS comments (/* ... */)
+tui_style = re.sub(r'(?<![.\w/=-])\*(?!/)', '.tui-embed *', tui_style)
 
 # Split body into HTML structure and scripts
 parts = re.split(r'(<script>)', tui_body, maxsplit=1)
