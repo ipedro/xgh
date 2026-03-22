@@ -13,8 +13,8 @@
 ```
 config → index → architecture → test-builder
   │         │          │              │
-  │         │          │              ├─ .xgh/e2e/manifest.yaml (test flows)
-  │         │          │              └─ .xgh/e2e/strategy.md (human summary)
+  │         │          │              ├─ .xgh/test-builder/manifest.yaml (test flows)
+  │         │          │              └─ .xgh/test-builder/strategy.md (human summary)
   │         │          │
   │         │          └─ xgh:architecture:* (lossless-claude memory)
   │         │             module-boundaries, dependency-graph,
@@ -24,9 +24,11 @@ config → index → architecture → test-builder
   │         └─ xgh:index:* (lossless-claude memory)
   │            module inventory, key files, naming patterns
   │
-  └─ ingest.yaml
+  └─ ~/.xgh/ingest.yaml (global, multi-project)
      stack, surfaces, project config
 ```
+
+**Project resolution:** `ingest.yaml` is a global multi-project manifest at `~/.xgh/ingest.yaml`. Skills resolve the active project by matching the current working directory's git remote against `projects.<name>.github` entries. If no match → stop and prompt user to run `/xgh:config add-project`.
 
 ### Single Responsibilities
 
@@ -44,15 +46,32 @@ config → index → architecture → test-builder
 | `ingest.yaml` (stack/surfaces) | config | index, architecture | — | Missing → stop |
 | `xgh:index:*` memories | index | architecture | >14 days | >60 days |
 | `xgh:architecture:*` memories | architecture | test-builder | >7 days | >30 days |
-| `.xgh/e2e/manifest.yaml` | test-builder init | test-builder run | — | Missing → run init |
+| `.xgh/test-builder/manifest.yaml` | test-builder init | test-builder run | — | Missing → run init |
 
 ### Scheduling
 
 | Skill | Suggested cadence |
 |-------|------------------|
+| config | Manual only (no scheduling) |
 | index | Weekly or on significant git changes |
 | architecture | Daily or post-index |
 | test-builder run | On-demand or CI-triggered |
+
+### Freshness Implementation
+
+Freshness timestamps are stored in `~/.xgh/ingest.yaml` under the project's config, not parsed from memory body text:
+
+```yaml
+projects:
+  xgh:
+    index:
+      last_run: 2026-03-22T15:00:00Z
+    architecture:
+      last_run: 2026-03-22T16:00:00Z
+      mode: quick  # or full
+```
+
+Downstream skills read these timestamps to evaluate staleness. This avoids parsing dates from unstructured memory content.
 
 ---
 
@@ -160,8 +179,21 @@ Written to lossless-claude memory with `xgh:architecture:` prefix:
 
 ### Quick vs Full
 
-- **Quick** (~2-3 min) — module boundaries, public surfaces, integration points. Enough for test-builder.
+- **Quick** (~2-3 min) — module boundaries, public surfaces, integration points.
 - **Full** (~10-15 min) — everything above plus dependency graph, critical paths, deep test landscape.
+
+**Artifact availability by mode:**
+
+| Artifact | Quick | Full |
+|----------|-------|------|
+| module-boundaries | yes | yes |
+| public-surfaces | yes | yes |
+| integration-points | yes | yes |
+| dependency-graph | — | yes |
+| critical-paths | — | yes |
+| test-landscape | — | yes |
+
+**Test-builder requirements:** test-builder `init` requires at minimum: module-boundaries, public-surfaces, integration-points (all available from quick). If test-builder detects complex surfaces or the complexity gate fires, it will recommend running `/xgh:architecture full` and tell the user which additional artifacts would improve test generation.
 
 ### Stack-Specific Analysis (moved from index)
 
@@ -212,7 +244,9 @@ Explicit triggers for interview mode:
 
 If none fire → autonomous generation. Otherwise → interview developer on: critical journeys, what breaks vs what's stable, external deps to mock vs hit live, deployment target.
 
-**Step 4 — Generate manifest** (`.xgh/e2e/manifest.yaml`):
+**Step 4 — Generate manifest** (`.xgh/test-builder/manifest.yaml`):
+
+Manifest is written atomically: generated to a temp file first, validated, then moved into place. If init fails mid-generation (interview abandoned, MCP unreachable), no partial manifest is left behind. `run` validates the manifest on load and refuses to execute if it contains unresolved placeholders or schema errors.
 
 ```yaml
 version: 1
@@ -258,7 +292,34 @@ flows:
           status: 409
 ```
 
-**Manifest schema covers:** project surface, prerequisites/env, flows/scenarios, step executor kind (`shell`, `http`, `browser`, `mobile`, `library`, `custom`), assertions, evidence/artifacts, and projection targets. Nothing more — it describes *what to test*, not *how the framework runs it*.
+**Manifest schema covers:** project surface, prerequisites/env, flows/scenarios, step executor kind, assertions, evidence/artifacts, and projection targets. Nothing more — it describes *what to test*, not *how the framework runs it*.
+
+### Executor Kinds
+
+| Executor | What it does | Prerequisites |
+|----------|-------------|---------------|
+| `shell` | Runs a command, captures stdout/stderr/exit code | None (default) |
+| `http` | Makes HTTP requests via curl, asserts status/headers/body | Target service running |
+| `browser` | Delegates to Playwright/Cypress (must be installed in project) | `npx playwright` or `npx cypress` available |
+| `mobile` | Delegates to XCTest/Espresso or AXe simulator automation | Xcode/Android Studio, simulator running |
+| `library` | Imports and calls exported functions, asserts return values | Project's native test runner (vitest, pytest, etc.) |
+| `custom` | Runs a user-provided script, asserts exit code 0 = pass | Script exists at declared path |
+
+Each executor is a thin dispatch layer. The manifest says "run this step with executor X". The skill maps that to the appropriate tool call. If the required tool isn't available, the step is marked `skipped` with an explanation.
+
+### Assertion Types
+
+| Assertion | Applies to | Example |
+|-----------|-----------|---------|
+| `exit_code` | shell, custom | `exit_code: 0` |
+| `stdout_contains` | shell, custom | `stdout_contains: "OK"` |
+| `stdout_matches` | shell, custom | `stdout_matches: "v\\d+\\.\\d+"` |
+| `status` | http | `status: 200` |
+| `body_contains` | http | `body_contains: '"status":"ok"'` |
+| `body_json_path` | http | `body_json_path: { path: "$.data.id", exists: true }` |
+| `header_contains` | http | `header_contains: { key: "content-type", value: "json" }` |
+| `file_exists` | any | `file_exists: "./output/report.html"` |
+| `returns` | library | `returns: { type: "object", has_key: "id" }` |
 
 **Step 5 — Optional native scaffold:** For known ecosystems, generates test files that implement manifest flows. Manifest remains source of truth.
 
@@ -302,4 +363,4 @@ This validates both the shell-based and framework-native paths.
 - `/xgh:index` execution mode as shared preamble pattern
 - `/xgh:architecture` scheduler integration
 - `/xgh:test-builder` CI integration (GitHub Actions workflow generation)
-- Codex skill dispatch improvement (issue #32)
+- Codex skill dispatch improvement ([#32](https://github.com/extreme-go-horse/xgh/issues/32))
