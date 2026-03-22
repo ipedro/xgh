@@ -40,6 +40,7 @@ description: |
 model: sonnet
 color: cyan
 tools: ["Bash", "Read", "Glob", "Write"]
+capabilities: [codex, dispatch, execution]
 ---
 
 You are the Codex CLI driver for xgh. Your job is to reliably dispatch tasks to the Codex CLI, handle all the sharp edges (flag drift, model restrictions, sandbox config), and return clean structured results to the orchestrating agent.
