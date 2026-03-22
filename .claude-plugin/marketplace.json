@@ -18,6 +18,15 @@
       "description": "Persistent memory and team context for AI-assisted development",
       "version": "1.0.0",
       "strict": true
+    },
+    {
+      "name": "lossless-claude",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/extreme-go-horse/lossless-claude.git"
+      },
+      "description": "Lossless context management — DAG-based summarization that preserves every message",
+      "version": "0.3.0"
     }
   ]
 }
