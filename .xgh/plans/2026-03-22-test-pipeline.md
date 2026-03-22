@@ -10,9 +10,14 @@
 
 **Spec:** `.xgh/specs/2026-03-22-test-pipeline-design.md`
 
+**Conventions:**
+- Command names use `xgh-` prefix for core skills (e.g., `name: xgh-config`)
+- Skills live in `skills/<name>/<name>.md`, commands in `commands/<name>.md`
+- All skills that read `ingest.yaml` must resolve the active project by matching cwd git remote against `projects.<name>.github` entries. If no match → stop and prompt `/xgh:config add-project`.
+
 ---
 
-### Task 1: Create `/xgh:config` skill
+### Task 1: Create `/xgh:config` skill and command
 
 **Files:**
 - Create: `skills/config/config.md`
@@ -20,48 +25,28 @@
 
 - [ ] **Step 1: Create the command file**
 
-`commands/config.md`:
-```markdown
----
-name: config
-description: "Structured editor for ~/.xgh/ingest.yaml — show, set, add-project, remove-project, validate"
-allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
----
-
-# /xgh-config
-
-Run the `xgh:config` skill to read or modify the xgh project manifest.
-
-## Usage
-
-\```
-/xgh-config show [section]
-/xgh-config set <dot.path> <value>
-/xgh-config add-project <name>
-/xgh-config remove-project <name>
-/xgh-config validate
-\```
-
-ARGUMENTS: $ARGUMENTS
-```
+Create `commands/config.md` with frontmatter:
+- `name: xgh-config`
+- `description: "Structured editor for ~/.xgh/ingest.yaml — show, set, add-project, remove-project, validate"`
+- `allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion`
+- Body: usage docs for show, set, add-project, remove-project, validate subcommands
+- `ARGUMENTS: $ARGUMENTS`
 
 - [ ] **Step 2: Create the skill file**
 
-Create `skills/config/config.md` following the spec's Skill 1 section. The skill must:
-- Parse `$ARGUMENTS` to determine subcommand (show, set, add-project, remove-project, validate)
-- Read `~/.xgh/ingest.yaml` using python3+PyYAML for all operations
-- `show`: pretty-print full manifest or a dot-path section
-- `set`: use dot-path notation to set values (e.g., `projects.xgh.stack shell`)
-- `add-project`: interactive — ask name, github repo, stack, surfaces, then write
-- `remove-project`: confirm then remove the project entry
-- `validate`: check for required fields (stack, surfaces, github) in each project
-- Include the new schema fields: `stack` and `surfaces` per project
-- Reference the spec for the full schema
+Create `skills/config/config.md` following the spec's Skill 1 section. Must implement:
+- Frontmatter: name `xgh:config`, description, type: flexible, triggers
+- Parse `$ARGUMENTS` to determine subcommand
+- `show [section]`: read `~/.xgh/ingest.yaml` via python3+PyYAML, pretty-print full manifest or dot-path section
+- `set <path> <value>`: dot-path notation (e.g., `projects.xgh.stack shell`), validate value types
+- `add-project <name>`: interactive — ask github repo, stack (with types: `shell`, `typescript`, `swift`, `kotlin`, `go`, `rust`, `python`, `generic`), surfaces (types: `cli`, `api`, `web`, `mobile`, `library`, `plugin`, `sdk`), then write
+- `remove-project <name>`: confirm via AskUserQuestion then remove
+- `validate`: check each project for required fields (`stack`, `surfaces`, `github`), report type mismatches (stack must be string, surfaces must be list of objects with `type` key), report missing fields
 
-- [ ] **Step 3: Validate command registration**
+- [ ] **Step 3: Run tests to validate registration**
 
 Run: `bash tests/test-config.sh`
-Expected: config command and skill are detected
+Expected: config command and skill detected
 
 - [ ] **Step 4: Commit**
 
@@ -76,26 +61,42 @@ git commit -m "feat: add /xgh:config skill for structured manifest editing"
 
 **Files:**
 - Modify: `skills/index/index.md`
+- Modify: `commands/index.md`
 
-- [ ] **Step 1: Read the current index skill**
+- [ ] **Step 1: Read current files**
 
-Read `skills/index/index.md` to understand the full current content before modifying.
+Read `skills/index/index.md` and `commands/index.md` to understand full content before modifying.
 
 - [ ] **Step 2: Rewrite the index skill**
 
-Replace the entire content of `skills/index/index.md` with the trimmed version per spec:
-- Remove: execution mode preamble (P1-P4), stack detection from filesystem, all full-mode extra passes, MCP dependency guard, quick/full distinction
-- Keep: directory structure scan, key files, module inventory, naming conventions, store to memory, update timestamps
-- Add: read `stack` and `surfaces` from `ingest.yaml` (via python3+PyYAML), hard prerequisite check
-- Add: offer to run `/xgh:architecture` at the end
-- Update frontmatter description to match new purpose
-- Memory format: `[REPO][MODULE]` with tags `["xgh:index", "<repo-name>"]`
+Replace `skills/index/index.md` with trimmed version per spec. The new skill must:
 
-- [ ] **Step 3: Update the command file if needed**
+**Remove entirely:**
+- Execution mode preamble (P1-P4, lines 17-78)
+- Stack detection from filesystem (lines 88-96)
+- All full-mode extra passes: iOS/Swift, Android/Kotlin, TypeScript/React, All stacks (lines 113-138)
+- MCP dependency guard check (frontmatter `mcp_dependencies`)
+- Quick/full mode distinction
 
-Read `commands/index.md` and update the description/usage to reflect the simplified skill.
+**Keep (simplified):**
+- Directory structure: Glob depth 2, map top-level layout
+- Key files: read manifests, entry points, README
+- Module inventory: list modules, key files per module
+- Naming conventions: sample files, extract patterns
+- Store to memory: write with tags `["xgh:index", "<repo-name>"]`
+- Update `index.last_run` timestamp in `ingest.yaml`
 
-- [ ] **Step 4: Run existing tests**
+**Add new:**
+- Project resolution: match cwd git remote against `projects.<name>.github` in `~/.xgh/ingest.yaml`. If no match → stop, tell user to run `/xgh:config add-project`.
+- Read `stack` and `surfaces` from resolved project config. If `stack` or `surfaces` missing → stop, tell user to run `/xgh:config set`.
+- Memory format: `[REPO][MODULE] <name>: <purpose>\nKey files: ...\nPattern: ...\nStack: <from ingest.yaml>\nIndexed: <ISO date>`
+- Offer architecture at end: "Index complete. Run `/xgh:architecture`? [y/n]"
+
+- [ ] **Step 3: Update the command file**
+
+Update `commands/index.md` description to: "Raw codebase inventory — extracts module list, key files, and naming conventions into lossless-claude memory"
+
+- [ ] **Step 4: Run tests**
 
 Run: `bash tests/test-config.sh`
 Expected: index skill/command still detected, structure valid
@@ -109,7 +110,7 @@ git commit -m "refactor: trim /xgh:index to pure codebase inventory"
 
 ---
 
-### Task 3: Create `/xgh:architecture` skill
+### Task 3: Create `/xgh:architecture` skill and command
 
 **Files:**
 - Create: `skills/architecture/architecture.md`
@@ -117,40 +118,52 @@ git commit -m "refactor: trim /xgh:index to pure codebase inventory"
 
 - [ ] **Step 1: Create the command file**
 
-`commands/architecture.md`:
-```markdown
----
-name: architecture
-description: "Analyze codebase architecture — module boundaries, dependency graph, critical paths, public surfaces"
-allowed-tools: Bash, Read, Glob, Grep, Agent
----
-
-# /xgh-architecture
-
-Run the `xgh:architecture` skill to produce architectural definitions from the codebase index.
-
-## Usage
-
-\```
-/xgh-architecture [quick|full]
-\```
-
-ARGUMENTS: $ARGUMENTS
-```
+Create `commands/architecture.md` with frontmatter:
+- `name: xgh-architecture`
+- `description: "Analyze codebase architecture — module boundaries, dependency graph, critical paths, public surfaces"`
+- `allowed-tools: Bash, Read, Glob, Grep, Agent`
+- Body: usage for `[quick|full]` mode argument
+- `ARGUMENTS: $ARGUMENTS`
 
 - [ ] **Step 2: Create the skill file**
 
 Create `skills/architecture/architecture.md` per spec's Skill 3 section:
-- Frontmatter: name, description, type: flexible, triggers, mcp_dependencies (lcm_store, lcm_search)
-- Hard prerequisite: check for `xgh:index:*` entries in lossless-claude memory
-- Parse mode from arguments (default: quick)
-- Read `stack` from `ingest.yaml` for stack-specific analysis
-- Quick mode artifacts: module-boundaries, public-surfaces, integration-points
-- Full mode: add dependency-graph, critical-paths, test-landscape
-- Stack-specific analysis passes (iOS/Swift, Android/Kotlin, TypeScript/React, All stacks) — moved from old index full mode
-- Store each artifact to lossless-claude with `xgh:architecture:` prefix tags
-- Update `architecture.last_run` and `architecture.mode` in `ingest.yaml`
-- Artifact availability table in the skill for reference
+
+**Frontmatter:** name `xgh:architecture`, description, type: flexible, triggers, mcp_dependencies (lcm_store, lcm_search)
+
+**Project resolution:** Same pattern as index — match cwd git remote against ingest.yaml projects.
+
+**Hard prerequisite — index freshness:**
+- Search lossless-claude for `xgh:index:*` entries. If none found → stop, tell user to run `/xgh:index`.
+- Read `index.last_run` from project config in `ingest.yaml`.
+- If >14 days old → warn: "Index is N days old. Consider re-running `/xgh:index` for fresh results."
+- If >60 days old → refuse: "Index is N days old (>60 day limit). Run `/xgh:index` first."
+
+**Parse mode:** default `quick`, accept `full` from arguments.
+
+**Read `stack`** from project config for stack-specific analysis.
+
+**Quick mode produces 3 artifacts:**
+- `module-boundaries`: which modules exist, what each owns, seams
+- `public-surfaces`: CLI commands, API endpoints, UI routes, exports, SDK methods
+- `integration-points`: external systems (DBs, APIs, queues, filesystems)
+
+**Full mode adds 3 more:**
+- `dependency-graph`: how modules depend on each other
+- `critical-paths`: key user/data journeys
+- `test-landscape`: existing coverage, frameworks, gaps
+
+**Stack-specific analysis** (moved from old index full mode):
+- iOS/Swift: coordinator pattern, SPM modules, feature flags, DI patterns
+- Android/Kotlin: Activity/Fragment hierarchy, Dagger/Hilt, nav graph
+- TypeScript/React: component tree, state management, hooks
+- All stacks: API routes, service layer, CI/CD config
+
+**Store artifacts** to lossless-claude with tags `["xgh:architecture", "<artifact-name>", "<repo-name>"]`
+
+**Update ingest.yaml:** set `architecture.last_run` (ISO timestamp) and `architecture.mode` (`quick`/`full`)
+
+**Include artifact availability table** in the skill for the LLM's reference.
 
 - [ ] **Step 3: Run tests**
 
@@ -166,7 +179,7 @@ git commit -m "feat: add /xgh:architecture skill for codebase analysis"
 
 ---
 
-### Task 4: Create `/xgh:test-builder` skill
+### Task 4: Create `/xgh:test-builder` skill — Phase 1 (init)
 
 **Files:**
 - Create: `skills/test-builder/test-builder.md`
@@ -174,70 +187,136 @@ git commit -m "feat: add /xgh:architecture skill for codebase analysis"
 
 - [ ] **Step 1: Create the command file**
 
-`commands/test-builder.md`:
-```markdown
----
-name: test-builder
-description: "Generate and run tailored test suites from architectural analysis — init to generate, run to execute"
-allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, AskUserQuestion
----
+Create `commands/test-builder.md` with frontmatter:
+- `name: xgh-test-builder`
+- `description: "Generate and run tailored test suites from architectural analysis — init to generate, run to execute"`
+- `allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, AskUserQuestion`
+- Body: usage for `init` and `run [flow-name]`
+- `ARGUMENTS: $ARGUMENTS`
 
-# /xgh-test-builder
+- [ ] **Step 2: Create the skill file with init phase**
 
-Run the `xgh:test-builder` skill to generate or execute a test suite.
+Create `skills/test-builder/test-builder.md` with the init phase per spec's Skill 4:
 
-## Usage
+**Frontmatter:** name `xgh:test-builder`, description, type: flexible, triggers, mcp_dependencies (lcm_search)
 
-\```
-/xgh-test-builder init
-/xgh-test-builder run [flow-name]
-\```
+**Project resolution:** Same pattern as other skills.
 
-ARGUMENTS: $ARGUMENTS
-```
+**Hard prerequisite — architecture freshness:**
+- Search lossless-claude for `xgh:architecture:*` entries. If none → stop, tell user to run `/xgh:architecture`.
+- Read `architecture.last_run` from project config in `ingest.yaml`.
+- If >7 days → warn: "Architecture analysis is N days old. Consider re-running `/xgh:architecture`."
+- If >30 days → refuse: "Architecture analysis is N days old (>30 day limit). Run `/xgh:architecture` first."
+- If test-builder detects complex surfaces (multiple surface types, >5 modules) and architecture mode was `quick` → recommend: "Consider running `/xgh:architecture full` for dependency graph and critical paths."
 
-- [ ] **Step 2: Create the skill file — Phase 1 (init)**
+**Parse arguments:** `init` or `run [flow]`. If no argument → show usage.
 
-Create `skills/test-builder/test-builder.md` per spec's Skill 4 section. The init phase must:
-- Hard prerequisite: check for `xgh:architecture:*` entries, freshness check (warn >7d, refuse >30d)
-- Read timestamps from `ingest.yaml` project config
-- Step 1: Read architectural definitions from lossless-claude memory
-- Step 2: Determine project surface type from `surfaces` in ingest.yaml + architecture artifacts
-- Step 3: Complexity gate — list the 5 explicit triggers for interview mode
-- Step 4: Generate manifest atomically (temp file → validate → move)
-- Include the full manifest YAML schema with all fields documented
-- Include executor kinds table and assertion types table from spec
-- Step 5: Optional native scaffold
-- Step 6: Generate strategy.md companion
+**Init Step 1 — Read architectural definitions:** Pull module-boundaries, public-surfaces, integration-points (and critical-paths, test-landscape if available) from lossless-claude memory.
 
-- [ ] **Step 3: Add Phase 2 (run) to the skill file**
+**Init Step 2 — Determine project surface type:** Read `surfaces` from ingest.yaml + architecture's `public-surfaces` artifact. Map to test strategy per spec table (CLI→acceptance, API→contract, web→e2e, mobile→e2e, library→contract, mixed→layered).
 
-Append the run phase to the same skill file:
-- Parse arguments: no args = run all, flow name = run specific flow
-- Validate manifest on load (check for unresolved placeholders, schema errors)
-- Fail fast on missing prerequisites
-- Execute each flow: run steps, evaluate assertions, collect results
-- Output: markdown table with flow/surface/steps/result/notes
-- Summary line: X flows · Y/Z steps passed · N failures
+**Init Step 3 — Complexity gate (adaptive autonomy):** Check these 5 explicit triggers:
+1. Multiple surfaces detected
+2. No clear entry point
+3. Auth/stateful setup required (detected from architecture artifacts)
+4. External dependencies that may need mocking (from integration-points)
+5. Test landscape shows <30% coverage in critical paths (if available)
 
-- [ ] **Step 4: Run tests**
+If ANY trigger fires → interview developer using AskUserQuestion:
+- "What are your critical user journeys?"
+- "What breaks frequently vs what's stable?"
+- "Which external deps should be mocked vs hit live?"
+- "What's your deployment target?"
+
+If NO triggers fire → autonomous generation.
+
+**Init Step 4 — Generate manifest atomically:**
+- Write to temp file first: `.xgh/test-builder/manifest.yaml.tmp`
+- Validate: check all required fields present, no unresolved placeholders
+- Move into place: rename to `.xgh/test-builder/manifest.yaml`
+- If init fails mid-generation → delete temp file, no partial manifest left
+
+Include full manifest YAML schema with all fields from spec. Include executor kinds table (shell, http, browser, mobile, library, custom) and assertion types table (exit_code, stdout_contains, stdout_matches, status, body_contains, body_json_path, header_contains, file_exists, returns).
+
+**Init Step 5 — Optional native scaffold:** For known ecosystems, generate test files that implement manifest flows. Manifest remains source of truth.
+
+**Init Step 6 — Generate strategy.md:** Human-readable companion in `.xgh/test-builder/strategy.md` documenting what's being tested and why.
+
+- [ ] **Step 3: Run tests**
 
 Run: `bash tests/test-config.sh`
 Expected: test-builder command and skill detected
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add skills/test-builder/test-builder.md commands/test-builder.md
-git commit -m "feat: add /xgh:test-builder skill for test suite generation"
+git commit -m "feat: add /xgh:test-builder init phase for test suite generation"
 ```
 
 ---
 
-### Task 5: Add tests for the new skills
+### Task 5: Add `/xgh:test-builder` run phase
 
 **Files:**
-- Modify: `tests/test-config.sh` (add checks for new skills/commands)
+- Modify: `skills/test-builder/test-builder.md`
+
+- [ ] **Step 1: Append run phase to the skill file**
+
+Add the run phase after the init section in `skills/test-builder/test-builder.md`:
+
+**Run — argument parsing:**
+- No flow name → run all flows
+- Flow name provided → run only that flow
+- If `.xgh/test-builder/manifest.yaml` missing → stop: "No manifest found. Run `/xgh:test-builder init` first."
+
+**Run — manifest validation on load:**
+- Parse YAML, check `version` field exists
+- Check for unresolved placeholders (strings containing `TODO`, `???`, `FIXME`)
+- Validate schema: each flow has `name`, `surface`, `strategy`, `goal`, `steps`
+- If validation fails → refuse to execute, list specific errors
+
+**Run — execute flows:**
+For each flow:
+1. Run prerequisites (if any), wait for readiness
+2. For each step: execute using the declared executor
+3. Evaluate assertions against output
+4. If executor is unavailable → mark step as `skipped` with explanation (e.g., "Playwright not installed")
+5. Run cleanup steps (if any), even on failure
+6. Collect results: pass/fail/skip per step
+
+**Run — output format:**
+```
+## 🧪 test-builder run
+
+| Flow | Surface | Steps | Result | Notes |
+|------|---------|-------|--------|-------|
+| health-check | api | 1/1 | ✅ | 200ms |
+| user-reg | api | 2/2 | ✅ | |
+| duplicate | api | 0/1 | ❌ | Expected 409, got 500 |
+| browser-flow | web | 0/2 | ⏭️ | Playwright not installed |
+
+4 flows · 3/6 steps passed · 1 failure · 2 skipped
+```
+
+- [ ] **Step 2: Run tests**
+
+Run: `bash tests/test-config.sh`
+Expected: PASS (skill file still valid)
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add skills/test-builder/test-builder.md
+git commit -m "feat: add /xgh:test-builder run phase with executor dispatch"
+```
+
+---
+
+### Task 6: Add tests and skill-triggering prompts
+
+**Files:**
+- Modify: `tests/test-config.sh`
 - Create: `tests/skill-triggering/prompts/config.txt`
 - Create: `tests/skill-triggering/prompts/config-2.txt`
 - Create: `tests/skill-triggering/prompts/config-3.txt`
@@ -248,35 +327,35 @@ git commit -m "feat: add /xgh:test-builder skill for test suite generation"
 - Create: `tests/skill-triggering/prompts/test-builder-2.txt`
 - Create: `tests/skill-triggering/prompts/test-builder-3.txt`
 
-- [ ] **Step 1: Read existing test-config.sh to understand patterns**
+- [ ] **Step 1: Read existing test-config.sh**
 
-Read `tests/test-config.sh` to see how it checks for skills and commands.
+Read `tests/test-config.sh` to understand the assertion patterns and how it checks for skills/commands.
 
-- [ ] **Step 2: Add structural checks for new skills/commands**
+- [ ] **Step 2: Add structural checks for new skills and commands**
 
 Add checks to `tests/test-config.sh` for:
-- `skills/config/config.md` exists
-- `commands/config.md` exists
-- `skills/architecture/architecture.md` exists
-- `commands/architecture.md` exists
-- `skills/test-builder/test-builder.md` exists
-- `commands/test-builder.md` exists
+- `skills/config/config.md` exists and has valid frontmatter
+- `commands/config.md` exists and has `name: xgh-config`
+- `skills/architecture/architecture.md` exists and has valid frontmatter
+- `commands/architecture.md` exists and has `name: xgh-architecture`
+- `skills/test-builder/test-builder.md` exists and has valid frontmatter
+- `commands/test-builder.md` exists and has `name: xgh-test-builder`
 
 - [ ] **Step 3: Create skill-triggering prompts**
 
-Create natural-language prompts that should trigger each skill:
+Create 9 natural-language prompt files that should trigger each skill:
 
-config prompts:
+config:
 - `config.txt`: "show me the current xgh config"
 - `config-2.txt`: "add a new project to xgh tracking"
 - `config-3.txt`: "set the stack for this project to typescript"
 
-architecture prompts:
+architecture:
 - `architecture.txt`: "analyze the architecture of this codebase"
 - `architecture-2.txt`: "run a full architectural analysis"
 - `architecture-3.txt`: "what are the module boundaries in this project"
 
-test-builder prompts:
+test-builder:
 - `test-builder.txt`: "generate tests for this project"
 - `test-builder-2.txt`: "run the test suite"
 - `test-builder-3.txt`: "build an acceptance test plan for this API"
@@ -291,36 +370,4 @@ Expected: all checks pass including new ones
 ```bash
 git add tests/test-config.sh tests/skill-triggering/prompts/
 git commit -m "test: add structural checks and trigger prompts for pipeline skills"
-```
-
----
-
-### Task 6: Update config/project.yaml and AGENTS.md references
-
-**Files:**
-- Modify: `config/project.yaml` (add new skills to registry)
-- Run: `bash scripts/gen-agents-md.sh` (regenerate AGENTS.md if applicable)
-
-- [ ] **Step 1: Read config/project.yaml**
-
-Read `config/project.yaml` to understand the skill registry format.
-
-- [ ] **Step 2: Add new skills to project config**
-
-Add `config`, `architecture`, and `test-builder` to the skills list in `config/project.yaml`.
-
-- [ ] **Step 3: Regenerate AGENTS.md if the script handles skills**
-
-Run: `bash scripts/gen-agents-md.sh` (if it exists and is relevant)
-
-- [ ] **Step 4: Run full test suite**
-
-Run: `bash tests/test-config.sh`
-Expected: PASS
-
-- [ ] **Step 5: Final commit**
-
-```bash
-git add config/project.yaml AGENTS.md
-git commit -m "chore: register pipeline skills in project config"
 ```
