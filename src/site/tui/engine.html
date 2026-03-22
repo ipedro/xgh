@@ -26,6 +26,7 @@
     /* ── macOS window ── */
     .window {
       width: 860px;
+      height: 580px;
       border-radius: 12px;
       overflow: hidden;
       box-shadow:
@@ -33,6 +34,8 @@
         0 40px 100px rgba(0,0,0,0.9),
         0 0 80px rgba(0,0,0,0.6);
       background: var(--window);
+      display: flex;
+      flex-direction: column;
     }
 
     .title-bar {
@@ -74,7 +77,7 @@
     .cc-path:hover { color: var(--accent); text-decoration: underline; }
 
     /* ── Conversation ── */
-    .conversation { height: 400px; overflow-y: auto; }
+    .conversation { flex: 1; overflow-y: auto; scroll-behavior: smooth; }
     .conv-inner {
       min-height: 100%; display: flex; flex-direction: column;
       justify-content: flex-end; padding: 12px 20px 8px;
@@ -120,6 +123,12 @@
     .prompt-cursor.hidden { display: none; }
     @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
 
+    /* ── Animations ── */
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
     /* ── Autocomplete panel ── */
     .autocomplete {
       display: none;
@@ -127,6 +136,7 @@
       padding: 4px 0;
       max-height: 180px;
       overflow-y: auto;
+      animation: fadeSlideIn 0.15s ease-out;
     }
     .autocomplete.visible { display: block; }
     .ac-row {
@@ -137,6 +147,7 @@
       font-size: 12px;
       cursor: pointer;
     }
+    .ac-row { transition: background 0.1s ease; }
     .ac-row:hover { background: rgba(255,255,255,0.04); }
     .ac-row.highlighted .ac-cmd { color: var(--accent); }
     .ac-cmd  { color: var(--blue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -158,19 +169,20 @@
     /* ── Turns ── */
     .turn-human {
       display: flex; align-items: flex-start; gap: 6px; margin-bottom: 8px;
+      animation: fadeSlideIn 0.2s ease-out;
     }
     .prompt-chevron-conv { color: var(--text-bright); font-size: 14px; font-weight: 600; flex-shrink: 0; padding-top: 1px; }
     .turn-assistant { margin-bottom: 12px; }
 
-    .tool-block { display: flex; align-items: flex-start; margin: 3px 0; color: var(--text-dim); font-size: 12px; }
+    .tool-block { display: flex; align-items: flex-start; margin: 3px 0; color: var(--text-dim); font-size: 12px; animation: fadeSlideIn 0.2s ease-out; }
     .tool-corner { color: var(--text-muted); flex-shrink: 0; margin-right: 4px; }
     .tool-name   { color: var(--blue); }
     .tool-args   { color: var(--text-dim); }
-    .tool-output { padding-left: 16px; font-size: 12px; }
+    .tool-output { padding-left: 16px; font-size: 12px; animation: fadeSlideIn 0.15s ease-out; }
     .tool-output-line { display: block; color: var(--text-muted); }
 
     .spinner { display: inline-block; color: var(--blue); font-size: 12px; }
-    .resp-text   { color: var(--text); font-size: 13px; line-height: 1.65; }
+    .resp-text   { color: var(--text); font-size: 13px; line-height: 1.65; animation: fadeSlideIn 0.2s ease-out; }
     .resp-bold   { color: var(--text-bright); font-weight: 600; }
     .resp-green  { color: var(--green); }
     .resp-orange { color: var(--orange); }
@@ -189,12 +201,14 @@
       border: 1px solid color-mix(in srgb, var(--blue) 20%, transparent);
       border-radius: 3px; padding: 3px 8px;
       font-size: 11px; color: var(--blue); margin: 4px 0;
+      animation: fadeSlideIn 0.2s ease-out;
     }
     .agent-block {
       background: color-mix(in srgb, var(--green) 5%, transparent);
       border: 1px solid color-mix(in srgb, var(--green) 15%, transparent);
       border-left: 2px solid var(--green);
       padding: 6px 10px; margin: 6px 0; font-size: 12px;
+      animation: fadeSlideIn 0.25s ease-out;
     }
     .agent-label { color: var(--green); font-weight: 600; font-size: 11px; margin-bottom: 2px; }
     .agent-text  { color: var(--text-dim); }
