@@ -239,9 +239,55 @@ Store the dispatch outcome for future reference:
 lcm_store("OpenCode dispatch: <type> | model: <model> | isolation: <mode> | <outcome summary>", ["session", "opencode"])
 ```
 
+**Write observation to model profiles** (always, regardless of lossless-claude):
+
+After the dispatch completes, append one observation to `.xgh/model-profiles.yaml`. Create the file if it doesn't exist.
+
+```yaml
+# Append to .xgh/model-profiles.yaml
+- agent: opencode
+  model: <the --model flag value, or "default" if none was passed>
+  effort: default
+  archetype: <set by router if dispatched via /xgh-dispatch, otherwise "unknown">
+  accepted: <true if worktree merged or user continued; false if re-dispatched or discarded>
+  ts: <ISO 8601 timestamp>
+```
+
+Note: OpenCode has no effort flag. Always record `effort: default`.
+
+Write using the same python one-liner pattern, with `'agent': 'opencode'` and `'effort': 'default'`:
+
+```bash
+python3 -c "
+import yaml, os, datetime
+path = '.xgh/model-profiles.yaml'
+os.makedirs(os.path.dirname(path), exist_ok=True)
+try:
+    data = yaml.safe_load(open(path)) or {}
+except FileNotFoundError:
+    data = {}
+data.setdefault('observations', [])
+data['observations'].append({
+    'agent': 'opencode',
+    'model': '<MODEL>',
+    'effort': 'default',
+    'archetype': '<ARCHETYPE>',
+    'accepted': True,  # or False based on outcome
+    'ts': datetime.datetime.now(datetime.timezone.utc).isoformat()
+})
+yaml.dump(data, open(path, 'w'), default_flow_style=False, sort_keys=False)
+"
+```
+
+Replace `<MODEL>`, `<ARCHETYPE>` with the actual values from the dispatch. Determine `accepted` from:
+- Worktree merged → `true`
+- User continued to next task → `true`
+- User re-dispatched same task → `false`
+- User discarded worktree → `false`
+
 ---
 
-## Model Selection
+## Model Selection Selection
 
 | Model | When to use |
 |-------|-------------|
