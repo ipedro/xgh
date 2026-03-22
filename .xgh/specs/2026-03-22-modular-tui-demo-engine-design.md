@@ -10,7 +10,7 @@ Three layers:
 2. **Declarative descriptors** — YAML files that script demo choreography and command responses
 3. **Build pipeline** — a shell script that reads shell config + demos + commands → produces a single HTML file
 
-The website moves from the separate `extreme-go-horse.com` repo into `src/site/` in the xgh repo. When an npm publishing workflow is added, the packaging configuration (e.g. a `package.json` `files` field) must only ship `.claude-plugin/` and exclude `src/site/`.
+The website moves from the separate `extreme-go-horse.com` repo into `src/site/` in the xgh repo. The npm `package.json` `files` field already limits publishing to `.claude-plugin/`, so the site won't ship to npm.
 
 ## File Structure
 
@@ -207,7 +207,11 @@ Built-in handlers: `color`, `rename`, `help`. The `help` handler is auto-generat
    - `window.__TUI_COMMANDS = [ ... ]`
 6. Write `out/<shell-name>-tui.html`
 
+<<<<<<< HEAD
 Dependencies: `bash`, Python 3 with PyYAML (`pip3 install pyyaml`). The build script checks for PyYAML at startup and prints install instructions if missing. No npm, no bundler.
+=======
+Dependencies: `bash`, Python 3 (for YAML→JSON via `python3 -c 'import yaml, json, sys; ...'`). No npm, no bundler.
+>>>>>>> origin/develop
 
 ## TUI Engine (`engine.html`)
 
@@ -229,18 +233,27 @@ An xgh trigger to auto-rebuild when skill files change:
 ```yaml
 schema_version: 1
 name: site-demo-sync
+<<<<<<< HEAD
 description: "Rebuild TUI demos when a skill file is written or edited"
+=======
+description: "Rebuild TUI demos when skill files change"
+>>>>>>> origin/develop
 enabled: true
 
 when:
   source: local
+<<<<<<< HEAD
   command: ".*skills/.*"    # regex matched against Write/Edit tool paths
+=======
+  command: "*skills/*"
+>>>>>>> origin/develop
 
 path: fast
 
 cooldown: 30s
 backoff: none
 
+<<<<<<< HEAD
 action_level: create
 
 then:
@@ -250,6 +263,12 @@ then:
       cd "$(git rev-parse --show-toplevel)"
       bash src/site/tui/build.sh claude
     on_error: continue
+=======
+then:
+  - name: Rebuild TUI
+    action_type: shell
+    run: "bash src/site/tui/build.sh claude"
+>>>>>>> origin/develop
 ```
 
 This is the automation layer. The initial implementation works without it — write YAMLs by hand, run `build.sh` manually. The trigger is added once the pipeline is stable.

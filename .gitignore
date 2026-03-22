@@ -13,3 +13,6 @@ CLAUDE.md
 .xgh/model-profiles.yaml
 .worktrees/
 .lossless-claude/
+.serena/
+CLAUDE.md
+CLAUDE.local.md
