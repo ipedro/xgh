@@ -10,7 +10,7 @@ Three layers:
 2. **Declarative descriptors** — YAML files that script demo choreography and command responses
 3. **Build pipeline** — a shell script that reads shell config + demos + commands → produces a single HTML file
 
-The website moves from the separate `extreme-go-horse.com` repo into `src/site/` in the xgh repo. The npm `package.json` `files` field already limits publishing to `.claude-plugin/`, so the site won't ship to npm.
+The website moves from the separate `extreme-go-horse.com` repo into `src/site/` in the xgh repo. When an npm publishing workflow is added, the packaging configuration (e.g. a `package.json` `files` field) must only ship `.claude-plugin/` and exclude `src/site/`.
 
 ## File Structure
 
