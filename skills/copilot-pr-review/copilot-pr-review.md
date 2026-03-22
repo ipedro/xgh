@@ -48,7 +48,7 @@ If auto-detect fails, print: `❌ Could not determine repo. Use --repo owner/rep
 
 ## Commands
 
-Parse the first argument after the PR number to determine the subcommand. If no subcommand is given, default to `status`.
+Parse the first argument as the subcommand and the second as the PR number, matching the `<command> <PR>` usage signature. If no subcommand is given, default to `status`.
 
 ---
 
@@ -59,7 +59,7 @@ Add Copilot as a reviewer for the first time.
 **Step 1 — Check if already requested:**
 ```bash
 gh api repos/$REPO/pulls/$PR/requested_reviewers \
-  --jq '.requested_reviewers[] | select(.login == "copilot-pull-request-reviewer[bot]") | .login'
+  --jq '.users[] | select(.login == "copilot-pull-request-reviewer[bot]") | .login'
 ```
 
 If Copilot is already in the list, print: `ℹ️ Copilot already requested for review on PR #$PR`
@@ -92,6 +92,9 @@ gh api repos/$REPO/pulls/$PR/requested_reviewers \
 Remove and re-add Copilot as reviewer to trigger a fresh review.
 
 **Step 1 — Try gh pr edit (preferred):**
+
+> Note: `gh pr edit` uses GraphQL and works **without** the `[bot]` suffix. The `[bot]` suffix is only required for the REST API (see Step 2).
+
 ```bash
 gh pr edit $PR --repo $REPO --remove-reviewer copilot-pull-request-reviewer
 gh pr edit $PR --repo $REPO --add-reviewer copilot-pull-request-reviewer
@@ -138,7 +141,7 @@ gh api repos/$REPO/pulls/$PR/comments \
 **Step 3 — Check pending:**
 ```bash
 gh api repos/$REPO/pulls/$PR/requested_reviewers \
-  --jq '[.requested_reviewers[] | select(.login == "copilot-pull-request-reviewer[bot]")] | length'
+  --jq '[.users[] | select(.login == "copilot-pull-request-reviewer[bot]")] | length'
 ```
 
 **Output:**
@@ -190,7 +193,7 @@ Remove any occurrence of `@copilot` from the message body.
 
 **Step 2 — Post reply:**
 ```bash
-gh api repos/$REPO/pulls/$PR/comments/$COMMENT_ID/replies \
+gh api repos/$REPO/pulls/comments/$COMMENT_ID/replies \
   -X POST -f "body=$SANITIZED_MESSAGE"
 ```
 
