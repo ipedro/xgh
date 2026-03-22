@@ -73,8 +73,8 @@
     .cc-name    { font-size: 14px; font-weight: 700; color: var(--text-bright); display: inline; }
     .cc-version { font-size: 14px; font-weight: 400; color: var(--text-dim); display: inline; margin-left: 6px; }
     .cc-model   { font-size: 12px; color: var(--text-dim); display: block; margin-top: 1px; }
-    .cc-path    { font-size: 12px; color: var(--text-dim); display: block; text-decoration: none; }
-    .cc-path:hover { color: var(--accent); text-decoration: underline; }
+    .cc-path    { font-size: 12px; color: var(--text-dim); display: block; text-decoration: none; cursor: pointer; transition: color 0.15s ease; }
+    .cc-path:hover { color: var(--accent); }
 
     /* ── Conversation ── */
     .conversation { flex: 1; overflow-y: auto; scroll-behavior: smooth; }
@@ -452,6 +452,19 @@ const acEl       = document.getElementById('autocomplete');
   if (pathEl && S.path) {
     pathEl.textContent = S.path.text || '';
     pathEl.href = S.path.url || '#';
+    pathEl.addEventListener('click', (e) => {
+      e.preventDefault();
+      const installCmd = S.path.text || '';
+      navigator.clipboard.writeText(installCmd).then(() => {
+        const original = pathEl.textContent;
+        pathEl.textContent = 'Copied!';
+        pathEl.style.color = 'var(--green)';
+        setTimeout(() => {
+          pathEl.textContent = original;
+          pathEl.style.color = '';
+        }, 1500);
+      });
+    });
   }
 
   // Prompt char
