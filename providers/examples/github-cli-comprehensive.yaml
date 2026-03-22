@@ -73,7 +73,6 @@ watch_notifications:
   - "reason:assign"              # Assigned directly
   - "reason:review_requested"    # Code review requested
 
----
 # SCENARIO: Solo developer tracking multiple active projects
 #
 # Replace repos with your active projects. For each:
@@ -108,7 +107,6 @@ watch_notifications:
 #
 # Then use /xgh-analyze to synthesize alerts into a digest.
 
----
 # TIPS:
 #
 # • Watch filters use GitHub search syntax (https://github.com/search/syntax)
