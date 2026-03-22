@@ -1526,8 +1526,10 @@ function renderLine(line) {
   let html = '';
 
   if (line.icon !== undefined) {
-    const iconColor = resolveColor(line.color) || 'inherit';
-    html += `<span style="color:${esc(iconColor)}">${esc(line.icon)}</span> `;
+    const rawColor = resolveColor(line.color) || 'inherit';
+    // Sanitize: strip characters that could break out of a CSS value context
+    const iconColor = rawColor.replace(/["';\\]/g, '');
+    html += `<span style="color:${iconColor}">${esc(line.icon)}</span> `;
   }
   if (line.bold !== undefined) html += `<span class="resp-bold">${esc(line.bold)}</span>`;
   if (line.green !== undefined) html += `<span class="resp-green">${esc(line.green)}</span>`;
@@ -1813,6 +1815,7 @@ function onKey(e) {
   }
 
   if (e.key === 'Backspace') {
+    e.preventDefault();
     typedValue = typedValue.slice(0, -1);
   } else if (e.key.length === 1) {
     typedValue += e.key;

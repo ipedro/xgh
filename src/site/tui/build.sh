@@ -127,13 +127,17 @@ for feat in features_data:
 # Render install section HTML from commands/install.yaml
 install_cmd = next((c for c in cmds_data if c.get('name') == 'install'), None)
 install_html = '<ol class="install-steps">\n'
+ol_open = True
 if install_cmd and install_cmd.get('response'):
     for line in install_cmd['response']:
         if not isinstance(line, dict):
             continue
         if 'dim' in line and 'blue' in line:
             # Combined line: "Or via npm: npm i ..."
-            install_html += f'</ol>\n<p class="install-alt">{line["dim"]} <code>{line["blue"].strip()}</code></p>\n'
+            if ol_open:
+                install_html += '</ol>\n'
+                ol_open = False
+            install_html += f'<p class="install-alt">{line["dim"]} <code>{line["blue"].strip()}</code></p>\n'
         elif 'dim' in line and line['dim'][0:1].isdigit():
             # Step label: "1. Install the plugin:"
             label = line['dim'].split('.', 1)[1].strip().rstrip(':')
@@ -141,7 +145,7 @@ if install_cmd and install_cmd.get('response'):
         elif 'blue' in line and line['blue'].strip():
             # Step command
             install_html += f'  <code class="install-cmd">{line["blue"].strip()}</code></li>\n'
-if install_html.endswith('install-steps">\n'):
+if ol_open:
     install_html += '</ol>\n'
 
 # Read generated TUI HTML for inline embedding
