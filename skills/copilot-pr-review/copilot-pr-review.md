@@ -185,7 +185,7 @@ Use `body_safe` in place of `$BODY` when rendering the table.
 
 | ID | File | Line | Comment |
 |----|------|------|---------|
-| $ID | $PATH | $LINE | $BODY (truncated to 200 chars) |
+| $ID | $PATH | $LINE | $BODY_SAFE (truncated to 200 chars) |
 ...
 
 $COUNT comment(s) from Copilot on PR #$PR
@@ -289,4 +289,4 @@ These are encoded into the skill's logic, but listed here for reference:
 | Invalid PR | API returns 404 | `❌ PR #$PR not found in $REPO` |
 | Not authorized | API returns 403 | `❌ Not authorized. Run: gh auth status` |
 | Rate limited | API returns 429 | `⚠️ Rate limited. Retry after $SECONDS seconds.` |
-| Repo auto-detect fails | git command fails | `❌ Could not determine repo. Use --repo owner/repo` |
+| Repo auto-detect fails | `gh repo view` fails | `❌ Could not determine repo. Use --repo owner/repo` |
