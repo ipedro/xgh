@@ -66,7 +66,7 @@ If Copilot is already in the list, print: `ℹ️ Copilot already requested for 
 
 **Step 2 — Check if already reviewed:**
 ```bash
-gh api repos/$REPO/pulls/$PR/reviews \
+gh api 'repos/$REPO/pulls/$PR/reviews?per_page=100' \
   --jq '[.[] | select(.user.login == "copilot-pull-request-reviewer[bot]")] | length'
 ```
 
@@ -128,13 +128,13 @@ gh api repos/$REPO/pulls/$PR/requested_reviewers \
 
 **Step 1 — Get last review:**
 ```bash
-gh api repos/$REPO/pulls/$PR/reviews \
+gh api 'repos/$REPO/pulls/$PR/reviews?per_page=100' \
   --jq '[.[] | select(.user.login == "copilot-pull-request-reviewer[bot]")] | last | {state: .state, submitted_at: .submitted_at}'
 ```
 
 **Step 2 — Count comments:**
 ```bash
-gh api repos/$REPO/pulls/$PR/comments \
+gh api 'repos/$REPO/pulls/$PR/comments?per_page=100' \
   --jq '[.[] | select(.user.login == "Copilot")] | length'
 ```
 
@@ -164,7 +164,7 @@ gh api repos/$REPO/pulls/$PR/requested_reviewers \
 
 **Step 1 — Fetch comments:**
 ```bash
-gh api repos/$REPO/pulls/$PR/comments \
+gh api 'repos/$REPO/pulls/$PR/comments?per_page=100' \
   --jq '[.[] | select(.user.login == "Copilot")] | .[] | {id: .id, path: .path, line: .line, body: .body[0:200]}'
 ```
 
@@ -269,6 +269,7 @@ These are encoded into the skill's logic, but listed here for reference:
 | Path-specific instructions | `.github/instructions/**/*.instructions.md` |
 | Quota | Each review costs 1 premium request per review cycle. |
 | Review latency | Reviews typically take <30 seconds, but re-review requests may take several minutes. Don't re-request too aggressively. |
+| **API pagination hides new data** | GitHub REST API defaults to `per_page=30`. On PRs with many reviews/comments (e.g. from human replies), newer Copilot reviews land on page 2+ and are invisible to `--jq '... \| last'`. **Always use `?per_page=100`** on reviews, comments, and requested_reviewers endpoints. This caused 4+ hours of "no new review" false negatives in production. |
 
 ## Error Handling
 
