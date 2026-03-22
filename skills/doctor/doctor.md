@@ -235,9 +235,9 @@ For each secondary agent in `config/agents.yaml` with a `tested_version` field (
 Report:
 ```
 Agent versions
-  ✓ codex: v0.116.0 (tested: 0.116.0 — exact match)
-  ⚠ codex: v0.120.0 (tested: 0.116.0 — newer, behaviors may differ)
-  ✗ codex: v0.100.0 (tested: 0.116.0 — older, some flags may be missing)
+  ✓ codex: 0.116.0 (tested: 0.116.0 — exact match)
+  ⚠ codex: 0.120.0 (tested: 0.116.0 — newer, behaviors may differ)
+  ✗ codex: 0.100.0 (tested: 0.116.0 — older, some flags may be missing)
   ⚠ gemini: tested_version not set — run /xgh-doctor after first use to record it
   - opencode: not installed
 ```
@@ -305,7 +305,7 @@ Codebase Index
   ✗ passcode-service: never indexed — run /xgh-index
 
 Agent Versions
-  ✓ codex: v0.116.0 (tested: 0.116.0)
+  ✓ codex: 0.116.0 (tested: 0.116.0)
   ⚠ gemini: tested_version not set — update config/agents.yaml after validating
   - opencode: not installed
 
