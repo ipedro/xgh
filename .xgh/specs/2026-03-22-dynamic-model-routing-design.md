@@ -62,7 +62,7 @@ Output a tuple: `{agent, model, effort}`. If no profile data exists for this arc
 
 **Step 4 — Dispatch:**
 
-Invoke the appropriate dispatch skill with the selection:
+Invoke the appropriate dispatch skill with agent-specific flags:
 
 ```
 /xgh-codex exec -m <model> --effort <effort> "<task>"
@@ -70,11 +70,13 @@ Invoke the appropriate dispatch skill with the selection:
 /xgh-opencode exec --model <provider>/<model> "<task>"
 ```
 
+Note: OpenCode has no effort flag — only model is passed. Codex and Gemini support both model and effort. The router must respect each agent's supported flags (defined in the dispatch skill, not here).
+
 **Override behavior:**
 
 | User says | Router behavior |
 |-----------|----------------|
-| `--model X` | Skip classification, use model X, still auto-select agent |
+| `--model X` | Skip classification, infer agent from model prefix (`gpt-*` → codex, `gemini-*` → gemini, `anthropic/*` or `openai/*` → opencode). Require `--agent` if ambiguous. |
 | `--agent codex` | Force codex, router picks model from profile |
 | `--model X --agent codex` | Fully manual, router just passes through |
 | `/xgh-codex exec "..."` | Bypass router entirely (direct dispatch) |
@@ -160,11 +162,12 @@ Direct dispatches (bypassing router) still record observations with `archetype: 
 | `skills/codex/codex.md` | **Edit** — extend Step 5 curate with observation write |
 | `skills/gemini/gemini.md` | **Edit** — extend Step 5 curate with observation write |
 | `skills/opencode/opencode.md` | **Edit** — extend Step 5 curate with observation write |
-| `.gitignore` | **Edit** — add `model-profiles.yaml` |
+| `.gitignore` | **Edit** — add `.xgh/model-profiles.yaml` |
 | `tests/test-dispatch-router.sh` | **New** — router skill tests |
 | `tests/test-model-profiles.sh` | **New** — profile schema tests |
 | `tests/test-skills.sh` | **Edit** — add dispatch router assertions |
 | `tests/test-codex-dispatch.sh` | **Edit** — add curate observation assertions |
+| `tests/test-gemini-dispatch.sh` | **Edit** — add curate observation assertions |
 
 ## Dogfooding Plan
 
