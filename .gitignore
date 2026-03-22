@@ -10,5 +10,4 @@ data/cipher-sessions.db*
 .mcp.json
 .xgh/local/
 .xgh/model-profiles.yaml
-.worktrees/
 .lossless-claude/
