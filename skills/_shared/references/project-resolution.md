@@ -29,8 +29,8 @@ except ImportError:
 remote = sys.argv[1].strip()
 path = os.path.expanduser('~/.xgh/ingest.yaml')
 try:
-    data = yaml.safe_load(open(path))
-except FileNotFoundError:
+    data = yaml.safe_load(open(path)) or {}
+except (FileNotFoundError, PermissionError, OSError):
     print('NO_INGEST_YAML')
     sys.exit(0)
 
@@ -54,7 +54,7 @@ print('NO_MATCH')
 2. Pass it to the Python script as the `<remote-url>` argument
 3. Parse the output:
    - **Valid project name**: Resolution succeeded. Store this as `<repo-name>` for use in subsequent steps.
-   - **`NO_INGEST_YAML`**: The `~/.xgh/ingest.yaml` file does not exist or is unreadable.
+   - **`NO_INGEST_YAML`**: The `~/.xgh/ingest.yaml` file does not exist, is unreadable, or could not be parsed.
    - **`NO_MATCH`**: The remote URL was not found in any configured project's github entries.
 
 ## Error Handling

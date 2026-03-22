@@ -8,8 +8,6 @@
 This template defines the shared dispatch workflow for all CLI dispatch skills.
 Each skill references this file and provides its own CLI-specific content inline.
 
----
-
 ## Step 1: Setup Workspace
 
 ### Worktree mode
@@ -90,10 +88,10 @@ git branch -d "$BRANCH"
 
 ## Step 5: Curate (if lossless-claude available)
 
-Store the dispatch outcome for future reference (replace `<CLI_LABEL>` with the skill's label):
+Store the dispatch outcome for future reference. Replace all placeholders: `<CLI_LABEL>` (display name, e.g. "Codex"), `<cli>` (tag slug, e.g. `"codex"`):
 
 ```
-lcm_store("<CLI_LABEL> dispatch: <type> | model: <model> | isolation: <mode> | <outcome summary>", ["session", "<cli>", "<tag>"])
+lcm_store("<CLI_LABEL> dispatch: <type> | model: <model> | isolation: <mode> | <outcome summary>", ["session", "<cli>"])
 ```
 
 ---
