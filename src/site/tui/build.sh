@@ -46,13 +46,17 @@ demo_files = sorted(glob.glob(os.path.join(demos_dir, '*.yaml')))
 demos_data = []
 for df in demo_files:
     with open(df) as f:
-        demos_data.append(yaml.safe_load(f))
+        data = yaml.safe_load(f)
+        if isinstance(data, dict):
+            demos_data.append(data)
 
 cmd_files = sorted(glob.glob(os.path.join(cmds_dir, '*.yaml')))
 cmds_data = []
 for cf in cmd_files:
     with open(cf) as f:
-        cmds_data.append(yaml.safe_load(f))
+        data = yaml.safe_load(f)
+        if isinstance(data, dict):
+            cmds_data.append(data)
 
 # Generate CSS custom properties from theme
 theme = shell_data.get('theme', {})
@@ -102,7 +106,9 @@ feature_files = sorted(glob.glob(os.path.join(features_dir, '*.yaml')))
 features_data = []
 for ff in feature_files:
     with open(ff) as f:
-        features_data.append(yaml.safe_load(f))
+        data = yaml.safe_load(f)
+        if isinstance(data, dict):
+            features_data.append(data)
 features_data.sort(key=lambda x: x.get('order', 99))
 
 # Read landing page template
