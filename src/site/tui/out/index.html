@@ -2213,6 +2213,7 @@ runDemo();
 
 <!-- ── Scroll animations ── -->
 <script>
+(function() {
 // ── Scroll observer ──────────────────────────────────────────────
 const sectionObs = new IntersectionObserver((entries) => {
   entries.forEach(e => {
@@ -2363,6 +2364,7 @@ async function playDebugging(el) {
     await sleep(700);
   }
 }
+})();
 </script>
 
 </body>

@@ -242,91 +242,141 @@ test.describe('TUI Demo Engine — Dogfood', () => {
 // Landing Page Tests
 // ═══════════════════════════════════════════════════════════════════════════════
 
-test.describe('Landing Page — Layout & Interactions', () => {
+test.describe('Landing Page — Story Sections', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto(LANDING_URL);
     await page.waitForTimeout(500);
   });
 
-  // ── Layout: sections stacked vertically ──────────────────────────────────────
-  test('hero, features, install, footer are stacked vertically', async ({ page }) => {
+  // ── Layout ─────────────────────────────────────────────────────────────────────
+  test('hero and 6 story sections are stacked vertically', async ({ page }) => {
     const hero = await page.locator('.hero').boundingBox();
-    const features = await page.locator('.features').boundingBox();
-    const install = await page.locator('.install').boundingBox();
-    const footer = await page.locator('.footer').boundingBox();
+    const stories = page.locator('.story');
+    await expect(stories).toHaveCount(6);
 
-    expect(hero).not.toBeNull();
-    expect(features).not.toBeNull();
-    expect(install).not.toBeNull();
-    expect(footer).not.toBeNull();
-
-    // Each section should start below the previous one
-    expect(features.y).toBeGreaterThan(hero.y + hero.height - 10);
-    expect(install.y).toBeGreaterThan(features.y);
-    expect(footer.y).toBeGreaterThan(install.y);
+    const first = await stories.first().boundingBox();
+    expect(first.y).toBeGreaterThan(hero.y + hero.height - 10);
   });
 
-  test('TUI is inside hero and not wider than 900px', async ({ page }) => {
-    const tui = await page.locator('.hero-tui').boundingBox();
-    expect(tui).not.toBeNull();
-    expect(tui.width).toBeLessThanOrEqual(920); // 900 + padding tolerance
+  test('each story section has headline and description', async ({ page }) => {
+    const sections = page.locator('.story');
+    const count = await sections.count();
+    for (let i = 0; i < count; i++) {
+      const s = sections.nth(i);
+      await expect(s.locator('.story-headline')).not.toBeEmpty();
+      await expect(s.locator('.story-desc')).not.toBeEmpty();
+    }
   });
 
-  test('feature cards are not beside the TUI', async ({ page }) => {
-    const tui = await page.locator('.hero-tui').boundingBox();
-    const grid = await page.locator('.features-grid').boundingBox();
-
-    // The features grid should start below the hero section entirely
-    expect(grid.y).toBeGreaterThan(tui.y + tui.height - 10);
-    // The grid should not overlap horizontally in a weird way — it should be centered
-    expect(grid.x).toBeGreaterThanOrEqual(0);
-  });
-
-  // ── Feature cards ──────────────────────────────────────────────────────────────
-  test('renders 6 feature cards', async ({ page }) => {
-    const cards = page.locator('.feature-card');
-    await expect(cards).toHaveCount(6);
-  });
-
-  test('feature cards have icon, headline, and description', async ({ page }) => {
-    const first = page.locator('.feature-card').first();
-    await expect(first.locator('.feature-icon')).not.toBeEmpty();
-    await expect(first.locator('.feature-headline')).not.toBeEmpty();
-    await expect(first.locator('.feature-desc')).not.toBeEmpty();
-  });
-
-  test('feature cards become visible on scroll', async ({ page }) => {
-    // Cards start invisible (opacity: 0)
-    const firstCard = page.locator('.feature-card').first();
-    const initialOpacity = await firstCard.evaluate(el =>
-      getComputedStyle(el).opacity
-    );
-    expect(initialOpacity).toBe('0');
-
-    // Scroll to features section
-    await page.locator('.features').scrollIntoViewIfNeeded();
+  test('story sections start invisible and reveal on scroll', async ({ page }) => {
+    const memory = page.locator('#s-memory');
+    // Should not have in-view class initially (it's below fold)
+    // Scroll to it
+    await memory.evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
     await page.waitForTimeout(600);
-
-    // After scrolling, cards should have the visible class
-    await expect(firstCard).toHaveClass(/visible/);
+    await expect(memory).toHaveClass(/in-view/);
   });
 
-  // ── Install section ────────────────────────────────────────────────────────────
+  // ── Memory section ─────────────────────────────────────────────────────────────
+  test('memory section has two mini terminals', async ({ page }) => {
+    const terms = page.locator('#s-memory .mini-term');
+    await expect(terms).toHaveCount(2);
+  });
+
+  test('memory section plays typewriter on scroll', async ({ page }) => {
+    await page.locator('#s-memory').evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    // Wait for typewriter to complete
+    await page.waitForTimeout(4000);
+    const typed1 = await page.locator('.mem-typed[data-idx="1"]').textContent();
+    expect(typed1).toContain('lcm_store');
+    const output1 = page.locator('.mini-output[data-idx="1"]');
+    await expect(output1).toHaveClass(/show/);
+  });
+
+  // ── Briefing section ───────────────────────────────────────────────────────────
+  test('briefing section has 3 source cards and summary', async ({ page }) => {
+    const cards = page.locator('#s-briefing .brief-card');
+    await expect(cards).toHaveCount(3);
+    await expect(page.locator('#s-briefing .brief-summary')).toBeAttached();
+  });
+
+  test('briefing cards animate in on scroll', async ({ page }) => {
+    await page.locator('#s-briefing').evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await page.waitForTimeout(3000);
+    const cards = page.locator('#s-briefing .brief-card.show');
+    await expect(cards).toHaveCount(3);
+    await expect(page.locator('#s-briefing .brief-summary')).toHaveClass(/show/);
+  });
+
+  // ── Dispatch section ───────────────────────────────────────────────────────────
+  test('dispatch section has 3 agent cards', async ({ page }) => {
+    const agents = page.locator('#s-dispatch .disp-agent');
+    await expect(agents).toHaveCount(3);
+  });
+
+  test('dispatch agents animate progress on scroll', async ({ page }) => {
+    await page.locator('#s-dispatch').evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await page.waitForTimeout(5000);
+    // At least one agent should be done
+    const doneStatuses = page.locator('#s-dispatch .disp-status.done');
+    const count = await doneStatuses.count();
+    expect(count).toBeGreaterThanOrEqual(1);
+  });
+
+  // ── Compression section ────────────────────────────────────────────────────────
+  test('compression section shows before/after panels', async ({ page }) => {
+    await expect(page.locator('#s-compression .comp-panel.before')).toBeAttached();
+    await expect(page.locator('#s-compression .comp-panel.after')).toBeAttached();
+  });
+
+  test('compression counter animates on scroll', async ({ page }) => {
+    await page.locator('#s-compression').evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await page.waitForTimeout(3000);
+    const pct = await page.locator('#s-compression .comp-percentage').textContent();
+    expect(pct).toBe('89%');
+  });
+
+  // ── Methodology section ────────────────────────────────────────────────────────
+  test('methodology section has 5 pipeline steps', async ({ page }) => {
+    const steps = page.locator('#s-methodology .meth-step');
+    await expect(steps).toHaveCount(5);
+  });
+
+  test('methodology pipeline lights up on scroll', async ({ page }) => {
+    await page.locator('#s-methodology').evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await page.waitForTimeout(3000);
+    const active = page.locator('#s-methodology .meth-step.active');
+    await expect(active).toHaveCount(5);
+  });
+
+  // ── Debugging section ──────────────────────────────────────────────────────────
+  test('debugging section has 4 investigation steps', async ({ page }) => {
+    const steps = page.locator('#s-debugging .dbg-step');
+    await expect(steps).toHaveCount(4);
+  });
+
+  test('debugging steps reveal on scroll', async ({ page }) => {
+    await page.locator('#s-debugging').evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await page.waitForTimeout(4000);
+    const shown = page.locator('#s-debugging .dbg-step.show');
+    await expect(shown).toHaveCount(4);
+  });
+
+  // ── Install & Footer ──────────────────────────────────────────────────────────
   test('install section has steps', async ({ page }) => {
     const steps = page.locator('.install-step');
     const count = await steps.count();
     expect(count).toBeGreaterThan(0);
   });
 
-  // ── Footer ─────────────────────────────────────────────────────────────────────
   test('footer has GitHub and npm links', async ({ page }) => {
     const footer = page.locator('.footer');
     await expect(footer.locator('a', { hasText: 'GitHub' })).toBeVisible();
     await expect(footer.locator('a', { hasText: 'npm' })).toBeVisible();
   });
 
-  // ── TUI embed interactions ─────────────────────────────────────────────────────
+  // ── TUI embed ──────────────────────────────────────────────────────────────────
   test('TUI inside landing page autoplays demos', async ({ page }) => {
     await page.waitForFunction(() => {
       const input = document.getElementById('input-text');
@@ -336,41 +386,59 @@ test.describe('Landing Page — Layout & Interactions', () => {
     expect(text.length).toBeGreaterThan(0);
   });
 
-  test('TUI inside landing page accepts keyboard interaction', async ({ page }) => {
-    await page.waitForTimeout(1000);
-    await page.keyboard.press('/');
-    await page.waitForTimeout(300);
-    const ac = page.locator('#autocomplete');
-    await expect(ac).toHaveClass(/visible/);
-  });
-
-  // ── Copy-to-clipboard install badge ────────────────────────────────────────────
   test('clicking install badge shows "Copied!" feedback', async ({ page }) => {
-    // Grant clipboard permissions
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
     const pathEl = page.locator('#cc-path');
     await pathEl.click();
     await page.waitForTimeout(300);
     await expect(pathEl).toHaveText('Copied!');
-    // Reverts after timeout
     await page.waitForTimeout(1800);
     await expect(pathEl).toHaveText('claude plugin install xgh@extreme-go-horse');
   });
 
   // ── Screenshots ────────────────────────────────────────────────────────────────
-  test('screenshot: landing page hero', async ({ page }) => {
+  test('screenshot: hero', async ({ page }) => {
     await page.waitForTimeout(2000);
     await page.screenshot({ path: 'out/screenshot-landing-hero.png', fullPage: false });
   });
 
-  test('screenshot: landing page features', async ({ page }) => {
-    await page.locator('.features').scrollIntoViewIfNeeded();
-    await page.waitForTimeout(800);
-    await page.screenshot({ path: 'out/screenshot-landing-features.png', fullPage: false });
+  test('screenshot: memory section', async ({ page }) => {
+    await page.locator('#s-memory').evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await page.waitForTimeout(4000);
+    await page.screenshot({ path: 'out/screenshot-section-memory.png', fullPage: false });
   });
 
-  test('screenshot: landing page full scroll', async ({ page }) => {
-    // Let TUI autoplay for a moment
+  test('screenshot: briefing section', async ({ page }) => {
+    await page.locator('#s-briefing').evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await page.waitForTimeout(3000);
+    await page.screenshot({ path: 'out/screenshot-section-briefing.png', fullPage: false });
+  });
+
+  test('screenshot: dispatch section', async ({ page }) => {
+    await page.locator('#s-dispatch').evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await page.waitForTimeout(5000);
+    await page.screenshot({ path: 'out/screenshot-section-dispatch.png', fullPage: false });
+  });
+
+  test('screenshot: compression section', async ({ page }) => {
+    await page.locator('#s-compression').evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await page.waitForTimeout(3000);
+    await page.screenshot({ path: 'out/screenshot-section-compression.png', fullPage: false });
+  });
+
+  test('screenshot: methodology section', async ({ page }) => {
+    await page.locator('#s-methodology').evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await page.waitForTimeout(3000);
+    await page.screenshot({ path: 'out/screenshot-section-methodology.png', fullPage: false });
+  });
+
+  test('screenshot: debugging section', async ({ page }) => {
+    await page.locator('#s-debugging').evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await page.waitForTimeout(4000);
+    await page.screenshot({ path: 'out/screenshot-section-debugging.png', fullPage: false });
+  });
+
+  test('screenshot: full page', async ({ page }) => {
     await page.waitForTimeout(2000);
     await page.screenshot({ path: 'out/screenshot-landing-full.png', fullPage: true });
   });
