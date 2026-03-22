@@ -381,4 +381,200 @@ Test suite manifest generated for <repo-name>
 
 ## Phase 2: Run
 
-See Task 5 — run phase will be appended here.
+### Argument Parsing
+
+Read `$ARGUMENTS`:
+
+- No argument or just `run` → execute all flows from manifest
+- `run <flow-name>` → execute only that flow
+
+### Manifest Loading & Validation
+
+Check if `.xgh/test-builder/manifest.yaml` exists:
+
+```bash
+if [ ! -f .xgh/test-builder/manifest.yaml ]; then
+  echo "No manifest found. Run \`/xgh:test-builder init\` first."
+  exit 1
+fi
+```
+
+Parse the YAML file. Use Python to validate:
+
+```python
+import sys, yaml, re
+
+try:
+    with open('.xgh/test-builder/manifest.yaml') as f:
+        manifest = yaml.safe_load(f)
+except Exception as e:
+    print(f"Failed to parse manifest: {e}")
+    sys.exit(1)
+
+# Validation checks
+errors = []
+
+# Check version
+if 'version' not in manifest:
+    errors.append("Missing 'version' field")
+elif manifest['version'] != 1:
+    errors.append(f"Invalid version: {manifest['version']} (expected 1)")
+
+# Check required top-level fields
+for field in ['project', 'flows']:
+    if field not in manifest:
+        errors.append(f"Missing '{field}' field")
+
+# Check for unresolved placeholders in all string values
+placeholder_pattern = r'(TODO|FIXME|\?\?\?|<[^>]+>)'
+
+def check_placeholders(obj, path=""):
+    issues = []
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            issues.extend(check_placeholders(v, f"{path}.{k}"))
+    elif isinstance(obj, list):
+        for i, item in enumerate(obj):
+            issues.extend(check_placeholders(item, f"{path}[{i}]"))
+    elif isinstance(obj, str):
+        if re.search(placeholder_pattern, obj):
+            issues.append(f"Unresolved placeholder at {path}: '{obj}'")
+    return issues
+
+errors.extend(check_placeholders(manifest))
+
+# Validate flow schema
+for i, flow in enumerate(manifest.get('flows', [])):
+    flow_name = flow.get('name', f'<flow-{i}>')
+    if 'name' not in flow:
+        errors.append(f"Flow {i}: missing 'name'")
+    if 'surface' not in flow:
+        errors.append(f"Flow '{flow_name}': missing 'surface'")
+    if 'strategy' not in flow:
+        errors.append(f"Flow '{flow_name}': missing 'strategy'")
+    if 'goal' not in flow:
+        errors.append(f"Flow '{flow_name}': missing 'goal'")
+    if 'steps' not in flow or not isinstance(flow['steps'], list):
+        errors.append(f"Flow '{flow_name}': missing or invalid 'steps'")
+    elif len(flow['steps']) == 0:
+        errors.append(f"Flow '{flow_name}': steps list is empty")
+
+if errors:
+    print("Manifest validation failed:")
+    for err in errors:
+        print(f"  - {err}")
+    sys.exit(1)
+
+print("OK")
+```
+
+If validation fails → refuse to execute and list all errors.
+
+### Execute Flows
+
+For each flow (all flows or selected flow only):
+
+**1. Run prerequisites (if any)**
+
+```bash
+for prereq in flow.prerequisites:
+  run: <command>
+  wait_for: <condition>  # e.g. "port 3000 listens" or "file exists"
+```
+
+Wait until condition is met (timeout: 30s). If timeout → skip flow with note "Prerequisite failed: <condition>".
+
+**2. Execute steps**
+
+For each step in the flow:
+
+```bash
+run: <command or action>
+assert:
+  <assertion-type>: <expected>
+```
+
+Dispatch based on executor kind from strategy:
+
+| Executor | Action |
+|----------|--------|
+| shell | Run command via `/bin/bash -c`, capture stdout/stderr/exit code |
+| http | Parse `run` as method+URL (e.g. `GET /api/health`), execute curl, check assertions |
+| browser | Delegate to Playwright (check if `npx playwright` available; if not, skip with ⏭️) |
+| mobile | Delegate to simulator tool (check if available; if not, skip with ⏭️) |
+| library | Import module + call function (check if importable; if not, skip with ⏭️) |
+| custom | Execute user script at path; exit 0 = pass (check if executable; if not, skip with ⏭️) |
+
+**Step result tracking:**
+
+- **pass**: assertion succeeded
+- **fail**: assertion failed (reason: "Expected X, got Y")
+- **skip**: executor unavailable or prereq failed (reason: "Executor not installed")
+
+Evaluate assertions against captured output:
+
+| Assertion | Against | Check |
+|-----------|---------|-------|
+| exit_code | shell/custom | stdout_contains \| stdout_matches \| status \| body_contains \| body_json_path \| header_contains \| file_exists \| returns |
+| stdout_contains | shell/custom | stdout includes substring |
+| stdout_matches | shell/custom | stdout matches regex |
+| status | http | HTTP status code |
+| body_contains | http | response body includes substring |
+| body_json_path | http | JSONPath query returns expected value |
+| header_contains | http | response header key/value match |
+| file_exists | any | file exists at path |
+| returns | library | function return value matches type/structure |
+
+**3. Run cleanup (if any)**
+
+Even if any step failed, run cleanup steps:
+
+```bash
+for cleanup in flow.cleanup:
+  run: <command>
+```
+
+Failures in cleanup do NOT affect overall flow result.
+
+**4. Collect results**
+
+Track per step: name, executor, result (pass/fail/skip), duration (ms), notes.
+
+### Output Format
+
+Generate a markdown summary table:
+
+```markdown
+## 🧪 test-builder run
+
+| Flow | Surface | Steps | Result | Notes |
+|------|---------|-------|--------|-------|
+| health-check | api | 1/1 | ✅ | 200ms |
+| user-reg | api | 2/2 | ✅ | |
+| duplicate | api | 0/1 | ❌ | Expected 409, got 500 |
+| browser-flow | web | 0/2 | ⏭️ | Playwright not installed |
+
+4 flows · 3/6 steps passed · 1 failure · 2 skipped
+```
+
+**Legend:**
+- ✅ All steps passed
+- ❌ One or more steps failed (show first failure reason)
+- ⏭️ All steps skipped (executor unavailable)
+
+### Run Completion
+
+Print summary:
+
+```
+Test suite run completed
+  Flows: <total>
+  Passed: <count>
+  Failed: <count>
+  Skipped: <count>
+  Duration: <total-ms>ms
+```
+
+Exit with:
+- 0 if all flows passed or skipped
+- 1 if any flow failed
