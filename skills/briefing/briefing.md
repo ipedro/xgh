@@ -25,9 +25,9 @@ The briefing respects `XGH_TEAM` from the environment for workspace memory queri
 
 ## MCP Detection
 
-Before gathering data, check which MCPs are available. Call `xgh:mcp-setup` for any missing MCP the user wants to configure. Proceed with whatever is available — the briefing works with any combination.
+Follow the shared detection protocol in `skills/_shared/references/mcp-auto-detection.md`. Call `xgh:mcp-setup` for any missing MCP the user wants to configure. Proceed with whatever is available — the briefing works with any combination.
 
-Available MCP tools by integration:
+**Briefing-specific tool aliases used in this skill:**
 - **lossless-claude**: `lcm_search(query)`, `lcm_store`
 - **Slack**: `slack_search_public_and_private`, `slack_list_channels`
 - **Atlassian/Jira**: `searchJiraIssuesUsingJQL`, `getJiraIssue`

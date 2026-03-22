@@ -32,10 +32,7 @@ If no ticket ID is provided:
 
 ## MCP Auto-Detection
 
-Before starting, auto-detect which MCP servers are available. The skill adapts based on what is configured — no hard dependencies.
-
-**MCP detection:** Run the MCP Auto-Detection Protocol from the `xgh:mcp-setup` skill.
-Available integrations are discovered automatically on first invocation.
+Follow the shared detection protocol in `skills/_shared/references/mcp-auto-detection.md`.
 
 **Graceful degradation rules (implement-specific):**
 - No task manager MCP → Ask user to paste ticket details (title, description, acceptance criteria). Skip ticket updates.

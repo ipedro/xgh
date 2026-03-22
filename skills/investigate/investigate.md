@@ -29,10 +29,7 @@ If no URL is provided, prompt the user to describe the issue or paste a Slack th
 
 ## MCP Auto-Detection
 
-Before starting, auto-detect which MCP servers are available. The skill adapts based on what is configured — no hard dependencies.
-
-**MCP detection:** Run the MCP Auto-Detection Protocol from the `xgh:mcp-setup` skill.
-Available integrations are discovered automatically on first invocation.
+Follow the shared detection protocol in `skills/_shared/references/mcp-auto-detection.md`.
 
 **Graceful degradation rules (investigate-specific):**
 - No Slack MCP → Skip Slack thread reading. Ask user to paste the bug report content directly.
