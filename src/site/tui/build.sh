@@ -58,6 +58,17 @@ for cf in cmd_files:
 theme = shell_data.get('theme', {})
 css_vars = ' '.join(f'--{k}: {v};' for k, v in theme.items())
 
+# Add demo-derived commands to cmds so they appear in /help and autocomplete
+existing_cmds = {c.get('command') for c in cmds_data}
+for demo in demos_data:
+    cmd = demo.get('command')
+    if cmd and cmd not in existing_cmds:
+        cmds_data.append({
+            'name': demo.get('name', cmd),
+            'command': cmd,
+            'description': 'Demo: ' + demo.get('label', demo.get('name', cmd))
+        })
+
 # Convert to JSON strings
 shell_json = json.dumps(shell_data, indent=2)
 demos_json = json.dumps(demos_data, indent=2)
