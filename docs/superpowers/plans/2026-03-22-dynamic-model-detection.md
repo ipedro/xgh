@@ -564,26 +564,29 @@ In `skills/opencode/opencode.md`, find the "Model Detection & Routing" section a
 
 **Before dispatch, run this bash code:**
 ```bash
-# Source the model detection functions
-source skills/_shared/references/model-detection.md
-
-# Lazy initialization
+# Lazy initialization (inline the lookup logic)
 MODELS_FILE="$HOME/.xgh/user_providers/opencode/models.yaml"
 THRESHOLD_DAYS="${XGH_MODELS_REFRESH_THRESHOLD_DAYS:-7}"
 
 if [ ! -f "$MODELS_FILE" ] || [ $(find "$MODELS_FILE" -mtime +"$THRESHOLD_DAYS" 2>/dev/null | wc -l) -gt 0 ]; then
-  /xgh-coding-agents opencode --probe
+  /xgh-coding-agents opencode --refresh
 fi
 
-# Extract model from user input
+# Extract model from user input and lookup
 MODEL_FLAG=""
 MODEL_MENTION=$(echo "$USER_INPUT" | grep -oiE '(with|using|via) [A-Za-z0-9.+-]+' | sed 's/^[^ ]* //I')
 
 if [ -n "$MODEL_MENTION" ]; then
-  # Look up in models.yaml
-  CLI_FORMAT=$(lookup_model "opencode" "$USER_INPUT")
-  if [ -n "$CLI_FORMAT" ]; then
-    MODEL_FLAG="--model $CLI_FORMAT"
+  # Inline lookup: search models.yaml for matching friendly name or alias
+  local normalized=$(echo "$MODEL_MENTION" | tr '[:upper:]' '[:lower:]' | tr -d ' -')
+  local cli_format=$(grep -iE "friendly:.*$MODEL_MENTION" "$MODELS_FILE" -A1 | grep "cli_format:" | awk '{print $2}')
+
+  if [ -z "$cli_format" ]; then
+    cli_format=$(grep -B1 "aliases:.*$normalized" "$MODELS_FILE" | grep "cli_format:" | awk '{print $2}')
+  fi
+
+  if [ -n "$cli_format" ]; then
+    MODEL_FLAG="--model $cli_format"
   fi
 fi
 ```
@@ -645,26 +648,29 @@ After "Input Parsing" section in `skills/codex/codex.md`, add:
 
 **Before dispatch, run this bash code:**
 ```bash
-# Source the model detection functions
-source skills/_shared/references/model-detection.md
-
-# Lazy initialization
+# Lazy initialization (inline the lookup logic)
 MODELS_FILE="$HOME/.xgh/user_providers/codex/models.yaml"
 THRESHOLD_DAYS="${XGH_MODELS_REFRESH_THRESHOLD_DAYS:-7}"
 
 if [ ! -f "$MODELS_FILE" ] || [ $(find "$MODELS_FILE" -mtime +"$THRESHOLD_DAYS" 2>/dev/null | wc -l) -gt 0 ]; then
-  /xgh-coding-agents codex --probe
+  /xgh-coding-agents codex --refresh
 fi
 
-# Extract model from user input
+# Extract model from user input and lookup
 MODEL_FLAG=""
 MODEL_MENTION=$(echo "$USER_INPUT" | grep -oiE '(with|using|via) [A-Za-z0-9.+-]+' | sed 's/^[^ ]* //I')
 
 if [ -n "$MODEL_MENTION" ]; then
-  # Look up in models.yaml
-  CLI_FORMAT=$(lookup_model "codex" "$USER_INPUT")
-  if [ -n "$CLI_FORMAT" ]; then
-    MODEL_FLAG="-m $CLI_FORMAT"
+  # Inline lookup: search models.yaml for matching friendly name or alias
+  local normalized=$(echo "$MODEL_MENTION" | tr '[:upper:]' '[:lower:]' | tr -d ' -')
+  local cli_format=$(grep -iE "friendly:.*$MODEL_MENTION" "$MODELS_FILE" -A1 | grep "cli_format:" | awk '{print $2}')
+
+  if [ -z "$cli_format" ]; then
+    cli_format=$(grep -B1 "aliases:.*$normalized" "$MODELS_FILE" | grep "cli_format:" | awk '{print $2}')
+  fi
+
+  if [ -n "$cli_format" ]; then
+    MODEL_FLAG="-m $cli_format"
   fi
 fi
 ```
@@ -716,26 +722,29 @@ After "Input Parsing" section in `skills/gemini/gemini.md`, add:
 
 **Before dispatch, run this bash code:**
 ```bash
-# Source the model detection functions
-source skills/_shared/references/model-detection.md
-
-# Lazy initialization
+# Lazy initialization (inline the lookup logic)
 MODELS_FILE="$HOME/.xgh/user_providers/gemini/models.yaml"
 THRESHOLD_DAYS="${XGH_MODELS_REFRESH_THRESHOLD_DAYS:-7}"
 
 if [ ! -f "$MODELS_FILE" ] || [ $(find "$MODELS_FILE" -mtime +"$THRESHOLD_DAYS" 2>/dev/null | wc -l) -gt 0 ]; then
-  /xgh-coding-agents gemini --probe
+  /xgh-coding-agents gemini --refresh
 fi
 
-# Extract model from user input
+# Extract model from user input and lookup
 MODEL_FLAG=""
 MODEL_MENTION=$(echo "$USER_INPUT" | grep -oiE '(with|using|via) [A-Za-z0-9.+-]+' | sed 's/^[^ ]* //I')
 
 if [ -n "$MODEL_MENTION" ]; then
-  # Look up in models.yaml
-  CLI_FORMAT=$(lookup_model "gemini" "$USER_INPUT")
-  if [ -n "$CLI_FORMAT" ]; then
-    MODEL_FLAG="--model $CLI_FORMAT"
+  # Inline lookup: search models.yaml for matching friendly name or alias
+  local normalized=$(echo "$MODEL_MENTION" | tr '[:upper:]' '[:lower:]' | tr -d ' -')
+  local cli_format=$(grep -iE "friendly:.*$MODEL_MENTION" "$MODELS_FILE" -A1 | grep "cli_format:" | awk '{print $2}')
+
+  if [ -z "$cli_format" ]; then
+    cli_format=$(grep -B1 "aliases:.*$normalized" "$MODELS_FILE" | grep "cli_format:" | awk '{print $2}')
+  fi
+
+  if [ -n "$cli_format" ]; then
+    MODEL_FLAG="--model $cli_format"
   fi
 fi
 ```
