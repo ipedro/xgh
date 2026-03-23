@@ -205,7 +205,7 @@ If no active CronCreate jobs are found or the pause file exists, append to the b
 
 ## Composability
 
-- Uses `xgh:mcp-setup` when a source MCP is missing (optional setup, not blocking)
+- Suggests `/xgh-setup` when a source MCP is missing (optional setup, not blocking)
 - Feeds into `xgh:implement-ticket` (pre-loaded context for chosen ticket)
 - Feeds into `xgh:investigate` (pre-loaded context for chosen incident)
 - Informs `xgh:convention-guardian` (team pulse surfaces new conventions)

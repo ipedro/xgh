@@ -40,19 +40,7 @@ done
 - Run the relevant probe function(s): `probe_opencode`, `probe_codex`, `probe_gemini`
 - If `AGENT` is set, run only that agent's probe. Otherwise run all three.
 
-**Display current state** by reading `~/.xgh/user_providers/<agent>/models.yaml` for each agent:
-
-```bash
-for agent in opencode codex gemini; do
-  file="$HOME/.xgh/user_providers/$agent/models.yaml"
-  if [ -f "$file" ]; then
-    echo "=== $agent ==="
-    cat "$file"
-  else
-    echo "=== $agent === (not probed — run /xgh-coding-agents $agent --refresh)"
-  fi
-done
-```
+**Display current state** by reading `~/.xgh/user_providers/<agent>/models.yaml` for each target agent and rendering as a markdown table. Parse `agent`, `cli_binary`, `last_probed`, and the `models` array count from each YAML file.
 
 If `AGENT` is set, show only that agent. Otherwise show all three.
 
@@ -61,14 +49,25 @@ If `AGENT` is set, show only that agent. Otherwise show all three.
 ```
 ## 🐴🤖 xgh coding-agents
 
-| Agent | Binary | Models | Last Probed |
-|-------|--------|--------|-------------|
-| OpenCode | opencode | 7 | 2026-03-23T00:00:00Z |
-| Codex | codex | 5 | 2026-03-23T00:00:00Z |
-| Gemini | gemini | 3 | 2026-03-23T00:00:00Z |
+| Agent | Status | Binary | Models | Last Probed |
+|-------|--------|--------|--------|-------------|
+| OpenCode | ✅ | opencode | 7 | 2026-03-23T00:00:00Z |
+| Codex | ✅ | codex | 5 | 2026-03-23T00:00:00Z |
+| Gemini | ⚠️ not probed | gemini | — | — |
 
-<detail table per agent if a specific agent was requested>
+<if specific agent requested, also render a detail table of models:>
+
+### OpenCode models
+
+| Friendly | CLI format | Aliases |
+|----------|-----------|---------|
+| GLM 5 | zai-coding-plan/glm-5 | glm-5, glm5 |
+...
+
+*Run `/xgh-coding-agents --refresh` to re-probe all agents.*
 ```
+
+Use ✅ when a models file exists and was probed, ⚠️ with "not probed" when the file is absent.
 
 ## OpenCode Probing
 

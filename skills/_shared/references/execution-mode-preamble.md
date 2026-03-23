@@ -15,7 +15,7 @@ try:
     p = json.load(open(path))
     v = p.get('skill_mode', {}).get('<SKILL_NAME>')
     print(json.dumps(v) if v else '')
-except: print('')
+except (FileNotFoundError, json.JSONDecodeError, OSError): print('')
 "
 ```
 If output is non-empty JSON, extract `mode` and `autonomy` (if present) and skip to **Dispatch** below.
