@@ -1,14 +1,64 @@
----
-name: xgh:collab
-description: "This skill should be used when the user runs /xgh-collab or asks for multi-agent collaboration workflows. Teaches agents how to participate in structured collaboration via the xgh message protocol and lossless-claude workspace — handles message routing, coordination between agents, and workflow completion."
----
-
 ## Preamble — Execution mode
 
-Follow the shared execution mode protocol in `skills/_shared/references/execution-mode-preamble.md`. Apply it to this skill's command name.
+Before starting, check whether the user has a saved execution mode preference for this skill.
 
-- `<SKILL_NAME>` = `collab`
-- `<SKILL_LABEL>` = `Collab`
+**Step P1 — Read preference:**
+```bash
+python3 -c "
+import json, os
+path = os.path.expanduser('~/.xgh/prefs.json')
+try:
+    p = json.load(open(path))
+    v = p.get('skill_mode', {}).get('collab')
+    print(json.dumps(v) if v else '')
+except: print('')
+"
+```
+If output is non-empty JSON, extract `mode` and `autonomy` (if present) and skip to **Dispatch** below.
+
+**Step P2 — If not set, ask the user (one question at a time):**
+- "Run **collab** in background (returns summary when done) or interactive? [b/i, default: i]"
+- If "b": "Check in with a quick question before starting, or fire-and-forget? [c/f, default: c]"
+
+**Step P3 — Write preference:**
+```bash
+python3 -c "
+import json, os, sys
+mode, autonomy = sys.argv[1], sys.argv[2]
+path = os.path.expanduser('~/.xgh/prefs.json')
+os.makedirs(os.path.dirname(path), exist_ok=True)
+try: p = json.load(open(path))
+except: p = {}
+p.setdefault('skill_mode', {})
+entry = {'mode': mode} if mode == 'interactive' else {'mode': mode, 'autonomy': autonomy}
+p['skill_mode']['collab'] = entry
+json.dump(p, open(path, 'w'), indent=2)
+" "<mode>" "<autonomy>"
+```
+
+**Step P4 — Flag overrides** (check the raw invocation text; do not update prefs.json):
+- contains `--bg` → use background mode
+- contains `--interactive` or `--fg` → use interactive mode
+- contains `--checkin` → use check-in autonomy
+- contains `--auto` → use fire-and-forget autonomy
+- contains `--reset` → run `python3 -c "import json,os; p=json.load(open(os.path.expanduser('~/.xgh/prefs.json'))); p.get('skill_mode',{}).pop('collab',None); json.dump(p,open(os.path.expanduser('~/.xgh/prefs.json'),'w'),indent=2)"` then re-prompt
+
+**Dispatch:**
+
+**Interactive mode** → proceed with the skill normally (continue to the rest of this file).
+
+**Background / check-in mode:**
+1. Ask at most 2 essential clarifying questions in the main session.
+2. Collect context: user's request verbatim, current branch (`git branch --show-current`), recent log (`git log --oneline -5`), any relevant file paths mentioned.
+3. Dispatch via Agent tool with `run_in_background: true`. Prompt must be fully self-contained.
+4. Reply: "Collab running in background — I'll post findings when done."
+5. When agent completes: post a ≤5-bullet summary to main session.
+
+**Background / fire-and-forget mode:**
+1. Collect context automatically (no questions).
+2. Dispatch via Agent tool with `run_in_background: true`.
+3. Reply: "Collab running in background — I'll post findings when done."
+4. When agent completes: post a ≤5-bullet summary.
 
 ---
 

@@ -1,6 +1,7 @@
 ---
 name: xgh:subagent-pair-programming
-description: "This skill should be used when the user wants TDD with enforced separation of concerns, asks for 'subagent pair programming', or wants to dispatch a spec-writer and implementer as separate agents. Coordinates two subagents — Spec Writer and Implementer — through lossless-claude memory: spec writer writes failing tests, implementer writes minimal code to pass."
+description: TDD via spec-writer + implementer subagents coordinating through lossless-claude memory
+type: rigid
 ---
 
 # xgh:subagent-pair-programming — Subagent Pair Programming

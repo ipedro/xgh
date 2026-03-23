@@ -1,6 +1,7 @@
 ---
 name: xgh:knowledge-handoff
-description: "This skill should be used when the user runs /xgh-knowledge-handoff, merges a branch, or asks to 'create handoff', 'document this merge', 'leave context for the next dev'. Generates a structured handoff summary on branch merge so the next developer gets full context — patterns, gotchas, key files, warnings — without meetings."
+description: On branch merge, generate a structured handoff summary so the next developer gets full context without meetings
+type: flexible
 ---
 
 # xgh:knowledge-handoff — Knowledge Handoff
