@@ -1,13 +1,13 @@
 ---
 name: xgh:watch-prs
-description: "Use /xgh-watch-prs when you want to watch PRs / babysit PRs until they reach merge — waiting on CI, a reviewer hasn't responded, comments need fixes, or you want merge to happen automatically without manually polling GitHub. Detects the host (GitHub, GitLab, Bitbucket, etc.) and adapts reviewer automation accordingly."
+description: "Use /xgh-watch-prs when you want to watch PRs / babysit PRs until they reach merge — waiting on CI, a reviewer hasn't responded, comments need fixes, or you want merge to happen automatically without manually polling GitHub. GitHub-first: uses gh CLI and GitHub REST/GraphQL APIs. Other provider profiles are present for future support but platform-specific CLI equivalents are not yet implemented."
 ---
 
 > **Output format:** Start with `## 🐴🤖 xgh watch-prs`. Use markdown tables for structured data. Use ✅ ⚠️ ❌ for status. Keep per-poll output terse.
 
 # /xgh-watch-prs — PR Merge Orchestrator
 
-Watch a batch of PRs through review cycles until all are merged. Detects the host platform and adapts: on GitHub it auto-triggers Copilot reviews; on other platforms it works with any specified reviewer. Each poll cycle takes the next correct action: accept suggestion commits, dispatch fix agents, reply to comments, resolve outdated threads, re-request review, or merge.
+Watch a batch of PRs through review cycles until all are merged. **GitHub-first:** all implementation steps use `gh` CLI and GitHub REST/GraphQL APIs. Provider profiles for GitLab, Bitbucket, and Azure DevOps are included as a framework for future support, but platform-specific CLI equivalents are not yet implemented. Each poll cycle takes the next correct action: accept suggestion commits, dispatch fix agents, reply to comments, resolve outdated threads, re-request review, or merge.
 
 ## Usage
 
@@ -95,6 +95,11 @@ gh api repos/$REPO/pulls/$PR/reviews --paginate \
   --jq '[.[] | select(.user.login == "<REVIEWER>")] | if length == 0 then null else last | {state: .state, submitted_at: .submitted_at} end'
 
 # Comment count from reviewer bot (use reviewer_comment_author from provider profile)
+# Field values for Copilot:
+#   reviewer: "copilot-pull-request-reviewer[bot]"  — used in reviewer list API calls
+#             strip [bot] suffix when using `gh pr edit` (GraphQL)
+#   reviewer_comment_author: "Copilot"  — the .user.login on PR review *comments* (capital C)
+#             NOT "copilot-pull-request-reviewer" — use this value for select(.user.login == ...)
 gh api repos/$REPO/pulls/$PR/comments --paginate \
   --jq '[.[] | select(.user.login == "<REVIEWER_COMMENT_AUTHOR>")] | length'
 ```
@@ -133,13 +138,13 @@ Save to `.xgh/watch-prs-state.json`:
 
 Use `CronCreate` to schedule recurring polls. Convert `--interval` to a standard cron expression (`5m → "*/5 * * * *"`, `10m → "*/10 * * * *"`). To avoid :00/:30 load spikes, prefer an offset minute list (e.g. `1,11,21,31,41,51 * * * *` for a 10m cadence starting at :01) — optional.
 
-The sentinel string `BABYSIT:<REPO>:<PR_NUMBERS>` in the prompt makes it findable via `CronList` for stop/status.
+The sentinel string `WATCH:<REPO>:<PR_NUMBERS>` in the prompt makes it findable via `CronList` for stop/status.
 
 ```
 CronCreate({
   cron: "<interval-expression>",
   recurring: true,
-  prompt: `BABYSIT:<REPO>:<PR_NUMBERS>
+  prompt: `WATCH:<REPO>:<PR_NUMBERS>
 Dispatch the xgh:pr-poller agent with:
 - repo: <REPO>
 - provider: <PROVIDER>
@@ -149,7 +154,7 @@ Dispatch the xgh:pr-poller agent with:
 - merge_method: <MERGE_METHOD>
 - accept_suggestion_commits: <BOOL>
 - require_resolved_threads: <BOOL>
-If the agent returns status ALL_DONE, read .xgh/watch-prs-state.json, take cron_job_id from that file, and call CronDelete(cron_job_id) to stop this job.`
+If the agent returns status ALL_DONE, read .xgh/watch-prs-state.json, take cron_job_id, and call CronDelete(cron_job_id). Fallback: scan CronList for a job whose prompt contains "WATCH:<REPO>:<PR_NUMBERS>" and delete it.`
 })
 ```
 
@@ -288,19 +293,13 @@ If merge fails for non-conflict reason: `last_action = merge-attempted`, log err
 
 **Action:** Re-request review, respecting cooldown. Only if `last_review_request_at` is null OR at least one poll interval has elapsed.
 
-**GitHub + Copilot reviewer (primary path):**
-```bash
-# Trigger via comment — works even when reviewer list is stale
-gh api repos/$REPO/issues/$PR/comments \
-  -X POST --raw-field "body=@copilot review"
-```
-If the comment trigger fails, fall back to reviewer list cycle:
+**GitHub + Copilot reviewer — reviewer list cycle:**
 ```bash
 gh pr edit $PR --repo $REPO --remove-reviewer copilot-pull-request-reviewer 2>/dev/null
 gh pr edit $PR --repo $REPO --add-reviewer copilot-pull-request-reviewer
 ```
 
-> **`@copilot review` ONLY.** Any other `@copilot <text>` triggers the SWE delegation agent which opens a NEW PR.
+> **NEVER use `@copilot` in comments.** Even `@copilot review` triggers the SWE delegation agent which opens a NEW PR. The reviewer list cycle is the only safe re-request method.
 
 **Non-GitHub or custom reviewer:**
 ```bash
@@ -347,7 +346,7 @@ Active since: 2026-03-22T03:00:00Z
 | #59  | 👀 watching | re-requested-review  | 00:08:20Z | 28       | —     |
 ```
 
-If no state file: `ℹ️ No active babysit-prs session.`
+If no state file: `ℹ️ No active watch-prs session.`
 
 ---
 
@@ -355,12 +354,12 @@ If no state file: `ℹ️ No active babysit-prs session.`
 
 1. Load state file
 2. If no session: print info message, exit
-3. If `cron_job_id` is set: call `CronDelete(cron_job_id)`. If not set, scan `CronList` for any job whose prompt contains `BABYSIT:<REPO>:` and delete matches.
+3. If `cron_job_id` is set: call `CronDelete(cron_job_id)`. If not set, scan `CronList` for any job whose prompt contains `WATCH:<REPO>:` and delete matches.
 4. Delete state file
 5. Print confirmation:
-   - If `cron_job_id` was set and deleted: `✅ babysit-prs stopped. Cron job <id> deleted.`
-   - If scan was used (0 found): `✅ babysit-prs stopped. (No active cron job found.)`
-   - If scan was used (1+ found): `✅ babysit-prs stopped. Deleted <N> cron job(s): <id1> <id2> ...`
+   - If `cron_job_id` was set and deleted: `✅ watch-prs stopped. Cron job <id> deleted.`
+   - If scan was used (0 found): `✅ watch-prs stopped. (No active cron job found.)`
+   - If scan was used (1+ found): `✅ watch-prs stopped. Deleted <N> cron job(s): <id1> <id2> ...`
 
 ---
 
@@ -376,7 +375,7 @@ When a PR is MERGEABLE=CONFLICTING, dispatch a conflict-resolution agent:
   grep -rn "^<<<<<<<" -- . | grep -v node_modules | grep -v .git
   ```
   commit, push
-- **CRITICAL:** Do NOT force push. Do NOT tag `@copilot` (except `@copilot review` to trigger a review after resolution).
+- **CRITICAL:** Do NOT force push. Do NOT use `@copilot` in any comment. Re-request review via reviewer list cycle after resolution.
 
 **After resolution:** Set `last_action = dispatched-conflict-agent`. Next cycle detects MERGEABLE and re-requests review.
 
@@ -420,7 +419,7 @@ Embedded profiles — the skill references these directly, no external lookup ne
 provider: github
 reviewer_bot: copilot-pull-request-reviewer[bot]
 reviewer_comment_author: Copilot
-review_request_strategy: copilot-comment  # "@copilot review" comment, fallback to reviewer list
+review_request_strategy: reviewer-list  # gh pr edit --remove-reviewer / --add-reviewer (only safe method)
 threads_api: graphql   # resolveReviewThread mutation available
 suggestion_commits: true
 ```
@@ -429,21 +428,20 @@ suggestion_commits: true
 
 | System | Trigger | Effect |
 |--------|---------|--------|
-| **Code Review** | Add `copilot-pull-request-reviewer[bot]` to reviewer list OR `@copilot review` comment | Leaves inline review comments |
-| **SWE Delegation Agent** | `@copilot <anything other than "review">` in a comment | Opens a **NEW PR** with code changes |
+| **Code Review** | Add `copilot-pull-request-reviewer[bot]` to reviewer list | Leaves inline review comments |
+| **SWE Delegation Agent** | `@copilot <anything>` in a comment — including `@copilot review` | Opens a **NEW PR** with code changes |
 
-**Only `@copilot review` is safe.** Any other `@copilot <text>` opens new PRs — for questions, replies, instructions, anything.
+**NEVER use `@copilot` in comments.** Even `@copilot review` triggers the SWE delegation agent. The reviewer list cycle is the only safe way to request a review.
 
-Copilot does NOT read replies on its review comments. It is a one-way reviewer. Re-requesting is the only way to get another pass.
+Copilot does NOT read replies on its review comments. It is a one-way reviewer. Re-requesting via reviewer list is the only way to get another pass.
 
 #### GitHub: Triggering Copilot Review
 
-Two methods — comment trigger is primary:
+One safe method — reviewer list cycle only:
 
 | Method | Command | Notes |
 |--------|---------|-------|
-| Comment (primary) | `gh api repos/$REPO/issues/$PR/comments -X POST --raw-field "body=@copilot review"` | Works even after reviewer list cleared; safe to repeat |
-| Reviewer list cycle (fallback) | `gh pr edit --remove-reviewer copilot-pull-request-reviewer && --add-reviewer copilot-pull-request-reviewer` | Uses GraphQL, no `[bot]` suffix needed |
+| Reviewer list cycle | `gh pr edit --remove-reviewer copilot-pull-request-reviewer && --add-reviewer copilot-pull-request-reviewer` | Uses GraphQL, no `[bot]` suffix needed; only safe method |
 
 `review_on_push: true` (repo setting) makes Copilot auto-review on every push — when enabled, manual re-requests after pushing fixes are redundant. Check with `status` before re-requesting.
 
@@ -499,7 +497,7 @@ suggestion_commits: false
 
 This skill builds on `xgh:copilot-pr-review` for GitHub-specific API calls. Key mappings:
 
-| babysit-prs action | copilot-pr-review equivalent |
+| watch-prs action | copilot-pr-review equivalent |
 |--------------------|------------------------------|
 | Initialize baseline | `status <PR>` |
 | Re-request review | `re-review <PR>` |
@@ -510,9 +508,9 @@ This skill builds on `xgh:copilot-pr-review` for GitHub-specific API calls. Key 
 
 ## Known Pitfalls
 
-| Pitfall | How babysit-prs handles it |
+| Pitfall | How watch-prs handles it |
 |---------|--------------------------|
-| `@copilot` triggers delegation (except `@copilot review`) | Agent prompts include "NEVER tag @copilot except `@copilot review`" |
+| `@copilot` in any comment triggers delegation (including `@copilot review`) | Agent prompts include "NEVER use @copilot in comments — reviewer list cycle only" |
 | `[bot]` suffix required in REST API | Encodes suffix in REST calls; uses `gh pr edit` (GraphQL, no suffix) for reviewer list |
 | Copilot ignores conflicting PRs | Detects CONFLICTING, resolves before re-requesting |
 | COMMENTED reviews can't be dismissed | Never attempts dismiss — uses re-request cycle |

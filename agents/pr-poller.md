@@ -4,11 +4,11 @@ description: |
   Polls PRs for review status, handles reviewer comments, and merges when all criteria pass. Provider-aware: adapts review requests and comment handling to the detected host. Dispatched by xgh:watch-prs on each cron tick — do not invoke directly.
 
   <example>
-  Context: babysit-prs cron tick fires for a watched PR
-  user: "BABYSIT:owner/repo:71 — Dispatch the xgh:pr-poller agent with repo: owner/repo, prs: [71], reviewer: copilot-pull-request-reviewer[bot]"
+  Context: watch-prs cron tick fires for a watched PR
+  user: "WATCH:owner/repo:71 — Dispatch the xgh:pr-poller agent with repo: owner/repo, prs: [71], reviewer: copilot-pull-request-reviewer[bot]"
   assistant: "I'll run the poll cycle for PR #71 — check merge criteria, new review comments, and re-request review if stale."
   <commentary>
-  Dispatched by babysit-prs on each cron tick. Reads state file, runs decision tree, updates state, returns WATCHING/ACTED/ALL_DONE.
+  Dispatched by xgh:watch-prs on each cron tick. Reads state file, runs decision tree, updates state, returns WATCHING/ACTED/ALL_DONE.
   </commentary>
   </example>
 model: haiku
@@ -89,18 +89,14 @@ If no new review since baseline, no active agent, and cooldown has elapsed: read
 
 To check if an active_agent is still running: examine its return status from previous dispatch or check `git log --oneline origin/<branch> --since="<started_at>"` for new commits indicating the agent is still working.
 
-**GitHub + Copilot reviewer — comment trigger (primary):**
-```bash
-gh api repos/<REPO>/issues/<PR>/comments \
-  -X POST --raw-field "body=@copilot review"
-```
-
-If the above fails, fall back to reviewer list cycle (strip `[bot]` suffix for `gh pr edit`):
+**GitHub + Copilot reviewer — reviewer list cycle (strip `[bot]` suffix for `gh pr edit`):**
 ```bash
 REVIEWER_SLUG="${reviewer%\[bot\]}"
 gh pr edit <PR> --repo <REPO> --remove-reviewer "$REVIEWER_SLUG" 2>/dev/null
 gh pr edit <PR> --repo <REPO> --add-reviewer "$REVIEWER_SLUG"
 ```
+
+> **NEVER use `@copilot review` comments.** Even `@copilot review` triggers the SWE delegation agent which opens new PRs. The reviewer list cycle is the only safe re-request method.
 
 **Other providers / custom reviewer:**
 ```bash
@@ -137,10 +133,12 @@ Informational only (no action needed)?
 
 **Accepting suggestion commits (GitHub):**
 ```bash
-# Accept the suggestion commit via API
+# Accept the suggestion commit via GitHub Suggestions REST API
+# https://docs.github.com/en/rest/pulls/comments#create-a-review-comment-for-a-pull-request (suggestion acceptance)
 gh api repos/<REPO>/pulls/<PR>/comments/<COMMENT_ID>/suggestions \
   -X POST --raw-field "commit_message=Accept Copilot suggestion"
 ```
+> **Note:** If this endpoint returns 404, fall back to accepting via the web UI or use the GraphQL `addPullRequestReviewThreadReply` mutation with the suggestion commit ID.
 
 **Reply format:**
 - After a fix is pushed: `"Fixed in <commit_url>"`
@@ -177,7 +175,7 @@ When dispatching a fix agent, include:
 - Repo path, relevant file(s) + line numbers
 - Exact comment text verbatim
 - "Fix only what the reviewer flagged — no scope creep. Commit and push when done."
-- "NEVER tag @copilot in any comment **except** `@copilot review` to trigger a review cycle."
+- "NEVER use @copilot in any comment — reviewer list cycle is the only safe re-request method."
 
 After any push, Copilot auto-re-reviews if `review_on_push` is enabled — manual re-request may not be needed.
 
@@ -194,7 +192,7 @@ After each poll cycle, update `.xgh/watch-prs-state.json`:
 
 ## Hard rules
 
-- **NEVER** tag `@copilot` in any comment **except** `@copilot review` to trigger a review cycle
+- **NEVER** use `@copilot` in any comment — reviewer list cycle is the only safe re-request method
 - **NEVER** tag bot reviewers in replies — any login ending in `[bot]`
 - **NEVER** merge a PR with `mergeable == CONFLICTING`
 - **NEVER** force push
