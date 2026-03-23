@@ -1,6 +1,6 @@
 ---
 name: xgh:watch-prs
-description: "Use /xgh-watch-prs when you want to watch PRs / babysit PRs until they reach merge — waiting on CI, a reviewer hasn't responded, comments need fixes, or you want merge to happen automatically without manually polling GitHub. Detects the host (GitHub, GitLab, Bitbucket, etc.) and adapts reviewer automation accordingly."
+description: "Use /xgh-watch-prs when you want to watch PRs until they reach merge — waiting on CI, a reviewer hasn't responded, comments need fixes, or you want merge to happen automatically without manually polling GitHub. Detects the host (GitHub, GitLab, Bitbucket, etc.) and adapts reviewer automation accordingly."
 ---
 
 > **Output format:** Start with `## 🐴🤖 xgh watch-prs`. Use markdown tables for structured data. Use ✅ ⚠️ ❌ for status. Keep per-poll output terse.
@@ -133,13 +133,13 @@ Save to `.xgh/watch-prs-state.json`:
 
 Use `CronCreate` to schedule recurring polls. Convert `--interval` to a standard cron expression (`5m → "*/5 * * * *"`, `10m → "*/10 * * * *"`). To avoid :00/:30 load spikes, prefer an offset minute list (e.g. `1,11,21,31,41,51 * * * *` for a 10m cadence starting at :01) — optional.
 
-The sentinel string `BABYSIT:<REPO>:<PR_NUMBERS>` in the prompt makes it findable via `CronList` for stop/status.
+The sentinel string `WATCH:<REPO>:<PR_NUMBERS>` in the prompt makes it findable via `CronList` for stop/status.
 
 ```
 CronCreate({
   cron: "<interval-expression>",
   recurring: true,
-  prompt: `BABYSIT:<REPO>:<PR_NUMBERS>
+  prompt: `WATCH:<REPO>:<PR_NUMBERS>
 Dispatch the xgh:pr-poller agent with:
 - repo: <REPO>
 - provider: <PROVIDER>
@@ -347,7 +347,7 @@ Active since: 2026-03-22T03:00:00Z
 | #59  | 👀 watching | re-requested-review  | 00:08:20Z | 28       | —     |
 ```
 
-If no state file: `ℹ️ No active babysit-prs session.`
+If no state file: `ℹ️ No active watch-prs session.`
 
 ---
 
@@ -355,12 +355,12 @@ If no state file: `ℹ️ No active babysit-prs session.`
 
 1. Load state file
 2. If no session: print info message, exit
-3. If `cron_job_id` is set: call `CronDelete(cron_job_id)`. If not set, scan `CronList` for any job whose prompt contains `BABYSIT:<REPO>:` and delete matches.
+3. If `cron_job_id` is set: call `CronDelete(cron_job_id)`. If not set, scan `CronList` for any job whose prompt contains `WATCH:<REPO>:` and delete matches.
 4. Delete state file
 5. Print confirmation:
-   - If `cron_job_id` was set and deleted: `✅ babysit-prs stopped. Cron job <id> deleted.`
-   - If scan was used (0 found): `✅ babysit-prs stopped. (No active cron job found.)`
-   - If scan was used (1+ found): `✅ babysit-prs stopped. Deleted <N> cron job(s): <id1> <id2> ...`
+   - If `cron_job_id` was set and deleted: `✅ watch-prs stopped. Cron job <id> deleted.`
+   - If scan was used (0 found): `✅ watch-prs stopped. (No active cron job found.)`
+   - If scan was used (1+ found): `✅ watch-prs stopped. Deleted <N> cron job(s): <id1> <id2> ...`
 
 ---
 
@@ -499,7 +499,7 @@ suggestion_commits: false
 
 This skill builds on `xgh:copilot-pr-review` for GitHub-specific API calls. Key mappings:
 
-| babysit-prs action | copilot-pr-review equivalent |
+| watch-prs action | copilot-pr-review equivalent |
 |--------------------|------------------------------|
 | Initialize baseline | `status <PR>` |
 | Re-request review | `re-review <PR>` |
@@ -510,7 +510,7 @@ This skill builds on `xgh:copilot-pr-review` for GitHub-specific API calls. Key 
 
 ## Known Pitfalls
 
-| Pitfall | How babysit-prs handles it |
+| Pitfall | How watch-prs handles it |
 |---------|--------------------------|
 | `@copilot` triggers delegation (except `@copilot review`) | Agent prompts include "NEVER tag @copilot except `@copilot review`" |
 | `[bot]` suffix required in REST API | Encodes suffix in REST calls; uses `gh pr edit` (GraphQL, no suffix) for reviewer list |
