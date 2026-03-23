@@ -89,18 +89,14 @@ If no new review since baseline, no active agent, and cooldown has elapsed: read
 
 To check if an active_agent is still running: examine its return status from previous dispatch or check `git log --oneline origin/<branch> --since="<started_at>"` for new commits indicating the agent is still working.
 
-**GitHub + Copilot reviewer — comment trigger (primary):**
-```bash
-gh api repos/<REPO>/issues/<PR>/comments \
-  -X POST --raw-field "body=@copilot review"
-```
-
-If the above fails, fall back to reviewer list cycle (strip `[bot]` suffix for `gh pr edit`):
+**GitHub + Copilot reviewer — reviewer list cycle (strip `[bot]` suffix for `gh pr edit`):**
 ```bash
 REVIEWER_SLUG="${reviewer%\[bot\]}"
 gh pr edit <PR> --repo <REPO> --remove-reviewer "$REVIEWER_SLUG" 2>/dev/null
 gh pr edit <PR> --repo <REPO> --add-reviewer "$REVIEWER_SLUG"
 ```
+
+> **NEVER use `@copilot review` comments.** Even `@copilot review` triggers the SWE delegation agent which opens new PRs. The reviewer list cycle is the only safe re-request method.
 
 **Other providers / custom reviewer:**
 ```bash

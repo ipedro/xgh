@@ -291,19 +291,13 @@ If merge fails for non-conflict reason: `last_action = merge-attempted`, log err
 
 **Action:** Re-request review, respecting cooldown. Only if `last_review_request_at` is null OR at least one poll interval has elapsed.
 
-**GitHub + Copilot reviewer (primary path):**
-```bash
-# Trigger via comment — works even when reviewer list is stale
-gh api repos/$REPO/issues/$PR/comments \
-  -X POST --raw-field "body=@copilot review"
-```
-If the comment trigger fails, fall back to reviewer list cycle:
+**GitHub + Copilot reviewer — reviewer list cycle:**
 ```bash
 gh pr edit $PR --repo $REPO --remove-reviewer copilot-pull-request-reviewer 2>/dev/null
 gh pr edit $PR --repo $REPO --add-reviewer copilot-pull-request-reviewer
 ```
 
-> **`@copilot review` ONLY.** Any other `@copilot <text>` triggers the SWE delegation agent which opens a NEW PR.
+> **NEVER use `@copilot` in comments.** Even `@copilot review` triggers the SWE delegation agent which opens a NEW PR. The reviewer list cycle is the only safe re-request method.
 
 **Non-GitHub or custom reviewer:**
 ```bash
@@ -432,21 +426,20 @@ suggestion_commits: true
 
 | System | Trigger | Effect |
 |--------|---------|--------|
-| **Code Review** | Add `copilot-pull-request-reviewer[bot]` to reviewer list OR `@copilot review` comment | Leaves inline review comments |
-| **SWE Delegation Agent** | `@copilot <anything other than "review">` in a comment | Opens a **NEW PR** with code changes |
+| **Code Review** | Add `copilot-pull-request-reviewer[bot]` to reviewer list | Leaves inline review comments |
+| **SWE Delegation Agent** | `@copilot <anything>` in a comment — including `@copilot review` | Opens a **NEW PR** with code changes |
 
-**Only `@copilot review` is safe.** Any other `@copilot <text>` opens new PRs — for questions, replies, instructions, anything.
+**NEVER use `@copilot` in comments.** Even `@copilot review` triggers the SWE delegation agent. The reviewer list cycle is the only safe way to request a review.
 
-Copilot does NOT read replies on its review comments. It is a one-way reviewer. Re-requesting is the only way to get another pass.
+Copilot does NOT read replies on its review comments. It is a one-way reviewer. Re-requesting via reviewer list is the only way to get another pass.
 
 #### GitHub: Triggering Copilot Review
 
-Two methods — comment trigger is primary:
+One safe method — reviewer list cycle only:
 
 | Method | Command | Notes |
 |--------|---------|-------|
-| Comment (primary) | `gh api repos/$REPO/issues/$PR/comments -X POST --raw-field "body=@copilot review"` | Works even after reviewer list cleared; safe to repeat |
-| Reviewer list cycle (fallback) | `gh pr edit --remove-reviewer copilot-pull-request-reviewer && --add-reviewer copilot-pull-request-reviewer` | Uses GraphQL, no `[bot]` suffix needed |
+| Reviewer list cycle | `gh pr edit --remove-reviewer copilot-pull-request-reviewer && --add-reviewer copilot-pull-request-reviewer` | Uses GraphQL, no `[bot]` suffix needed; only safe method |
 
 `review_on_push: true` (repo setting) makes Copilot auto-review on every push — when enabled, manual re-requests after pushing fixes are redundant. Check with `status` before re-requesting.
 
@@ -515,7 +508,7 @@ This skill builds on `xgh:copilot-pr-review` for GitHub-specific API calls. Key 
 
 | Pitfall | How babysit-prs handles it |
 |---------|--------------------------|
-| `@copilot` triggers delegation (except `@copilot review`) | Agent prompts include "NEVER tag @copilot except `@copilot review`" |
+| `@copilot` in any comment triggers delegation (including `@copilot review`) | Agent prompts include "NEVER use @copilot in comments — reviewer list cycle only" |
 | `[bot]` suffix required in REST API | Encodes suffix in REST calls; uses `gh pr edit` (GraphQL, no suffix) for reviewer list |
 | Copilot ignores conflicting PRs | Detects CONFLICTING, resolves before re-requesting |
 | COMMENTED reviews can't be dismissed | Never attempts dismiss — uses re-request cycle |
