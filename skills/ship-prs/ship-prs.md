@@ -91,7 +91,14 @@ COPILOT_CODE_REVIEW_ENABLED="$(
 Before creating the cron, check branch protection:
 ```bash
 # Check branch protection required approvals
-gh api repos/$REPO/branches/$(gh pr view $PR --repo $REPO --json baseRefName -q .baseRefName)/protection \
+base_ref_name="$(gh pr view "$PR" --repo "$REPO" --json baseRefName -q .baseRefName)"
+base_ref_name_uri="$(python3 - <<'PY' <<<"$base_ref_name"
+import sys
+from urllib.parse import quote
+print(quote(sys.stdin.read().strip(), safe=""))
+PY
+)"
+gh api "repos/$REPO/branches/$base_ref_name_uri/protection" \
   --jq '.required_pull_request_reviews.required_approving_review_count // 0' 2>/dev/null
 ```
 If required approvals > 1 and `--reviewer` is a single bot: print warning:

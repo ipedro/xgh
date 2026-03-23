@@ -62,7 +62,7 @@ COPILOT_CODE_REVIEW_ENABLED="$(
     || echo false
 )"
 ```
-- If enabled and `--reviewer` not set: default reviewer_comment_author = `Copilot`
+- If enabled and `--reviewer` not set: default `reviewer` to `copilot-pull-request-reviewer[bot]` for tracking review state, and derive `reviewer_comment_author=Copilot` only when filtering inline review comments.
 - If disabled or endpoint 404s: print `⚠️ Copilot code review is not enabled for $REPO. Pass --reviewer <login> to specify one.`
 
 **Other providers:** If `--reviewer` not set and profile has no `reviewer_bot`:
@@ -107,6 +107,7 @@ Save to `.xgh/watch-prs-state.json`:
   "session_id": "uuid",
   "repo": "owner/repo",
   "provider": "github",
+  "reviewer": "copilot-pull-request-reviewer[bot]",
   "reviewer_comment_author": "Copilot",
   "cron_job_id": null,
   "cron": "*/3 * * * *",
@@ -140,6 +141,7 @@ Dispatch the xgh:pr-poller agent with:
 - repo: <REPO>
 - provider: <PROVIDER>
 - prs: [<PR_NUMBERS>]
+- reviewer: <REVIEWER>
 - reviewer_comment_author: <REVIEWER_COMMENT_AUTHOR>
 Read .xgh/watch-prs-state.json for per-PR last_seen baselines. Compare DELTA against
 baselines and print a change-log. Update state with new last_seen values.

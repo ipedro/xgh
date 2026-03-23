@@ -54,8 +54,17 @@ For each PR in `prs`, execute the poll cycle below, then return one of:
 
 ## Observe mode (mode: observe)
 
-Read-only. Run only steps 1 and 3 for each PR. Do NOT merge, do NOT re-request review,
-do NOT dispatch any agent, do NOT write to GitHub.
+Read-only. Do NOT merge, do NOT re-request review, do NOT dispatch any agent, do NOT write to GitHub.
+
+For each PR, fetch the following in read-only fashion:
+- **Mergeability:** `gh pr view <PR> --repo <REPO> --json mergeable --jq '.mergeable'`
+- **CI status:** `gh pr view <PR> --repo <REPO> --json statusCheckRollup` — collect all conclusions
+- **Review state:** `gh api repos/<REPO>/pulls/<PR>/reviews` — filter by `<reviewer>`, take the last entry's `state` (or `reviewDecision` from the PR json as a fallback)
+- **Inline comment count:** `gh api repos/<REPO>/pulls/<PR>/comments` — filter by `<reviewer_comment_author>`
+
+Compute `merge_ready` as: `mergeable == "MERGEABLE"` AND all `statusCheckRollup` conclusions are `SUCCESS` or `SKIPPED` AND (`reviewDecision == "APPROVED"` OR at least one review from `<reviewer>` with `state == "APPROVED"`).
+
+Then run step 3 (check for new review comments) to populate `comment_count` and `changes`.
 
 Return `DELTA: [...]` with the structured delta object per PR:
 ```
@@ -99,7 +108,7 @@ gh pr view <PR> --repo <REPO> --json state,mergeable,reviews,statusCheckRollup,r
 
 **Paused/held guard (ship mode only):** Before any active step, read `.xgh/ship-prs-state.json`.
 If top-level `paused == true`: skip ALL active steps for ALL PRs this tick, return `SKIPPED: session paused`.
-If `prs["<PR>"].held == true`: skip all active steps for that PR, include `"skipped": "held"` in its delta entry.
+If `prs["<PR>"].held == true`: skip all active steps for that PR. In ship mode, reflect the held status in that PR's `WATCHING` status line (no delta structure in ship mode). In observe mode, include `"skipped": "held"` in that PR's DELTA entry.
 
 **Criteria:**
 1. `mergeable == "MERGEABLE"` — if CONFLICTING: dispatch conflict-resolution agent, skip merge
