@@ -50,9 +50,23 @@ jobs:
             printf 'skip=false\n' >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Set up Python
+        if: steps.check.outputs.skip == 'false'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install Python dependencies
+        if: steps.check.outputs.skip == 'false'
+        run: pip install pyyaml
+
       - name: Run tests
         if: steps.check.outputs.skip == 'false'
-        run: bash tests/test-config.sh && bash tests/test-multi-agent.sh
+        run: |
+          bash tests/run-all.sh \
+            test-config test-ct-archive test-ct-crud test-ct-frontmatter \
+            test-ct-integration test-ct-manifest test-ct-scoring test-ct-search \
+            test-ct-sync test-hooks
 
       - name: Verify npm identity
         if: steps.check.outputs.skip == 'false'
