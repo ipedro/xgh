@@ -1,6 +1,18 @@
 ---
 name: xgh:profile
-description: "This skill should be used when the user runs /xgh-profile or asks about engineer capacity, assignment, or estimation. Analyzes engineer Jira history to produce throughput profiles, ticket affinity, and data-driven time estimates for task assignment — supports single engineer and team-view modes."
+description: >
+  Analyzes engineer Jira history to produce throughput profiles, ticket affinity,
+  and data-driven time estimates for task assignment. Supports single engineer
+  and team-view modes.
+type: flexible
+triggers:
+  - when invoked via /xgh-profile command
+  - when the user asks about engineer capacity, assignment, or estimation
+mcp_dependencies:
+  required:
+    - atlassian: "Atlassian MCP — searchJiraIssuesUsingJql for ticket history"
+  optional:
+    - lossless-claude: "lossless-claude MCP — store/recall profile data across sessions"
 ---
 
 # xgh:profile — Engineer Throughput & Affinity Analysis
@@ -23,7 +35,7 @@ Analyze an engineer's Jira history to produce throughput profiles, ticket type a
 
 ## MCP Auto-Detection
 
-Follow the shared detection protocol in `skills/_shared/references/mcp-auto-detection.md`. This skill uses two integrations with different availability rules:
+Before starting, check which integrations are active:
 
 | Integration | Detection signal | Capability |
 |-------------|-----------------|------------|
