@@ -7,7 +7,7 @@ Before starting any skill, auto-detect which MCP servers are available. Skills a
 **How to detect** (method depends on integration type — see table below):
 - **MCP integrations:** Check whether the named tool function is present in the current tool list.
 - **CLI integrations (e.g. GitHub):** Check binary availability via `command -v gh` or a lightweight help command. These have no MCP server — the table row's "Detection signal" column specifies the CLI check.
-Available integrations are discovered automatically on first invocation. Call `xgh:mcp-setup` for any missing MCP the user wants to configure.
+Available integrations are discovered automatically on first invocation. Run `/xgh-setup` to configure any missing MCP integrations.
 
 ## Common Tool Signatures by Integration
 

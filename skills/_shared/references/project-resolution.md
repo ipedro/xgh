@@ -84,7 +84,7 @@ If output is `NO_INGEST_PARSE_ERROR`:
 - Stop execution and tell the user: "`~/.xgh/ingest.yaml` is not valid YAML. Fix the syntax and retry."
 
 If output is `NO_MATCH`:
-- Stop execution and tell the user: "No project config found for this repo. Run `/xgh:config add-project` to register it."
+- Stop execution and tell the user: "No project config found for this repo. Run `/xgh-config add-project` to register it."
 
 ## Example
 
@@ -109,7 +109,7 @@ elif [ "$PROJECT" = "NO_INGEST_PARSE_ERROR" ]; then
   echo "~/.xgh/ingest.yaml is not valid YAML. Fix the syntax and retry."
   exit 1
 elif [ "$PROJECT" = "NO_MATCH" ]; then
-  echo "No project config found for this repo. Run \`/xgh:config add-project\` to register it."
+  echo "No project config found for this repo. Run \`/xgh-config add-project\` to register it."
   exit 1
 fi
 

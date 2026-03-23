@@ -107,7 +107,7 @@ Any unrecognized flags are forwarded to `codex exec` / `codex review` as-is.
 
 Follow `skills/_shared/references/dispatch-template.md` Step 1. Use `<CLI>` = `codex`.
 
-Same-dir fallback flag: `--add-dir <repo-path>` (Codex-specific — passes an additional readable directory to Codex but does not change the working directory). In same-dir mode, set `WORK_DIR=$(pwd)`.
+**Same-dir mode:** Set `WORK_DIR=$(pwd)`. No worktree is created. For exec, pass `--add-dir $(pwd)` in the Codex invocation so the sandbox grants write access to the repo directory. Note: `--add-dir` is a Codex sandbox flag, not the isolation selector — same-dir mode is chosen when the user does not want worktree isolation (e.g. for reviews, or explicit `--add-dir` choice).
 
 ---
 
