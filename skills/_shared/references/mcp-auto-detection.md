@@ -17,7 +17,7 @@ MCP tool names follow the pattern `mcp__<server-slug>__<tool-name>`. The exact p
 |-------------|-----------------|------------|
 | lossless-claude | `mcp__lossless-claude__lcm_search` tool available | xgh memory, session state, conventions |
 | Slack MCP | `mcp__claude_ai_Slack__slack_read_thread` tool available | Thread reading, message search |
-| Atlassian/Jira | `mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql` tool available | Ticket history, task management |
+| Atlassian/Jira | `mcp__claude_ai_Atlassian__searchJiraIssuesUsingJQL` tool available | Ticket history, task management |
 | GitHub | `gh pr list` / `gh issue list` available (CLI detection; no standard MCP server for GitHub) | PRs, issues, Actions |
 | Figma MCP | `mcp__claude_ai_Figma__get_design_context` tool available | Design extraction, Code Connect |
 | Gmail | `mcp__claude_ai_Gmail__gmail_search_messages` tool available (fallback: `gmail_search_messages`) | Email search and reading |
