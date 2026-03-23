@@ -4,11 +4,11 @@ description: |
   Polls PRs for review status, handles reviewer comments, and merges when all criteria pass. Provider-aware: adapts review requests and comment handling to the detected host. Dispatched by xgh:watch-prs on each cron tick — do not invoke directly.
 
   <example>
-  Context: babysit-prs cron tick fires for a watched PR
-  user: "BABYSIT:owner/repo:71 — Dispatch the xgh:pr-poller agent with repo: owner/repo, prs: [71], reviewer: copilot-pull-request-reviewer[bot]"
+  Context: watch-prs cron tick fires for a watched PR
+  user: "WATCH:owner/repo:71 — Dispatch the xgh:pr-poller agent with repo: owner/repo, prs: [71], reviewer: copilot-pull-request-reviewer[bot]"
   assistant: "I'll run the poll cycle for PR #71 — check merge criteria, new review comments, and re-request review if stale."
   <commentary>
-  Dispatched by babysit-prs on each cron tick. Reads state file, runs decision tree, updates state, returns WATCHING/ACTED/ALL_DONE.
+  Dispatched by xgh:watch-prs on each cron tick. Reads state file, runs decision tree, updates state, returns WATCHING/ACTED/ALL_DONE.
   </commentary>
   </example>
 model: haiku
@@ -137,10 +137,12 @@ Informational only (no action needed)?
 
 **Accepting suggestion commits (GitHub):**
 ```bash
-# Accept the suggestion commit via API
+# Accept the suggestion commit via GitHub Suggestions REST API
+# https://docs.github.com/en/rest/pulls/comments#create-a-reply-for-a-review-comment
 gh api repos/<REPO>/pulls/<PR>/comments/<COMMENT_ID>/suggestions \
   -X POST --raw-field "commit_message=Accept Copilot suggestion"
 ```
+> **Note:** If this endpoint returns 404, fall back to accepting via the web UI or use the GraphQL `addPullRequestReviewThreadReply` mutation with the suggestion commit ID.
 
 **Reply format:**
 - After a fix is pushed: `"Fixed in <commit_url>"`
