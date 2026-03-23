@@ -1,7 +1,7 @@
 ---
 name: xgh:pr-poller
 description: |
-  Polls PRs for review status, handles reviewer comments, and merges when all criteria pass. Provider-aware: adapts review requests and comment handling to the detected host. Dispatched by xgh:babysit-prs on each cron tick — do not invoke directly.
+  Polls PRs for review status, handles reviewer comments, and merges when all criteria pass. Provider-aware: adapts review requests and comment handling to the detected host. Dispatched by xgh:watch-prs on each cron tick — do not invoke directly.
 
   <example>
   Context: babysit-prs cron tick fires for a watched PR
@@ -17,7 +17,7 @@ color: blue
 tools: ["Bash", "Agent", "Read", "Write"]
 ---
 
-You are the PR polling agent for xgh:babysit-prs. You are dispatched on each cron tick.
+You are the PR polling agent for xgh:watch-prs. You are dispatched on each cron tick.
 
 **Input format:**
 ```
@@ -72,7 +72,7 @@ Mark done.
 
 ### 3. Check for new review comments
 
-Read `.xgh/babysit-prs-state.json` to get `baseline_comment_count` and `baseline_review_at` for this PR.
+Read `.xgh/watch-prs-state.json` to get `baseline_comment_count` and `baseline_review_at` for this PR.
 
 ```bash
 gh api repos/<REPO>/pulls/<PR>/comments --paginate \
@@ -85,7 +85,7 @@ If comment count > baseline AND a new review was submitted since baseline:
 
 ### 4. Re-request review if stale
 
-If no new review since baseline, no active agent, and cooldown has elapsed: read `cron` from `.xgh/babysit-prs-state.json` to derive the poll interval, then skip if `last_review_request_at` is within that interval.
+If no new review since baseline, no active agent, and cooldown has elapsed: read `cron` from `.xgh/watch-prs-state.json` to derive the poll interval, then skip if `last_review_request_at` is within that interval.
 
 To check if an active_agent is still running: examine its return status from previous dispatch or check `git log --oneline origin/<branch> --since="<started_at>"` for new commits indicating the agent is still working.
 
@@ -185,7 +185,7 @@ After any push, Copilot auto-re-reviews if `review_on_push` is enabled — manua
 
 ## State file updates
 
-After each poll cycle, update `.xgh/babysit-prs-state.json`:
+After each poll cycle, update `.xgh/watch-prs-state.json`:
 - Update `last_action` and `last_action_at` for each PR
 - Update `baseline_comment_count` and `baseline_review_at` when new comments/reviews are processed
 - Set `active_agent` when dispatching a fix agent; clear it when the fix agent is confirmed complete (via its return status/logs) or when new commits are detected on the branch

@@ -1,21 +1,21 @@
 ---
-name: xgh:babysit-prs
-description: "Use /xgh-babysit-prs when you want to babysit PRs / watch these PRs until they reach merge — waiting on CI, a reviewer hasn't responded, comments need fixes, or you want merge to happen automatically without manually polling GitHub. Detects the host (GitHub, GitLab, Bitbucket, etc.) and adapts reviewer automation accordingly."
+name: xgh:watch-prs
+description: "Use /xgh-watch-prs when you want to watch PRs / babysit PRs until they reach merge — waiting on CI, a reviewer hasn't responded, comments need fixes, or you want merge to happen automatically without manually polling GitHub. Detects the host (GitHub, GitLab, Bitbucket, etc.) and adapts reviewer automation accordingly."
 ---
 
-> **Output format:** Start with `## 🐴🤖 xgh babysit-prs`. Use markdown tables for structured data. Use ✅ ⚠️ ❌ for status. Keep per-poll output terse.
+> **Output format:** Start with `## 🐴🤖 xgh watch-prs`. Use markdown tables for structured data. Use ✅ ⚠️ ❌ for status. Keep per-poll output terse.
 
-# /xgh-babysit-prs — PR Merge Orchestrator
+# /xgh-watch-prs — PR Merge Orchestrator
 
 Watch a batch of PRs through review cycles until all are merged. Detects the host platform and adapts: on GitHub it auto-triggers Copilot reviews; on other platforms it works with any specified reviewer. Each poll cycle takes the next correct action: accept suggestion commits, dispatch fix agents, reply to comments, resolve outdated threads, re-request review, or merge.
 
 ## Usage
 
 ```
-/xgh-babysit-prs start <PR> [<PR>...] [--repo owner/repo] [--interval 3m] [--merge-method merge|squash|rebase] [--reviewer <login>] [--accept-suggestion-commits] [--require-resolved-threads] [--post-merge-hook '<command>']
-/xgh-babysit-prs poll-once <PR> [<PR>...]
-/xgh-babysit-prs status
-/xgh-babysit-prs stop
+/xgh-watch-prs start <PR> [<PR>...] [--repo owner/repo] [--interval 3m] [--merge-method merge|squash|rebase] [--reviewer <login>] [--accept-suggestion-commits] [--require-resolved-threads] [--post-merge-hook '<command>']
+/xgh-watch-prs poll-once <PR> [<PR>...]
+/xgh-watch-prs status
+/xgh-watch-prs stop
 ```
 
 **Defaults:**
@@ -81,7 +81,7 @@ COPILOT_CODE_REVIEW_ENABLED="$(
 
 **Step 1 — Check for existing session:**
 
-Read `.xgh/babysit-prs-state.json`. If it exists and a watcher is alive with matching repo + PRs, print session details and exit. If watcher is dead, resume from stored state.
+Read `.xgh/watch-prs-state.json`. If it exists and a watcher is alive with matching repo + PRs, print session details and exit. If watcher is dead, resume from stored state.
 
 **Step 2 — Initialize baselines:**
 
@@ -101,7 +101,7 @@ gh api repos/$REPO/pulls/$PR/comments --paginate \
 
 **Step 3 — Write state file:**
 
-Save to `.xgh/babysit-prs-state.json`:
+Save to `.xgh/watch-prs-state.json`:
 ```json
 {
   "repo": "owner/repo",
@@ -149,7 +149,7 @@ Dispatch the xgh:pr-poller agent with:
 - merge_method: <MERGE_METHOD>
 - accept_suggestion_commits: <BOOL>
 - require_resolved_threads: <BOOL>
-If the agent returns status ALL_DONE, read .xgh/babysit-prs-state.json, take cron_job_id from that file, and call CronDelete(cron_job_id) to stop this job.`
+If the agent returns status ALL_DONE, read .xgh/watch-prs-state.json, take cron_job_id from that file, and call CronDelete(cron_job_id) to stop this job.`
 })
 ```
 
@@ -229,7 +229,7 @@ This is the "pending first review" state.
 **Action:**
 1. Fetch new comments since baseline:
    ```bash
-   BASELINE_COUNT=$(jq -r ".prs[\"$PR\"].baseline_comment_count" .xgh/babysit-prs-state.json)
+   BASELINE_COUNT=$(jq -r ".prs[\"$PR\"].baseline_comment_count" .xgh/watch-prs-state.json)
    gh api repos/$REPO/pulls/$PR/comments --paginate \
      --jq "[.[] | select(.user.login == \"<REVIEWER_COMMENT_AUTHOR>\")] | sort_by(.created_at) | .[$BASELINE_COUNT:] | .[] | {id, path, line, body, diff_hunk, pull_request_review_id}"
    ```
@@ -332,10 +332,10 @@ Useful for manual one-shot checks or debugging the decision tree.
 
 ### `status` — Show current session
 
-Load `.xgh/babysit-prs-state.json` and display:
+Load `.xgh/watch-prs-state.json` and display:
 
 ```
-## 🐴🤖 xgh babysit-prs — status
+## 🐴🤖 xgh watch-prs — status
 
 Repo: ipedro/lossless-claude | Provider: github | Reviewer: copilot-pull-request-reviewer[bot]
 Merge: squash | Cron: <job-id> every 3m
@@ -525,7 +525,7 @@ This skill builds on `xgh:copilot-pr-review` for GitHub-specific API calls. Key 
 
 ## State File
 
-**Path:** `.xgh/babysit-prs-state.json`
+**Path:** `.xgh/watch-prs-state.json`
 
 Runtime state only — add to `.gitignore`.
 
