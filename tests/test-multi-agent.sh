@@ -117,6 +117,15 @@ assert_contains "$PLUGIN_DIR/agents/codex-driver.md"  "^name: codex-driver"  "co
 assert_contains "$PLUGIN_DIR/agents/codex-driver.md"  "^model: sonnet"       "codex-driver: model is sonnet"
 assert_contains "$PLUGIN_DIR/agents/codex-driver.md"  "^color: cyan"         "codex-driver: color is cyan"
 
+# pr-poller
+assert_file_exists "$PLUGIN_DIR/agents/pr-poller.md"                      "pr-poller exists"
+assert_contains "$PLUGIN_DIR/agents/pr-poller.md"  "^name: xgh:pr-poller"  "pr-poller: name field"
+assert_contains "$PLUGIN_DIR/agents/pr-poller.md"  "^model: haiku"         "pr-poller: model is haiku"
+assert_contains "$PLUGIN_DIR/agents/pr-poller.md"  "^capabilities:"        "pr-poller: has capabilities field"
+assert_contains "$PLUGIN_DIR/agents/pr-poller.md"  "^color:"               "pr-poller: has color field"
+assert_contains "$PLUGIN_DIR/agents/pr-poller.md"  "<example>"             "pr-poller: has dispatch example"
+assert_contains "$PLUGIN_DIR/agents/pr-poller.md"  'tools:.*Bash'          "pr-poller: has Bash access"
+
 # ── Result ──────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS passed, $FAIL failed"

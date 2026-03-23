@@ -33,10 +33,10 @@ assert_file_exists "commands/copilot-pr-review.md"
 assert_file_exists "skills/copilot-pr-review/copilot-pr-review.md"
 assert_contains "commands/copilot-pr-review.md" "copilot-pr-review"
 
-# --- babysit-prs: command + skill registration ---
-assert_file_exists "commands/babysit-prs.md"
-assert_file_exists "skills/babysit-prs/babysit-prs.md"
-assert_contains "commands/babysit-prs.md" "babysit-prs"
+# --- watch-prs: command + skill registration ---
+assert_file_exists "commands/watch-prs.md"
+assert_file_exists "skills/watch-prs/watch-prs.md"
+assert_contains "commands/watch-prs.md" "watch-prs"
 
 # --- config: command + skill registration ---
 assert_file_exists "commands/config.md"
@@ -57,9 +57,9 @@ assert_contains "commands/test-builder.md" "name: xgh-test-builder"
 assert_file_exists "tests/skill-triggering/prompts/copilot-pr-review.txt"
 assert_file_exists "tests/skill-triggering/prompts/copilot-pr-review-2.txt"
 assert_file_exists "tests/skill-triggering/prompts/copilot-pr-review-3.txt"
-assert_file_exists "tests/skill-triggering/prompts/babysit-prs.txt"
-assert_file_exists "tests/skill-triggering/prompts/babysit-prs-2.txt"
-assert_file_exists "tests/skill-triggering/prompts/babysit-prs-3.txt"
+assert_file_exists "tests/skill-triggering/prompts/watch-prs.txt"
+assert_file_exists "tests/skill-triggering/prompts/watch-prs-2.txt"
+assert_file_exists "tests/skill-triggering/prompts/watch-prs-3.txt"
 assert_file_exists "tests/skill-triggering/prompts/config.txt"
 assert_file_exists "tests/skill-triggering/prompts/config-2.txt"
 assert_file_exists "tests/skill-triggering/prompts/config-3.txt"
