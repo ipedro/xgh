@@ -198,6 +198,8 @@ claude mcp list 2>/dev/null | grep -i lossless-claude
 
 ---
 
+## Reference
+
 ## Step 0b: Stale Install Cleanup
 
 Check for old-style per-project skill copies from pre-plugin installs:

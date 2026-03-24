@@ -55,6 +55,10 @@ Check `~/.xgh/logs/retriever.log` for last timestamp (last line matching ISO dat
 Check `~/.xgh/logs/analyzer.log` similarly:
 - < 45 min: ✓ | 45–90 min: ⚠ | > 90 min: ✗
 
+---
+
+## Reference
+
 ## Check 3b — Context Efficiency
 
 ### RTK — output compression

@@ -342,6 +342,8 @@ Wait for approval before proceeding to Phase 5.
 
 ---
 
+## Reference
+
 ## Phase 5: Implementation Plan (Superpowers writing-plans)
 
 Generate a detailed, executable plan following Superpowers writing-plans methodology.
