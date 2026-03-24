@@ -24,7 +24,7 @@ updated: 2026-03-16
 | `agents/` | Multi-agent collaboration definitions | 1 |
 | `templates/` | Output style guides | 1 |
 | `tests/` | Bash test suites with assert helpers | ~20 |
-| `docs/` | Plans, proposals, research | varies |
+| `.xgh/docs/` | Plans, proposals, research | varies |
 
 ## File Types
 

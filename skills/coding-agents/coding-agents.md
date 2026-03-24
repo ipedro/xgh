@@ -18,7 +18,7 @@ List and manage AI coding CLI agents (Codex, OpenCode, Gemini) and their model c
 
 ## Implementation
 
-See [implementation plan](../../docs/superpowers/plans/2026-03-22-dynamic-model-detection.md).
+See [implementation plan](../../.xgh/docs/superpowers/plans/2026-03-22-dynamic-model-detection.md).
 
 ### Dispatch Logic
 
