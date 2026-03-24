@@ -149,6 +149,20 @@ If no new review since baseline, no active agent, and cooldown has elapsed: read
 
 To check if an active_agent is still running: examine its return status from previous dispatch or check `git log --oneline origin/<branch> --since="<started_at>"` for new commits indicating the agent is still working.
 
+**Before re-requesting — check if review is already pending:**
+```bash
+REVIEWER_SLUG="${reviewer%\[bot\]}"
+pending=$(gh api repos/<REPO>/pulls/<PR>/requested_reviewers \
+  --arg reviewer_slug "$REVIEWER_SLUG" \
+  --jq '([.users[].login, .teams[].slug] | map(gsub("\\[bot\\]"; "")) | any(. == $reviewer_slug))')
+if [ "$pending" = "true" ]; then
+  echo "Reviewer already pending — skipping re-request"
+  continue  # skip to next PR; do NOT update last_review_request_at
+fi
+```
+
+If the reviewer is already in `requested_reviewers`, the review is in-flight — do not cancel and re-request it.
+
 **GitHub + Copilot reviewer — reviewer list cycle (strip `[bot]` suffix for `gh pr edit`):**
 ```bash
 REVIEWER_SLUG="${reviewer%\[bot\]}"
