@@ -25,3 +25,6 @@ playwright_chromiumdev_profile-*/
 **/.DS_Store
 .superpowers/
 .xgh/docs/research/
+.xgh/babysit-prs-state.json
+lcm-cli-*/
+.orphaned_at
