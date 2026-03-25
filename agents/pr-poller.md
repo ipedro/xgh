@@ -62,7 +62,7 @@ For each PR, fetch the following in read-only fashion:
 - **Review state:** `gh api repos/<REPO>/pulls/<PR>/reviews` — filter by `<reviewer>`, take the last entry's `state` (or `reviewDecision` from the PR json as a fallback)
 - **Inline comment count:** `gh api repos/<REPO>/pulls/<PR>/comments` — filter by `<reviewer_comment_author>`
 
-Compute `merge_ready` as: `mergeable == "MERGEABLE"` AND all `statusCheckRollup` conclusions are `SUCCESS` or `SKIPPED` AND no review with `state == "CHANGES_REQUESTED"` AND all inline comments from `<reviewer_comment_author>` have been replied to (every comment must be addressed — either accepted with a fix commit or rejected with a reply explaining reasoning). To determine if a comment is "addressed", use the REST API to check `in_reply_to_id` fields or GitHub GraphQL `reviewThreads` to confirm each thread has a non-Copilot reply or is resolved. Unaddressed comments block merge..
+Compute `merge_ready` as: `mergeable == "MERGEABLE"` AND all `statusCheckRollup` conclusions are `SUCCESS` or `SKIPPED` AND no review with `state == "CHANGES_REQUESTED"` AND all inline comments from `<reviewer_comment_author>` have been replied to (every comment must be addressed — either accepted with a fix commit or rejected with a reply explaining reasoning). To determine if a comment is "addressed", use the REST API to check `in_reply_to_id` fields or GitHub GraphQL `reviewThreads` to confirm each thread has a non-Copilot reply or is resolved. Unaddressed comments block merge.
 
 > **Copilot never approves.** Do NOT wait for `reviewDecision == "APPROVED"` or `state == "APPROVED"` from Copilot. It always posts at least one comment. Merge-ready means: all comments addressed + no `CHANGES_REQUESTED`.
 

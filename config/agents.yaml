@@ -1,6 +1,6 @@
 # xgh Agent Registry
 # Declares available agents and their capabilities for multi-agent collaboration.
-# See: docs/plans/2026-03-13-xgh-design.md § 5
+# See: .xgh/plans/2026-03-13-xgh-design.md § 5
 
 agents:
   claude-code:

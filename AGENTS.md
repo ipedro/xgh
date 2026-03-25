@@ -104,6 +104,13 @@ Triggers, workflows, and agents — the full 'what fires when' picture.
 - No context-mode references in xgh skill files (context-mode handles its own enforcement)
 - Skill frontmatter must include `name` and `description`. For the trigger key, both `trigger` (singular string) and `triggers` (list) are valid — use whichever fits.
 
+### File organization
+
+- All project documentation (plans, specs, reviews, ideas) lives in `.xgh/`
+- Design specs go in `.xgh/specs/`
+- Implementation plans go in `.xgh/plans/`
+- Never create a top-level `docs/` directory
+
 ### Branch strategy
 
 - Feature work: branch off `develop` → PR targets `develop`
