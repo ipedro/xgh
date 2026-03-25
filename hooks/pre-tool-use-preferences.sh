@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 # hooks/pre-tool-use-preferences.sh — PreToolUse preference validation hook
 #
-# Epic 0.3: Validates merge methods and force-push on protected branches.
+# Phase 2: 5 severity-aware checks (block or warn per config).
 # Reads stdin JSON: { tool_name, tool_input: { command } }
-# Outputs: JSON with additionalContext warning on mismatch, empty otherwise.
-#
-# Contract: NEVER blocks — only warns via additionalContext.
+# Block: { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "..." } }
+# Warn:  { hookSpecificOutput: { hookEventName: "PreToolUse", additionalContext: "..." } }
 # Any failure = silent pass-through (exit 0, no output).
 set -euo pipefail
 
@@ -21,15 +20,50 @@ TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
 [ -n "$COMMAND" ] || exit 0
 
-# ── Resolve repo root and source config reader ─────────────────────────
+# ── Resolve repo root and source libraries ──────────────────────────────
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
-CONFIG_READER="${REPO_ROOT}/lib/config-reader.sh"
 PROJECT_YAML="${REPO_ROOT}/config/project.yaml"
+[ -f "$PROJECT_YAML" ] || exit 0
+
+# Source preference read layer and severity resolver
+# shellcheck source=../lib/preferences.sh
+source "${REPO_ROOT}/lib/preferences.sh" 2>/dev/null || exit 0
+# shellcheck source=../lib/severity.sh
+source "${REPO_ROOT}/lib/severity.sh" 2>/dev/null || exit 0
+
+# ── Output helpers ──────────────────────────────────────────────────────
+_emit_block() {
+  local reason="$1"
+  jq -n --arg reason "$reason" '{
+    "hookSpecificOutput": {
+      "hookEventName": "PreToolUse",
+      "permissionDecision": "deny",
+      "permissionDecisionReason": $reason
+    }
+  }'
+}
+
+_emit_warn() {
+  local msg="$1"
+  jq -n --arg msg "$msg" '{
+    "hookSpecificOutput": {
+      "hookEventName": "PreToolUse",
+      "additionalContext": $msg
+    }
+  }'
+}
+
+_emit() {
+  local severity="$1" message="$2"
+  if [[ "$severity" == "block" ]]; then
+    _emit_block "$message"
+  else
+    _emit_warn "$message"
+  fi
+}
 
 # ── Check 1: gh pr merge — merge method validation ─────────────────────
 if echo "$COMMAND" | grep -q 'gh pr merge'; then
-
-  # Extract merge method from command flags
   CMD_METHOD=""
   if echo "$COMMAND" | grep -qE -- '--squash'; then
     CMD_METHOD="squash"
@@ -38,100 +72,99 @@ if echo "$COMMAND" | grep -q 'gh pr merge'; then
   elif echo "$COMMAND" | grep -qE -- '--rebase'; then
     CMD_METHOD="rebase"
   fi
-  # If no flag specified, we can't determine intent — pass through
   [ -n "$CMD_METHOD" ] || exit 0
 
-  # Extract PR number from command (gh pr merge <number> or gh pr merge <url>)
-  PR_NUMBER=$(echo "$COMMAND" | grep -oE 'gh pr merge[[:space:]]+([0-9]+)' | grep -oE '[0-9]+' || true)
-
   # Determine target branch
+  PR_NUMBER=$(echo "$COMMAND" | grep -oE 'gh pr merge[[:space:]]+([0-9]+)' | grep -oE '[0-9]+' || true)
   TARGET_BRANCH=""
   if [ -n "$PR_NUMBER" ]; then
     TARGET_BRANCH=$(gh pr view "$PR_NUMBER" --json baseRefName -q .baseRefName 2>/dev/null || true)
   fi
 
-  # Load configured merge method via config-reader.sh
-  CONFIGURED_METHOD=""
-  if [ -f "$CONFIG_READER" ] && [ -f "$PROJECT_YAML" ]; then
-    # shellcheck source=lib/config-reader.sh
-    source "$CONFIG_READER"
-    CONFIGURED_METHOD=$(load_pr_pref "merge_method" "" "$TARGET_BRANCH" 2>/dev/null || true)
-  fi
-
-  # If we couldn't determine the configured method, pass through
+  CONFIGURED_METHOD=$(load_pr_pref "merge_method" "" "$TARGET_BRANCH")
   [ -n "$CONFIGURED_METHOD" ] || exit 0
 
-  # Compare
   if [ "$CMD_METHOD" != "$CONFIGURED_METHOD" ]; then
     BRANCH_MSG=""
-    if [ -n "$TARGET_BRANCH" ]; then
-      BRANCH_MSG=" for branch ${TARGET_BRANCH}"
-    fi
-
-    WARNING="[xgh] WARNING: merge method mismatch. Command uses --${CMD_METHOD} but config/project.yaml specifies ${CONFIGURED_METHOD}${BRANCH_MSG}. Consider using --${CONFIGURED_METHOD} instead."
-
-    jq -n --arg warning "$WARNING" '{
-      "hookSpecificOutput": {
-        "hookEventName": "PreToolUse",
-        "additionalContext": $warning
-      }
-    }'
-    exit 0
+    [ -n "$TARGET_BRANCH" ] && BRANCH_MSG=" for branch ${TARGET_BRANCH}"
+    severity=$(_severity_resolve "pr" "merge_method")
+    _emit "$severity" "[xgh] Merge method mismatch: command uses --${CMD_METHOD} but config/project.yaml specifies ${CONFIGURED_METHOD}${BRANCH_MSG}. Use --${CONFIGURED_METHOD} instead."
   fi
-
-  # Match — pass through silently
   exit 0
 fi
 
 # ── Check 2: git push --force on protected branches ────────────────────
-if echo "$COMMAND" | grep -qE 'git push.*(--force|-f)'; then
-
-  # Extract target branch from push command
-  # Patterns: git push origin main --force, git push -f origin main, git push --force
-  PUSH_BRANCH=""
-
-  # Try to extract remote and branch from the command
-  # Remove flags to find positional args: git push [remote] [refspec]
+if echo "$COMMAND" | grep -qE 'git push.*(--force|[ ]-f[ ]|[ ]-f$)'; then
   PUSH_ARGS=$(echo "$COMMAND" | sed 's/git push//' | sed 's/--force-with-lease//g' | sed 's/--force//g' | sed 's/-f//g' | sed 's/--no-verify//g' | xargs)
-
+  PUSH_BRANCH=""
   if [ -n "$PUSH_ARGS" ]; then
-    # Second positional arg is typically the branch (first is remote)
     PUSH_BRANCH=$(echo "$PUSH_ARGS" | awk '{print $2}')
-    # Handle refspec like main:main
     PUSH_BRANCH=$(echo "$PUSH_BRANCH" | sed 's/:.*//')
   fi
-
-  # If no branch specified, try current branch
-  if [ -z "$PUSH_BRANCH" ]; then
-    PUSH_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
-  fi
-
+  [ -z "$PUSH_BRANCH" ] && PUSH_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
   [ -n "$PUSH_BRANCH" ] || exit 0
 
-  # Check if branch is protected in project.yaml
-  if [ -f "$PROJECT_YAML" ] && command -v python3 >/dev/null 2>&1; then
-    IS_PROTECTED=$(python3 -c "
-import yaml, sys
-branch = sys.argv[1]
-with open(sys.argv[2]) as f:
-    d = yaml.safe_load(f) or {}
-v = d.get('preferences',{}).get('pr',{}).get('branches',{}).get(branch,{}).get('protected', False)
-print(str(v).lower())
-" "$PUSH_BRANCH" "$PROJECT_YAML" 2>/dev/null || echo "false")
-
-    if [ "$IS_PROTECTED" = "true" ]; then
-      WARNING="[xgh] WARNING: force-push to protected branch '${PUSH_BRANCH}'. config/project.yaml marks this branch as protected. Consider using a non-force push or targeting a different branch."
-
-      jq -n --arg warning "$WARNING" '{
-        "hookSpecificOutput": {
-          "hookEventName": "PreToolUse",
-          "additionalContext": $warning
-        }
-      }'
-      exit 0
-    fi
+  IS_PROTECTED=$(_pref_read_yaml "preferences.vcs.branches.${PUSH_BRANCH}.protected")
+  # Also check pr.branches for backward compat
+  if [[ "$IS_PROTECTED" != "true" ]]; then
+    IS_PROTECTED=$(_pref_read_branch "pr" "$PUSH_BRANCH" "protected")
   fi
 
+  if [[ "$IS_PROTECTED" == "true" ]]; then
+    severity=$(_severity_resolve "vcs" "force_push")
+    _emit "$severity" "[xgh] Force-push to protected branch '${PUSH_BRANCH}'. config/project.yaml marks this branch as protected."
+  fi
+  exit 0
+fi
+
+# ── Check 3: Branch naming convention ───────────────────────────────────
+if echo "$COMMAND" | grep -qE 'git (checkout -b|switch -c)'; then
+  # Extract branch name (last argument after -b or -c)
+  BRANCH_NAME=$(echo "$COMMAND" | grep -oE '(checkout -b|switch -c)[[:space:]]+([^ ]+)' | awk '{print $NF}')
+  [ -n "$BRANCH_NAME" ] || exit 0
+
+  PATTERN=$(_pref_read_yaml "preferences.vcs.branch_naming")
+  [ -n "$PATTERN" ] || exit 0
+
+  if ! echo "$BRANCH_NAME" | grep -qE "$PATTERN" 2>/dev/null; then
+    severity=$(_severity_resolve "vcs" "branch_naming")
+    _emit "$severity" "[xgh] Branch name '${BRANCH_NAME}' does not match convention: ${PATTERN}. Check preferences.vcs.branch_naming."
+  fi
+  exit 0
+fi
+
+# ── Check 4: Commit on protected branch ─────────────────────────────────
+if echo "$COMMAND" | grep -qE 'git commit'; then
+  CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+  [ -n "$CURRENT_BRANCH" ] || exit 0
+
+  IS_PROTECTED=$(_pref_read_yaml "preferences.vcs.branches.${CURRENT_BRANCH}.protected")
+  if [[ "$IS_PROTECTED" != "true" ]]; then
+    IS_PROTECTED=$(_pref_read_branch "pr" "$CURRENT_BRANCH" "protected")
+  fi
+
+  if [[ "$IS_PROTECTED" == "true" ]]; then
+    severity=$(_severity_resolve "vcs" "protected_branch")
+    _emit "$severity" "[xgh] Direct commit on protected branch '${CURRENT_BRANCH}'. Use a feature branch instead."
+    exit 0
+  fi
+
+  # ── Check 5: Commit format (only if not on protected branch) ──────────
+  COMMIT_MSG=""
+  if echo "$COMMAND" | grep -qE -- '-m[[:space:]]'; then
+    COMMIT_MSG=$(echo "$COMMAND" | sed -n "s/.*-m[[:space:]]*['\"]\\(.*\\)['\"].*/\\1/p")
+  elif echo "$COMMAND" | grep -qE -- '--message[[:space:]]'; then
+    COMMIT_MSG=$(echo "$COMMAND" | sed -n "s/.*--message[[:space:]]*['\"]\\(.*\\)['\"].*/\\1/p")
+  fi
+  [ -n "$COMMIT_MSG" ] || exit 0
+
+  FORMAT_REGEX=$(_pref_read_yaml "preferences.vcs.commit_format")
+  [ -n "$FORMAT_REGEX" ] || exit 0
+
+  if ! echo "$COMMIT_MSG" | grep -qE "$FORMAT_REGEX" 2>/dev/null; then
+    severity=$(_severity_resolve "vcs" "commit_format")
+    _emit "$severity" "[xgh] Commit message does not match format: ${FORMAT_REGEX}. Check preferences.vcs.commit_format."
+  fi
   exit 0
 fi
 
