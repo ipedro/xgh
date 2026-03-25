@@ -120,6 +120,11 @@ assert_contains "config/team.yaml" "lower_snake_case"
 assert_contains "config/team.yaml" 'YAML keys: `snake_case`'
 assert_contains "config/team.yaml" '`triggers`'
 
+# --- validate-project-prefs ---
+assert_file_exists "commands/validate-project-prefs.md"
+assert_file_exists "skills/validate-project-prefs/validate-project-prefs.md"
+assert_contains "commands/validate-project-prefs.md" "validate-project-prefs"
+
 assert_file_exists "config/workflow.yaml"
 assert_contains "config/workflow.yaml" "phases:"
 assert_contains "config/workflow.yaml" "defaults:"

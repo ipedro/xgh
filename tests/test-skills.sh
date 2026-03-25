@@ -48,6 +48,11 @@ assert_contains "skills/codex/codex.md" "model-profiles.yaml"
 assert_contains "skills/gemini/gemini.md" "model-profiles.yaml"
 assert_contains "skills/opencode/opencode.md" "model-profiles.yaml"
 
+# --- validate-project-prefs ---
+assert_file_exists "skills/validate-project-prefs/validate-project-prefs.md"
+assert_contains "skills/validate-project-prefs/validate-project-prefs.md" "xgh:validate-project-prefs"
+assert_contains "skills/validate-project-prefs/validate-project-prefs.md" "project.yaml"
+
 # --- ship-prs reads project.yaml ---
 assert_contains "skills/ship-prs/ship-prs.md" "load_pr_pref"
 assert_contains "skills/ship-prs/ship-prs.md" "project.yaml"
