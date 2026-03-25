@@ -194,7 +194,7 @@ assert_equals "pair_programming: CLI override" "low" "$result"
 
 # vcs defaults from project.yaml
 result=$(load_vcs_pref "commit_format" "" "")
-assert_equals "vcs: project default commit_format" "<type>: <description>" "$result"
+assert_equals "vcs: project default commit_format" "^(feat|fix|docs|chore|refactor|test|ci)(\\(.+\\))?: .+" "$result"
 
 # Missing field returns empty
 result=$(load_vcs_pref "nonexistent_field" "" "")
@@ -254,6 +254,36 @@ assert_equals "retrieval: missing field returns empty" "" "$result"
 
 result=$(load_retrieval_pref "depth" "3")
 assert_equals "retrieval: CLI override" "3" "$result"
+
+# --- Phase 2: New schema fields ---
+
+# vcs.branches.main.protected
+result=$(_pref_read_yaml "preferences.vcs.branches.main.protected")
+assert_equals "vcs.branches.main.protected" "true" "$result"
+
+# vcs.branches.master.protected
+result=$(_pref_read_yaml "preferences.vcs.branches.master.protected")
+assert_equals "vcs.branches.master.protected" "true" "$result"
+
+# vcs.checks.branch_naming.severity
+result=$(_pref_read_yaml "preferences.vcs.checks.branch_naming.severity")
+assert_equals "vcs.checks.branch_naming.severity" "warn" "$result"
+
+# vcs.checks.protected_branch.severity
+result=$(_pref_read_yaml "preferences.vcs.checks.protected_branch.severity")
+assert_equals "vcs.checks.protected_branch.severity" "block" "$result"
+
+# vcs.checks.commit_format.severity
+result=$(_pref_read_yaml "preferences.vcs.checks.commit_format.severity")
+assert_equals "vcs.checks.commit_format.severity" "warn" "$result"
+
+# vcs.checks.force_push.severity
+result=$(_pref_read_yaml "preferences.vcs.checks.force_push.severity")
+assert_equals "vcs.checks.force_push.severity" "block" "$result"
+
+# pr.checks.merge_method.severity
+result=$(_pref_read_yaml "preferences.pr.checks.merge_method.severity")
+assert_equals "pr.checks.merge_method.severity" "block" "$result"
 
 # ============================================================
 # Summary

@@ -72,9 +72,19 @@ preferences:
     phases: [design, per_task]  # when to pair: design phase, before each impl task, or both
 
   vcs:
-    commit_format: "<type>: <description>"
-    branch_naming: "<type>/<description>"
+    commit_format: "^(feat|fix|docs|chore|refactor|test|ci)(\\(.+\\))?: .+"
+    branch_naming: "^(feat|fix|docs|chore)/"
     pr_template: ""
+    branches:
+      main:
+        protected: true
+      master:
+        protected: true
+    checks:
+      branch_naming: { severity: warn }
+      protected_branch: { severity: block }
+      commit_format: { severity: warn }
+      force_push: { severity: block }
 
   scheduling:
     retrieve_interval: "30m"
@@ -116,10 +126,13 @@ preferences:
     review_on_push: true
     merge_method: squash
     auto_merge: true
+    checks:
+      merge_method: { severity: block }
     branches:
       main:
         merge_method: merge
         required_approvals: 1
+        protected: true
       develop:
         merge_method: squash
 
