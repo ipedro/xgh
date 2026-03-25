@@ -34,11 +34,11 @@ VALUE=$(load_<domain>_pref <field> [cli_override] [branch])
 | `design` | `load_design_pref` | CLI > default | `model`, `effort` |
 | `agents` | `load_agents_pref` | CLI > default | `default_model` |
 | `pair_programming` | `load_pair_programming_pref` | CLI > default | `enabled`, `tool`, `effort`, `phases` |
-| `vcs` | `load_vcs_pref` | CLI > branch > default | `default_branch`, `merge_method`, `protected_branches` |
-| `testing` | `load_testing_pref` | CLI > branch > default | `runner`, `coverage_threshold`, `auto_run` |
-| `scheduling` | `load_scheduling_pref` | CLI > default | `timezone`, `working_hours`, `defer_non_urgent` |
-| `notifications` | `load_notifications_pref` | CLI > default | `channel`, `on_failure`, `on_success`, `mention` |
-| `retrieval` | `load_retrieval_pref` | CLI > default | `backend`, `max_results`, `min_score` |
+| `vcs` | `load_vcs_pref` | CLI > branch > default | `commit_format`, `branch_naming`, `pr_template` |
+| `testing` | `load_testing_pref` | CLI > branch > default | `timeout`, `required_suites`, `skip_rules` |
+| `scheduling` | `load_scheduling_pref` | CLI > default | `retrieve_interval`, `analyze_interval`, `quiet_hours` |
+| `notifications` | `load_notifications_pref` | CLI > default | `delivery`, `batching`, `suppress_below` |
+| `retrieval` | `load_retrieval_pref` | CLI > default | `depth`, `max_age`, `context_tree_sync` |
 
 ### Field details by domain
 
@@ -128,10 +128,11 @@ MODEL=$(load_superpowers_pref implementation_model "$CLI_MODEL")
 EFFORT=$(load_design_pref effort "$CLI_EFFORT")
 
 # Branch-aware domain (CLI > branch > default)
-MERGE=$(load_vcs_pref merge_method "$CLI_MERGE" "$TARGET_BRANCH")
+COMMIT_FMT=$(load_vcs_pref commit_format "$CLI_FMT")
 
-# PR domain (CLI > branch > default > probe) — branch arg is REQUIRED
-REPO=$(load_pr_pref repo "$CLI_REPO" "")
+# PR domain (CLI > branch > default > probe)
+# branch arg = target branch for PR operations; empty skips branch overrides
+REPO=$(load_pr_pref repo "$CLI_REPO" "$BASE_BRANCH")
 MERGE_METHOD=$(load_pr_pref merge_method "$CLI_MERGE_METHOD" "$BASE_BRANCH")
 MERGE_METHOD="${MERGE_METHOD:-squash}"  # fallback — merge_method is not probed
 ```

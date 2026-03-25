@@ -54,9 +54,10 @@ Check that `config/project.yaml` has all 11 required domains under `preferences:
 
 ```bash
 REQUIRED_DOMAINS="pr dispatch superpowers design agents pair_programming vcs scheduling notifications retrieval testing"
+PRESENT_DOMAINS="$(yq -r '.preferences | keys | .[]' config/project.yaml 2>/dev/null || true)"
 MISSING=""
 for domain in $REQUIRED_DOMAINS; do
-  if ! grep -q "^  ${domain}:" config/project.yaml; then
+  if ! printf '%s\n' "$PRESENT_DOMAINS" | grep -qx "$domain"; then
     MISSING="$MISSING $domain"
   fi
 done

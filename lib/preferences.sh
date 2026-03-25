@@ -8,7 +8,10 @@
 # Never writes to project.yaml — the only write path is /xgh-save-preferences.
 # See spec: .xgh/specs/2026-03-25-declarative-preferences-lifecycle-design.md
 
-set -euo pipefail
+# Only set strict mode when executed directly, not when sourced
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  set -euo pipefail
+fi
 
 # ============================================================
 # Core utilities
