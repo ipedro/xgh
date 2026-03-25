@@ -28,7 +28,7 @@ Argument: $ARGUMENTS (default: patch)
    ```
    gh pr create --base main --title "Release v<new_version>" --body "Bump version to <new_version> for npm publish."
    ```
-8. Merge the PR: `gh pr merge --merge --delete-branch`
+8. Merge the PR: `gh pr merge --squash --delete-branch`
 
 ### Wait for release
 
