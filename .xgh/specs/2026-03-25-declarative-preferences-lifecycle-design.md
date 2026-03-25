@@ -150,7 +150,7 @@ lib/preferences.sh
 │   ├── load_superpowers_pref()— CLI > default
 │   ├── load_design_pref()     — CLI > default
 │   ├── load_agents_pref()     — CLI > default
-│   ├── load_pairing_pref()    — CLI > default
+│   ├── load_pair_programming_pref()    — CLI > default
 │   ├── load_scheduling_pref() — CLI > default
 │   ├── load_notifications_pref() — CLI > default
 │   └── load_retrieval_pref()  — CLI > default
@@ -199,7 +199,7 @@ load_scheduling_pref() {
 **With branch (CLI > branch > default):**
 ```bash
 load_vcs_pref() {
-  local field="$1" cli_override="${2:-}" branch="${3:-$(git branch --show-current 2>/dev/null)}"
+  local field="$1" cli_override="${2:-}" branch="${3:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")}"
   _pref_resolve "vcs" "$field" "$cli_override" "$branch"
 }
 ```
@@ -329,7 +329,7 @@ No broader drift detection (avoids false positives on high-frequency tools).
 
 ### UserPromptSubmit Capture
 
-**Fully silent.** The hook detects possible preference statements via lightweight pattern matching and injects `additionalContext`:
+**Fully silent.** The hook detects possible preference statements via lightweight pattern matching (non-authoritative hint only) and injects `additionalContext`:
 
 ```
 [xgh] Possible preference detected: "use rebase on main"
@@ -401,7 +401,7 @@ pending:
 
 **Conflict resolution:** Pending always wins (user's latest intent is newer). The diff clearly shows old → new.
 
-**Orphan cleanup:** SessionStart creates a `/tmp/xgh-<session-id>/` directory (cleaned by `trap cleanup EXIT`). Pending files older than 24h are deleted only if their corresponding `/tmp/xgh-<session-id>/` directory no longer exists (session exited cleanly or was killed).
+**Orphan cleanup:** Pending files older than 24h are deleted based solely on file age (mtime), without relying on a `/tmp/xgh-<session-id>/` marker or `trap ... EXIT` semantics. This keeps cleanup safe for short-lived hook processes while ensuring abandoned pending files are eventually pruned.
 
 ### The Git Staging Analogy
 
@@ -501,7 +501,7 @@ Phase 0 (Quick Wins)
 | UserPromptSubmit | Silent detection + Claude decides | Direct write to staging | Regex detection too unreliable; Claude reasoning layer handles ambiguity |
 | PreCompact hook | Dropped | Preserve pending prefs | Pending prefs already on disk; hook would be a no-op |
 | PostToolUse scope | project.yaml edits only | Broad drift detection | High-frequency tools cause false positive floods |
-| Branch resolution | Target branch (caller provides) | git branch --show-current | PR branch overrides must fire on PR base, not checked-out branch |
+| PR override source | Environment / CI metadata | Extra config in project.yaml | PR metadata already exists in CI; a new config knob would duplicate it and add user burden |
 
 ---
 
