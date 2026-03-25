@@ -11,7 +11,7 @@ Bash/YAML/Markdown MCS tech pack. No compiled artifacts. No npm/cargo/maven.
 - Start every task by reading `AGENTS.md`
 - Write failing tests in `tests/` before implementing (bash `assert_*` pattern)
 - All bash scripts: `#!/usr/bin/env bash` + `set -euo pipefail`
-- Track progress with `- [x]` checkboxes in `docs/plans/`
+- Track progress with `- [x]` checkboxes in `.xgh/plans/`
 - Never commit secrets — env vars only
 
 ## Install
@@ -31,4 +31,4 @@ bash tests/test-config.sh
 
 Plan 2 (Context Tree) → Plan 3 (Hooks & Skills) → Plan 4 (Team Collaboration) → Plan 5 (Multi-Agent) → Plan 6 (Workflow Skills)
 
-Details and task checklists are in `docs/plans/`.
+Details and task checklists are in `.xgh/plans/`.
