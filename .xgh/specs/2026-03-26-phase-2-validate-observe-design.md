@@ -64,7 +64,7 @@ Reads `preferences.<domain>.checks.<check_name>.severity` from project.yaml. Fal
 2. Match against check patterns (regex on command string, `.*` lookahead for flag ordering)
 3. For each match: read preference value, compare against command, call `_severity_resolve`
 4. `block` → `{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "..."}}`
-5. `warn` → `{"systemMessage": "..."}`
+5. `warn` → `{"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": "..."}}`
 6. No match → exit 0
 
 ### project.yaml Schema Additions
@@ -91,7 +91,7 @@ preferences:
       force_push: { severity: block }
 ```
 
-Protected branches use the existing `preferences.vcs.branches.<name>` schema with a `protected: true` field — no new flat list.
+Phase 2 introduces a new `preferences.vcs.branches.<name>` map with a `protected: true` field for protected branches; existing `preferences.pr.branches`-based hooks will be migrated to this schema — no separate flat list is added.
 
 ### Design Notes
 
@@ -183,6 +183,13 @@ Parse `gh` CLI stderr on failure and inject a targeted fix suggestion via `addit
 #!/usr/bin/env bash
 # lib/severity.sh — Severity resolution for preference checks
 # Sourced by pre-tool-use-preferences.sh only.
+# Requires: lib/preferences.sh must be sourced first (provides _pref_read_yaml).
+
+# Strict mode guard — only when executed directly, not when sourced.
+# (Matches convention used in other lib/ files.)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  set -euo pipefail
+fi
 
 # Hardcoded defaults (safety=block, convention=warn)
 declare -A _SEVERITY_DEFAULTS=(
@@ -196,6 +203,7 @@ declare -A _SEVERITY_DEFAULTS=(
 _severity_resolve() {
   local domain="$1" check_name="$2"
   local configured
+  # _pref_read_yaml is provided by lib/preferences.sh (must be sourced first)
   configured=$(_pref_read_yaml "preferences.${domain}.checks.${check_name}.severity")
   if [[ "$configured" == "block" || "$configured" == "warn" ]]; then
     echo "$configured"
@@ -211,9 +219,12 @@ Add at end of existing hook (~5 lines):
 
 ```bash
 # Seed project.yaml snapshot for PostToolUse drift detection
-SESSION_ID=$(echo "$HOOK_INPUT" | jq -r '.session_id // empty')
+# HOOK_INPUT is set by the hook runner; read stdin if unset (e.g. direct execution).
+: "${HOOK_INPUT:=}"
+[[ -z "$HOOK_INPUT" ]] && HOOK_INPUT=$(cat)
+SESSION_ID=$(printf '%s' "$HOOK_INPUT" | jq -r '.session_id // empty')
 [[ -z "$SESSION_ID" ]] && SESSION_ID="$$-$(date +%s)"
-cp "$PROJ_YAML" "$TMPDIR/xgh-${SESSION_ID}-project-yaml.yaml" 2>/dev/null || true
+cp "$PROJ_YAML" "${TMPDIR:-/tmp}/xgh-${SESSION_ID}-project-yaml.yaml" 2>/dev/null || true
 ```
 
 ### 5c: settings.json Hook Registration
