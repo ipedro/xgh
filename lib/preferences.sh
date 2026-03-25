@@ -38,12 +38,21 @@ _pref_read_yaml() {
   if command -v yq >/dev/null 2>&1; then
     # yq uses dotted path with leading dot
     local yq_path=".${key}"
-    val=$(yq -r "$yq_path // \"\"" "$yaml_file" 2>/dev/null) || val=""
-    # yq returns "null" for missing keys even with // ""
-    [[ "$val" == "null" ]] && val=""
+    # For non-scalar values (arrays/maps), output compact JSON for consistency
+    local raw_type
+    raw_type=$(yq -r "$yq_path | type // \"!!null\"" "$yaml_file" 2>/dev/null) || raw_type=""
+    case "$raw_type" in
+      "!!seq"|"!!map")
+        val=$(yq -o=json -c "$yq_path" "$yaml_file" 2>/dev/null) || val=""
+        ;;
+      *)
+        val=$(yq -r "$yq_path // \"\"" "$yaml_file" 2>/dev/null) || val=""
+        [[ "$val" == "null" ]] && val=""
+        ;;
+    esac
   elif python3 -c "import yaml" 2>/dev/null; then
     val=$(python3 - "$yaml_file" "$key" << 'PYEOF'
-import sys, yaml
+import sys, yaml, json
 yaml_file, key = sys.argv[1], sys.argv[2]
 try:
     with open(yaml_file) as f:
@@ -59,6 +68,8 @@ try:
         print("")
     elif isinstance(val, bool):
         print(str(val).lower())
+    elif isinstance(val, (list, dict)):
+        print(json.dumps(val, separators=(',', ':')))
     else:
         print(val)
 except Exception:
@@ -77,9 +88,46 @@ PYEOF
 }
 
 # Read a branch-override field: preferences.<domain>.branches.<branch>.<field>
+# Read a branch-override field using bracket notation for safe branch names
+# (handles dots, slashes, hyphens in branch names like release-1.0 or feature/foo)
 _pref_read_branch() {
   local domain="$1" branch="$2" field="$3"
-  _pref_read_yaml "preferences.${domain}.branches.${branch}.${field}"
+  local yaml_file
+  yaml_file=$(_pref_project_yaml)
+  [[ -f "$yaml_file" ]] || return 0
+
+  local val=""
+
+  if command -v yq >/dev/null 2>&1; then
+    val=$(yq -r ".preferences.${domain}.branches[\"${branch}\"].${field} // \"\"" "$yaml_file" 2>/dev/null) || val=""
+    [[ "$val" == "null" ]] && val=""
+  elif python3 -c "import yaml" 2>/dev/null; then
+    val=$(python3 - "$yaml_file" "$domain" "$branch" "$field" << 'PYEOF'
+import sys, yaml
+yaml_file, domain, branch, field = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+try:
+    with open(yaml_file) as f:
+        data = yaml.safe_load(f) or {}
+    val = data.get("preferences", {}).get(domain, {}).get("branches", {}).get(branch, {}).get(field)
+    if val is None:
+        print("")
+    elif isinstance(val, bool):
+        print(str(val).lower())
+    else:
+        print(val)
+except Exception:
+    print("")
+PYEOF
+    ) || val=""
+  fi
+
+  # Normalize booleans
+  case "$val" in
+    true|True|TRUE)   val="true" ;;
+    false|False|FALSE) val="false" ;;
+  esac
+
+  echo "$val"
 }
 
 # Walk cascade: CLI > branch override > project default

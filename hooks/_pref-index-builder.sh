@@ -5,6 +5,10 @@
 #
 # Coexistence contract: this file is a helper, not a hook itself.
 
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  set -euo pipefail
+fi
+
 # _build_pref_index <project_root>
 # Returns 0 with PREF_INDEX_CONTEXT set, or 1 if no domains have values.
 _build_pref_index() {

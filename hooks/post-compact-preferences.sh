@@ -36,10 +36,11 @@ fi
 PROJ_YAML="${PROJECT_ROOT}/config/project.yaml"
 
 # --- Validate YAML before loading ---
+# Returns 0=valid, 1=syntax error, 2=no validator available
 _yaml_is_valid() {
   local yaml_file="$1"
   if command -v yq >/dev/null 2>&1; then
-    yq '.' "$yaml_file" >/dev/null 2>&1 && return 0
+    yq '.' "$yaml_file" >/dev/null 2>&1 && return 0 || return 1
   elif python3 -c "import yaml" 2>/dev/null; then
     python3 -c "
 import sys, yaml
@@ -48,12 +49,14 @@ try:
         yaml.safe_load(f)
 except:
     sys.exit(1)
-" "$yaml_file" 2>/dev/null && return 0
+" "$yaml_file" 2>/dev/null && return 0 || return 1
   fi
-  return 1
+  return 2
 }
 
-if ! _yaml_is_valid "$PROJ_YAML"; then
+_yaml_is_valid "$PROJ_YAML"
+yaml_status=$?
+if [[ $yaml_status -eq 1 ]]; then
   warning="[xgh] WARNING: config/project.yaml has syntax errors — preferences disabled after compaction. Run 'yq . config/project.yaml' to diagnose."
   python3 -c "import json,sys; print(json.dumps({'additionalContext': sys.argv[1]}))" "$warning"
   exit 0
