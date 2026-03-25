@@ -83,6 +83,21 @@ preferences:
   agents:
     default_model: sonnet       # fallback model for agent frontmatter with model: inherit
 
+  pr:
+    provider: github
+    repo: extreme-go-horse/xgh
+    reviewer: copilot-pull-request-reviewer[bot]
+    reviewer_comment_author: Copilot
+    review_on_push: true
+    merge_method: squash
+    auto_merge: true
+    branches:
+      main:
+        merge_method: merge
+        required_approvals: 1
+      develop:
+        merge_method: squash
+
 implementation_status:
   - plan: "Plan 1"
     title: "Foundation — scaffold, installer"

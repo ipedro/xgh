@@ -330,10 +330,10 @@ Use a greedy assignment heuristic:
 
 ## Report Output
 
-Write the full profile report to: `docs/research/<engineer-name-slug>-profile.md`
+Write the full profile report to: `.xgh/research/<engineer-name-slug>-profile.md`
 
 - Slugify the engineer name: lowercase, replace spaces with hyphens
-- For team view, use: `docs/research/team-profile-<project-key-lower>.md`
+- For team view, use: `.xgh/research/team-profile-<project-key-lower>.md`
 
 Print a concise summary to the conversation with key highlights:
 - Throughput rate (tickets/month)

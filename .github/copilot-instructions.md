@@ -12,7 +12,7 @@ xgh is a **Model Context Server (MCS) tech pack** for Claude Code that provides 
 - All bash scripts: `#!/usr/bin/env bash` + `set -euo pipefail`
 - Tests live in `tests/` and use the `assert_*` bash helper pattern
 - Write a failing test before implementing any feature
-- Implementation is tracked in `docs/plans/` with `- [ ]` / `- [x]` checkboxes
+- Implementation is tracked in `.xgh/plans/` with `- [ ]` / `- [x]` checkboxes
 - Never commit API keys or secrets — use environment variables
 
 ## Install

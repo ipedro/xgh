@@ -28,11 +28,6 @@ assert_contains "config/agents.yaml" "auto_detect:"
 assert_contains "config/agents.yaml" "auto_detect: codex"
 assert_contains "config/agents.yaml" "auto_detect: gemini"
 
-# --- copilot-pr-review: command + skill registration ---
-assert_file_exists "commands/copilot-pr-review.md"
-assert_file_exists "skills/copilot-pr-review/copilot-pr-review.md"
-assert_contains "commands/copilot-pr-review.md" "copilot-pr-review"
-
 # --- watch-prs: command + skill registration ---
 assert_file_exists "commands/watch-prs.md"
 assert_file_exists "skills/watch-prs/watch-prs.md"
@@ -63,9 +58,6 @@ assert_file_exists "skills/test-builder/test-builder.md"
 assert_contains "commands/test-builder.md" "name: xgh-test-builder"
 
 # --- prompt test coverage for new skills (all variants) ---
-assert_file_exists "tests/skill-triggering/prompts/copilot-pr-review.txt"
-assert_file_exists "tests/skill-triggering/prompts/copilot-pr-review-2.txt"
-assert_file_exists "tests/skill-triggering/prompts/copilot-pr-review-3.txt"
 assert_file_exists "tests/skill-triggering/prompts/watch-prs.txt"
 assert_file_exists "tests/skill-triggering/prompts/watch-prs-2.txt"
 assert_file_exists "tests/skill-triggering/prompts/watch-prs-3.txt"
@@ -93,6 +85,32 @@ assert_contains "config/project.yaml" "preferences:"
 assert_contains "config/project.yaml" "pair_programming:"
 assert_contains "config/project.yaml" "xgh:codex"
 
+# --- preferences.pr section ---
+assert_contains "config/project.yaml" "pr:"
+assert_contains "config/project.yaml" "provider: github"
+assert_contains "config/project.yaml" "repo: extreme-go-horse/xgh"
+assert_contains "config/project.yaml" "copilot-pull-request-reviewer\[bot\]"
+assert_contains "config/project.yaml" "reviewer_comment_author: Copilot"
+assert_contains "config/project.yaml" "merge_method: squash"
+assert_contains "config/project.yaml" "review_on_push: true"
+assert_contains "config/project.yaml" "auto_merge: true"
+assert_contains "config/project.yaml" "branches:"
+
+# --- Provider references ---
+assert_file_exists "skills/_shared/references/providers/github.md"
+assert_file_exists "skills/_shared/references/providers/gitlab.md"
+assert_file_exists "skills/_shared/references/providers/bitbucket.md"
+assert_file_exists "skills/_shared/references/providers/azure-devops.md"
+assert_contains "skills/_shared/references/providers/github.md" "copilot-pull-request-reviewer"
+assert_contains "skills/_shared/references/providers/github.md" "never submits"
+assert_contains "skills/_shared/references/providers/github.md" "reviewer list cycle"
+assert_contains "skills/_shared/references/providers/github.md" "SWE Delegation"
+
+# --- Preference capture reference ---
+assert_file_exists "skills/_shared/references/preference-capture.md"
+assert_contains "skills/_shared/references/preference-capture.md" "config/project.yaml"
+assert_contains "skills/_shared/references/preference-capture.md" "confirm"
+
 assert_file_exists "config/team.yaml"
 assert_contains "config/team.yaml" "conventions:"
 assert_contains "config/team.yaml" "iron_laws:"
@@ -101,6 +119,11 @@ assert_contains "config/team.yaml" "Never skip the test"
 assert_contains "config/team.yaml" "lower_snake_case"
 assert_contains "config/team.yaml" 'YAML keys: `snake_case`'
 assert_contains "config/team.yaml" '`triggers`'
+
+# --- validate-project-prefs ---
+assert_file_exists "commands/validate-project-prefs.md"
+assert_file_exists "skills/validate-project-prefs/validate-project-prefs.md"
+assert_contains "commands/validate-project-prefs.md" "validate-project-prefs"
 
 assert_file_exists "config/workflow.yaml"
 assert_contains "config/workflow.yaml" "phases:"

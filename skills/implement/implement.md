@@ -38,7 +38,7 @@ Follow the shared detection protocol in `skills/_shared/references/mcp-auto-dete
 - No task manager MCP → Ask user to paste ticket details (title, description, acceptance criteria). Skip ticket updates.
 - No Slack MCP → Skip discussion search. Ask user about team decisions verbally.
 - No Figma MCP → Skip design extraction. Ask user to describe UI requirements or confirm no UI changes.
-- No memory backend → Skip memory search. Rely on codebase scanning only. Save plan to docs/ only.
+- No memory backend → Skip memory search. Rely on codebase scanning only. Save plan to .xgh/plans/ only.
 - No MCPs at all → Still works. User provides all context manually. Full Superpowers methodology applies.
 
 ---
@@ -409,7 +409,7 @@ Generate a detailed, executable plan following Superpowers writing-plans methodo
   - [ ] Commit: "feat(rate-limit): register middleware and update docs"
 ```
 
-Save plan to: `docs/plans/YYYY-MM-DD-[ticket-id]-plan.md`
+Save plan to: `.xgh/plans/YYYY-MM-DD-[ticket-id]-plan.md`
 
 If task manager MCP is available, link plan to ticket via `mcp__claude_ai_Atlassian__addCommentToJiraIssue`.
 

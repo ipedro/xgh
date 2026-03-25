@@ -27,6 +27,7 @@ jobs:
           - test-ct-search
           - test-ct-sync
           - test-hooks
+          - test-config-reader
     steps:
       - name: Checkout
         uses: actions/checkout@v4

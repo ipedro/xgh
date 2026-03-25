@@ -1,5 +1,5 @@
 ---
-name: xgh:pr-poller
+name: pr-poller  # bare name intentional — plugin prefixes 'xgh:' on registration → dispatched as xgh:pr-poller
 description: |
   Polls PRs for review status, handles reviewer comments, and merges when all criteria pass. Provider-aware: adapts review requests and comment handling to the detected host. Dispatched by xgh:watch-prs (observe mode) and xgh:ship-prs (ship mode) on each cron tick — do not invoke directly.
 
@@ -62,7 +62,9 @@ For each PR, fetch the following in read-only fashion:
 - **Review state:** `gh api repos/<REPO>/pulls/<PR>/reviews` — filter by `<reviewer>`, take the last entry's `state` (or `reviewDecision` from the PR json as a fallback)
 - **Inline comment count:** `gh api repos/<REPO>/pulls/<PR>/comments` — filter by `<reviewer_comment_author>`
 
-Compute `merge_ready` as: `mergeable == "MERGEABLE"` AND all `statusCheckRollup` conclusions are `SUCCESS` or `SKIPPED` AND (`reviewDecision == "APPROVED"` OR at least one review from `<reviewer>` with `state == "APPROVED"`).
+Compute `merge_ready` as: `mergeable == "MERGEABLE"` AND all `statusCheckRollup` conclusions are `SUCCESS` or `SKIPPED` AND no review with `state == "CHANGES_REQUESTED"` AND all inline comments from `<reviewer_comment_author>` have been replied to (every comment must be addressed — either accepted with a fix commit or rejected with a reply explaining reasoning). To determine if a comment is "addressed", use the REST API to check `in_reply_to_id` fields or GitHub GraphQL `reviewThreads` to confirm each thread has a non-Copilot reply or is resolved. Unaddressed comments block merge.
+
+> **Copilot never approves.** Do NOT wait for `reviewDecision == "APPROVED"` or `state == "APPROVED"` from Copilot. It always posts at least one comment. Merge-ready means: all comments addressed + no `CHANGES_REQUESTED`.
 
 Then run step 3 (check for new review comments) — compare against `last_seen_comment_count` and `last_seen_review_at` from `.xgh/watch-prs-state.json` — to populate `comment_count` and `changes`.
 
@@ -115,9 +117,10 @@ If `prs["<PR>"].held == true`: skip all active steps for that PR and reflect the
 **Criteria:**
 1. `mergeable == "MERGEABLE"` — if CONFLICTING: dispatch conflict-resolution agent, skip merge
 2. All `statusCheckRollup` entries: `conclusion SUCCESS` or `SKIPPED` — if any FAILURE/CANCELLED: report, wait
-3. No review with `state == "CHANGES_REQUESTED"` from any author
-4. At least one review from `<reviewer>` with `state == "APPROVED"`
-5. If `require_resolved_threads == true`: fetch unresolved thread count (GitHub GraphQL); must be 0
+3. No *current* review decision of `"CHANGES_REQUESTED"` — prefer `reviewDecision != "CHANGES_REQUESTED"` (or, if using `reviews`, consider only the latest review per author)
+4. At least one review from `<reviewer>` exists (Copilot never approves — do NOT require `state == "APPROVED"`)
+5. All inline comments from `<reviewer_comment_author>` have been replied to — no unaddressed comments (each must be accepted with fix + commit URL, or rejected with reasoning)
+6. If `require_resolved_threads == true`: fetch unresolved thread count (GitHub GraphQL); must be 0
 
 If ALL criteria met:
 ```bash
@@ -258,3 +261,9 @@ After each poll cycle, update the appropriate state file:
 - **NEVER** merge a PR with `mergeable == CONFLICTING`
 - **NEVER** force push
 - If `active_agent` is set for a PR and not yet confirmed complete, skip that PR this cycle (ship mode only)
+
+Notes:
+- Agent threads always have their cwd reset between bash calls, as a result please only use absolute file paths.
+- In your final response, share file paths (always absolute, never relative) that are relevant to the task. Include code snippets only when the exact text is load-bearing (e.g., a bug you found, a function signature the caller asked for) — do not recap code you merely read.
+- For clear communication with the user the assistant MUST avoid using emojis.
+- Do not use a colon before tool calls. Text like "Let me read the file:" followed by a read tool call should just be "Let me read the file." with a period.
