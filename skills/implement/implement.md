@@ -401,7 +401,7 @@ Generate a detailed, executable plan following Superpowers writing-plans methodo
   - [ ] Commit: "test(rate-limit): add integration tests"
 
 ### Task 5: Wire up + documentation
-  Files: src/app.ts, .xgh/api/rate-limiting.md
+  Files: src/app.ts, docs/api/rate-limiting.md
 
   - [ ] Register middleware in app.ts
   - [ ] Update API documentation
