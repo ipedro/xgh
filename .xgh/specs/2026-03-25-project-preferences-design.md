@@ -1,7 +1,7 @@
 # Project Preferences — Centralized Configuration for Skills
 
 **Date:** 2026-03-25
-**Status:** Draft
+**Status:** Implemented
 **Scope:** config/project.yaml integration, provider reference extraction, copilot-pr-review deprecation, preference capture convention
 
 ---
