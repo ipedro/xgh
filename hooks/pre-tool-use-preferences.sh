@@ -147,7 +147,7 @@ if echo "$COMMAND" | grep -qE 'git (checkout -b|switch -c)'; then
   PATTERN=$(_pref_read_yaml "preferences.vcs.branch_naming")
   [ -n "$PATTERN" ] || exit 0
 
-  if ! echo "$BRANCH_NAME" | grep -qE "$PATTERN" 2>/dev/null; then
+  if ! echo "$BRANCH_NAME" | grep -qE -- "$PATTERN" 2>/dev/null; then
     severity=$(_severity_resolve "vcs" "branch_naming")
     _emit "$severity" "[xgh] Branch name '${BRANCH_NAME}' does not match convention: ${PATTERN}. Check preferences.vcs.branch_naming."
   fi
@@ -203,7 +203,7 @@ PY
   FORMAT_REGEX=$(_pref_read_yaml "preferences.vcs.commit_format")
   [ -n "$FORMAT_REGEX" ] || exit 0
 
-  if ! echo "$COMMIT_MSG" | grep -qE "$FORMAT_REGEX" 2>/dev/null; then
+  if ! echo "$COMMIT_MSG" | grep -qE -- "$FORMAT_REGEX" 2>/dev/null; then
     severity=$(_severity_resolve "vcs" "commit_format")
     _emit "$severity" "[xgh] Commit message does not match format: ${FORMAT_REGEX}. Check preferences.vcs.commit_format."
   fi

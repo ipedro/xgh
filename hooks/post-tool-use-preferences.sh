@@ -23,8 +23,8 @@ PROJ_YAML="${REPO_ROOT}/config/project.yaml"
 
 # ── Only care about project.yaml (absolute path match) ─────────────────
 # Normalize both paths for comparison
-REAL_PROJ=$(realpath "$PROJ_YAML" 2>/dev/null || echo "$PROJ_YAML")
-REAL_FILE=$(realpath "$FILE_PATH" 2>/dev/null || echo "$FILE_PATH")
+REAL_PROJ=$(realpath "$PROJ_YAML" 2>/dev/null || readlink -f "$PROJ_YAML" 2>/dev/null || echo "$PROJ_YAML")
+REAL_FILE=$(realpath "$FILE_PATH" 2>/dev/null || readlink -f "$FILE_PATH" 2>/dev/null || (cd "$(dirname "$FILE_PATH")" 2>/dev/null && echo "$(pwd)/$(basename "$FILE_PATH")") || echo "$FILE_PATH")
 [[ "$REAL_FILE" == "$REAL_PROJ" ]] || exit 0
 
 # ── Resolve session ID for snapshot path ───────────────────────────────

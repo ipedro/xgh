@@ -243,7 +243,7 @@ done
 for field in commit_format branch_naming; do
   REGEX="$(yq -r ".preferences.vcs.${field} // \"\"" config/project.yaml 2>/dev/null || true)"
   if [[ -n "$REGEX" ]]; then
-    echo "" | grep -qE "$REGEX" 2>/dev/null
+    echo "" | grep -qE -- "$REGEX" 2>/dev/null
     grep_exit=$?
     if [[ $grep_exit -le 1 ]]; then
       echo "PASS: $field is a valid regex"
