@@ -149,6 +149,20 @@ else
   fail "non-matching command should produce no output. Output: $output"
 fi
 
+# --- Check 5d: Shell substitution message — skip validation ---
+echo "--- 5d. Commit format with shell substitution (heredoc) ---"
+output=$(run_hook "$(make_input 'git commit -m "$(cat <<'"'"'EOF'"'"'\nfeat: something\nEOF\n)"')")
+if echo "$output" | jq -e '.hookSpecificOutput.additionalContext' >/dev/null 2>&1; then
+  ctx=$(echo "$output" | jq -r '.hookSpecificOutput.additionalContext // ""')
+  if [[ "$ctx" == *"commit_format"* ]] || [[ "$ctx" == *"commit format"* ]]; then
+    fail "shell-substitution commit msg should not warn about format. Output: $output"
+  else
+    pass "shell-substitution commit msg → no format warning"
+  fi
+else
+  pass "shell-substitution commit msg → silent pass-through"
+fi
+
 # --- Check 7: Non-Bash tool (early exit) ---
 echo "--- 7. Non-Bash tool ---"
 output=$(cd "$REPO_ROOT" && echo '{"tool_name":"Write","tool_input":{"file_path":"/tmp/test"}}' | bash "$HOOK" 2>/dev/null || true)

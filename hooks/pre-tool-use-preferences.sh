@@ -158,6 +158,9 @@ if echo "$COMMAND" | grep -qE 'git commit'; then
   fi
   [ -n "$COMMIT_MSG" ] || exit 0
 
+  # Skip validation if the message is a shell substitution — can't inspect at hook time
+  [[ "$COMMIT_MSG" == \$\(* ]] && exit 0
+
   FORMAT_REGEX=$(_pref_read_yaml "preferences.vcs.commit_format")
   [ -n "$FORMAT_REGEX" ] || exit 0
 
