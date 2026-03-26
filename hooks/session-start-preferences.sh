@@ -65,7 +65,9 @@ if [[ ! -t 0 ]]; then
 fi
 SESSION_ID=""
 if [[ -n "$HOOK_INPUT" ]]; then
-  SESSION_ID=$(printf '%s' "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
+  _raw_sid=$(printf '%s' "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
+  # Sanitize: allow only safe filename chars to prevent path traversal
+  SESSION_ID=$(printf '%s' "$_raw_sid" | tr -c 'A-Za-z0-9_.-' '_')
 fi
 [[ -z "$SESSION_ID" ]] && SESSION_ID="$$-$(date +%s)"
 

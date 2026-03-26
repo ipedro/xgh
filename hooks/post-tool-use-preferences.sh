@@ -28,7 +28,9 @@ REAL_FILE=$(realpath "$FILE_PATH" 2>/dev/null || readlink -f "$FILE_PATH" 2>/dev
 [[ "$REAL_FILE" == "$REAL_PROJ" ]] || exit 0
 
 # ── Resolve session ID for snapshot path ───────────────────────────────
-SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
+_raw_sid=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
+# Sanitize: allow only safe filename chars to prevent path traversal
+SESSION_ID=$(printf '%s' "$_raw_sid" | tr -c 'A-Za-z0-9_.-' '_')
 [[ -z "$SESSION_ID" ]] && SESSION_ID="$$-$(date +%s)"
 mkdir -p "${REPO_ROOT}/.xgh/run" 2>/dev/null || true
 SNAPSHOT="${REPO_ROOT}/.xgh/run/xgh-${SESSION_ID}-project-yaml.yaml"
@@ -55,8 +57,15 @@ fi
 CHANGES=""
 if command -v yq >/dev/null 2>&1; then
   # Use yq to convert both to flat JSON, then diff keys
-  OLD_JSON=$(yq -o=json '.' "$SNAPSHOT" 2>/dev/null || echo "{}")
-  NEW_JSON=$(yq -o=json '.' "$PROJ_YAML" 2>/dev/null || echo "{}")
+  # On parse failure, emit a warning and skip the diff (avoid bogus "everything removed" report)
+  if ! OLD_JSON=$(yq -o=json '.' "$SNAPSHOT" 2>/dev/null); then
+    _emit_context "[xgh] unable to parse project.yaml snapshot — diff skipped"
+    exit 0
+  fi
+  if ! NEW_JSON=$(yq -o=json '.' "$PROJ_YAML" 2>/dev/null); then
+    _emit_context "[xgh] unable to parse current project.yaml — diff skipped"
+    exit 0
+  fi
   CHANGES=$(python3 - "$OLD_JSON" "$NEW_JSON" << 'PYEOF'
 import sys, json
 

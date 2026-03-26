@@ -243,8 +243,11 @@ done
 for field in commit_format branch_naming; do
   REGEX="$(yq -r ".preferences.vcs.${field} // \"\"" config/project.yaml 2>/dev/null || true)"
   if [[ -n "$REGEX" ]]; then
+    # Temporarily disable errexit so grep's non-zero exit doesn't abort the script
+    set +e
     echo "" | grep -qE -- "$REGEX" 2>/dev/null
     grep_exit=$?
+    set -e
     if [[ $grep_exit -le 1 ]]; then
       echo "PASS: $field is a valid regex"
     else
