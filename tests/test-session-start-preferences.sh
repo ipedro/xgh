@@ -13,8 +13,9 @@ pass() { echo "  PASS: $1"; PASS=$((PASS + 1)); }
 fail() { echo "  FAIL: $1"; FAIL=$((FAIL + 1)); }
 
 run_hook() {
-  # Run from repo root so project.yaml is discoverable
-  (cd "$REPO_ROOT" && bash "$HOOK" 2>/dev/null)
+  # Run from repo root so project.yaml is discoverable.
+  # Pipe '{}' to avoid blocking on cat when stdin is not a TTY.
+  (cd "$REPO_ROOT" && echo '{}' | bash "$HOOK" 2>/dev/null)
 }
 
 echo "=== test-session-start-preferences ==="
@@ -124,7 +125,7 @@ fi
 # Test 9: Missing project.yaml — exits silently with no output
 echo "--- 9. Missing project.yaml exits silently ---"
 tmpdir=$(mktemp -d)
-output_no_yaml=$(cd "$tmpdir" && bash "$HOOK" 2>/dev/null || true)
+output_no_yaml=$(cd "$tmpdir" && echo '{}' | bash "$HOOK" 2>/dev/null || true)
 rmdir "$tmpdir"
 if [ -z "$output_no_yaml" ]; then
   pass "no output when project.yaml missing"
@@ -137,7 +138,7 @@ echo "--- 10. Malformed YAML warning ---"
 tmpdir=$(mktemp -d)
 mkdir -p "${tmpdir}/config"
 echo ": broken: yaml: [" > "${tmpdir}/config/project.yaml"
-malformed_output=$(cd "$tmpdir" && bash "$HOOK" 2>/dev/null || true)
+malformed_output=$(cd "$tmpdir" && echo '{}' | bash "$HOOK" 2>/dev/null || true)
 rmdir_safe() { rm -rf "$1"; }
 if python3 -c "
 import sys, json
