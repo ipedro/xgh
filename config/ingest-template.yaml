@@ -111,8 +111,12 @@ schedule:
     #   description: "Weekday morning briefing"
     - name: watch-prs
       skill: xgh:watch-prs
-      cron: "*/15 * * * *"
-      description: "PR babysitter — surfaces review changes, CI status, Copilot comments; notifies Pedro via Telegram. Read-only, no auto-merge (claudinho#48)."
+      cron: "*/2 * * * *"
+      description: "PR babysitter — polls every 2min in batch mode; Copilot timeout 7min; metrifiable via LCM telemetry:copilot tags. Read-only, no auto-merge (claudinho#48)."
+      config:
+        copilot_timeout: 7m           # wait up to 7min before flagging Copilot non-response
+        copilot_check_setup: true     # verify Copilot auto-review configured on all repos
+        metrify: true                 # store run metrics in LCM (telemetry:copilot tags)
 
 content_types:
   decision:
