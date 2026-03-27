@@ -265,3 +265,157 @@ When invoked as `/xgh-track --regenerate <provider-name>`:
 4. Validate with a test fetch
 5. Replace old script only after validation passes
 6. Report: "Regenerated <provider-name>. Config preserved, script updated."
+
+---
+
+# xgh:track decision — Decision to GitHub Issue Pipeline
+
+Sub-command that implements the processo 100% requirement: captures decisions and automatically creates GitHub Issues with full traceability.
+
+## Invocation
+
+```bash
+/xgh-track decision "decision text here" \
+  --owner CTO \
+  --sp SP4 \
+  --score 18/20 \
+  --priority p1 \
+  --dry-run
+```
+
+## Behavior
+
+### Step 1 — Validate inputs
+
+1. **Decision text** — required, non-empty
+2. **Owner** — required, one of: `CTO`, `COO`, `CMO`, `Team Lead`, or custom role
+3. **SP** — optional, format: `SP\d+` or `SP-next`. Default: current sprint from `~/.xgh/ingest.yaml` if `current_sprint` is set
+4. **Score** — optional, format: `\d+/\d+` (numerator/denominator from idea-matrix). Semantic: higher score = higher confidence/quality
+5. **Priority** — optional, one of: `p0`, `p1`, `p2`, `p3`. Default: `p2`
+6. **Dry-run** — optional flag. If set, show what would be created without committing
+
+### Step 2 — Check for duplicates (idempotency)
+
+Search LCM for existing decisions with the same decision text (using lcm_search or exact text matching in decisions stored previously). If found:
+- Show: "Decision already tracked: {lcm_id} → {issue_url}"
+- Exit with code 0 (success, no-op)
+
+### Step 3 — Create LCM entry
+
+Call `lcm_store` with:
+- `text`: decision text
+- `tags`: `["category:decision", "owner:{owner}", "sp:{sp}", "priority:{priority}", "source:xgh-track-decision"]`
+- `metadata`: `{ "score": "{score}", "dry_run": {dry_run_bool} }`
+
+Capture returned `lcm_id`.
+
+### Step 4 — Create GitHub Issue
+
+Determine the default GitHub org/repo:
+- Read `~/.xgh/ingest.yaml` and find a repo in the current project's GitHub config
+- If multiple repos, use the first one or ask the user
+- If no GitHub refs, fail with: "No GitHub repo found in ingest.yaml. Add one or specify --repo manually."
+
+Create issue via `gh issue create`:
+```bash
+gh issue create \
+  --repo {org}/{repo} \
+  --title "Decision: {owner} — {first 60 chars of decision text}..." \
+  --body "$(cat <<'EOF'
+## Decision
+{decision text}
+
+## Owner
+{owner}
+
+## Sprint
+{sp}
+
+## Priority
+{priority}
+
+## Confidence Score
+{score}
+
+## LCM Reference
+{lcm_id}
+
+---
+
+_Auto-created by xgh:track decision. Run \`/xgh-track decision --help\` for details._
+EOF
+)" \
+  --label "decision" \
+  --assignee {owner} (if owner is a GitHub username; otherwise omit)
+```
+
+Capture returned issue URL and issue number.
+
+### Step 5 — Link to project (if GitHub Project is configured)
+
+If the repo has a configured GitHub Project in ingest.yaml:
+```yaml
+github:
+  - org/repo
+  projects:
+    - name: "xgh — Development"
+      column: "Backlog"
+```
+
+Then call `gh project item-add` to link the issue to the project in the specified column. If no column is specified, default to "Backlog".
+
+Capture returned `project_item_id`.
+
+### Step 6 — Return result and summary
+
+If `--dry-run`:
+```
+[DRY RUN] Would create:
+  LCM entry: {lcm_id}
+  GitHub issue: {org}/{repo}#{number} "{title}"
+  Project item: {project_name} / {column}
+```
+
+If actually created:
+```
+✅ Decision tracked successfully!
+
+  LCM: {lcm_id}
+  Issue: {issue_url}
+  Project: {project_name} / {column}
+```
+
+Return structured JSON (for programmatic use):
+```json
+{
+  "lcm_id": "{lcm_id}",
+  "issue_url": "{issue_url}",
+  "issue_number": {number},
+  "project_item_id": "{project_item_id}",
+  "dry_run": false
+}
+```
+
+### Step 7 — Error handling
+
+| Error | Action |
+|-------|--------|
+| No GitHub repo in ingest.yaml | Fail with message, suggest `--repo manual/override` |
+| GitHub auth failed | Check `gh auth status`, suggest login |
+| Duplicate decision (by text hash) | Return early with "already tracked" message |
+| LCM unavailable | Warn and continue (create issue only) |
+| Issue creation failed | Fail with gh error, suggest manual creation |
+
+---
+
+## Flags Reference
+
+```
+--owner {role}        Required. Owner of decision (CTO, COO, CMO, etc.)
+--sp {sprint}         Optional. Sprint ID (SP1, SP2, SP-next). Default: current_sprint from ingest.yaml
+--score {n}/{m}       Optional. Idea-matrix score (e.g., 18/20)
+--priority {p0-p3}    Optional. Priority level. Default: p2
+--repo {org}/{repo}   Optional. Override GitHub repo. If not provided, first repo from ingest.yaml is used
+--dry-run             Optional. Show what would be created without committing
+--help                Show this reference
+```
