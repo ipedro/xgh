@@ -220,5 +220,30 @@ calibration:
 #       schedule: weekly
 #       watch_paths: []
 #     last_scan: null
+#
+#   autoimprove:
+#     status: active
+#     my_role: maintainer
+#     my_intent: "Own and maintain autoimprove — continuous learning loop for the autonomous dev org. Tracks merged PRs across claudinho/xgh/lcm repos and triggers improvement cycles."
+#     providers:
+#       github: { access: read }
+#     github:
+#       - ipedro/autoimprove
+#     github_sources:
+#       - issues
+#       - pull_requests
+#       - releases
+#     jira: null
+#     confluence: []
+#     figma: []
+#     rfcs: []
+#     index:
+#       last_full: null
+#       schedule: weekly
+#       watch_paths:
+#         - autoimprove.yaml
+#         - scripts/
+#         - skills/
+#     last_scan: null
 
 projects: {}
