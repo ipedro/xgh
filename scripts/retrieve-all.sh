@@ -161,9 +161,10 @@ run_retrieve() {
     local mode_label="sequential"
     [ "$PARALLEL" = "1" ] && mode_label="parallel"
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) retriever[$mode_label]: $total providers, $success ok, $failed failed, $new_items new items" >> "$LOG_FILE"
+    return "$failed"
 }
 
-# Retry/backoff wrapper — max 3 attempts, waits: 1s, 2s between attempts
+# Retry/backoff wrapper — max 3 attempts (2 retries), waits: 1s then 2s between attempts
 # Always exits 0 (never blocks session start)
 _err_file="/tmp/retrieve-all-err.$$"
 trap 'rm -f "$_err_file"' EXIT INT TERM
