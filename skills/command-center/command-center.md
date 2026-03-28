@@ -46,6 +46,36 @@ If the user says N or does not respond, stop. If yes, proceed.
 
 ---
 
+## Step 0 — Token Budget Check
+
+Before doing anything else, invoke the `xgh:token-window` skill with `--status` and emit the result as a header line:
+
+```
+Token: Session 45% 🟡 | Weekly 62% 🟡 | Sonnet 30% 🟢 — NORMAL
+```
+
+If the budget level returned is **TIGHT**, **CRITICAL**, or **DEFICIT**, emit a warning banner immediately after the header:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ⚠️  Budget TIGHT — briefing scope reduced. Non-critical    │
+│     crons paused. Run /xgh-token-window for recommendations. │
+└─────────────────────────────────────────────────────────────┘
+```
+
+Budget-level behaviour adjustments:
+
+| Level | Briefing scope | Cron action |
+|-------|---------------|-------------|
+| FRESH / NORMAL | Full briefing | No change |
+| TIGHT | Skip Slack, Figma; limit memory to 2 results | Suggest pause analyze |
+| CRITICAL | GitHub only (no memory, no Slack) | Suggest pause all |
+| DEFICIT | Skip briefing entirely; show budget warning only | Suggest pause all |
+
+If budget.yaml is missing, show the `--status` unknown line and proceed with full briefing.
+
+---
+
 ## Step 1 — Load Config
 
 Read `~/.xgh/ingest.yaml`:
