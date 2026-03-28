@@ -126,7 +126,13 @@ Save to `.xgh/ship-prs-state.json`:
       "last_action": "initialized",
       "last_action_at": "ISO8601",
       "last_review_request_at": null,
-      "active_agent": null
+      "active_agent": null,
+      "copilot_negotiation": {
+        "round": 0,
+        "capped": false,
+        "rounds_detail": [],
+        "pr_body_watermark": ""
+      }
     }
   }
 }
@@ -246,9 +252,12 @@ This is the "pending first review" state.
      --jq "[.[] | select(.user.login == \"<REVIEWER_COMMENT_AUTHOR>\")] | sort_by(.created_at) | .[$BASELINE_COUNT:] | .[] | {id, path, line, body, diff_hunk, pull_request_review_id}"
    ```
 
-2. For each comment, classify and act:
+2. **Route by reviewer type:**
+
+   **When `reviewer_comment_author == "Copilot"`** → run the **Copilot Negotiation Sub-Loop** (§C1–C6 below) instead of the plain fix-cycle for all suggestion-block comments. Plain comments and outdated threads are still handled via the existing paths.
+
+   **When `reviewer_comment_author != "Copilot"`** (human reviewer) → use the original fix-cycle only:
    - **Outdated thread** (detected via GraphQL `reviewThreads` query where `isOutdated == true`): resolve thread via GraphQL mutation, no code change
-   - **Suggestion commit** (body contains ` ```suggestion `) AND `accept_suggestion_commits == true`: dispatch haiku Agent to accept via API
    - **Simple fix** (rename, string, style nit): dispatch haiku Agent to fix and push
    - **Logic/architecture concern**: dispatch sonnet Agent to fix and push
    - **Informational only**: leave reply with reasoning, no code change
@@ -275,6 +284,175 @@ This is the "pending first review" state.
 8. Append to `action_log`: `{ "at": "ISO8601", "pr": 42, "action": "dispatched-fix-agent", "detail": "3 new comments" }`
 
 **Escalation:** If the haiku agent fails or produces broken code (build fails after push), re-dispatch with **sonnet** model.
+
+---
+
+#### C1 — Copilot Negotiation: Classify Comments
+
+**Activates only when `reviewer_comment_author == "Copilot"`.**
+
+For each new Copilot comment from step C.1, classify into one of three types:
+
+| Type | Detection | Next step |
+|------|-----------|-----------|
+| **Suggestion block** | Body contains ` ```suggestion` fenced block | → C2 (evaluate) |
+| **Plain comment** | All other comments | → Existing fix-cycle (dispatch haiku/sonnet agent) |
+| **Outdated thread** | `isOutdated == true` from GraphQL `reviewThreads` | → Resolve via GraphQL mutation (unchanged) |
+
+Both suggestion-block and plain-comment paths can coexist in the same cycle. Process all comment types before writing state.
+
+#### C2 — Copilot Negotiation: Evaluate Suggestion
+
+**Cap check first:** Before evaluating, check `copilot_negotiation.round >= max_fix_cycles` (default 3). If capped, jump to C6.
+
+For each suggestion-block comment:
+
+1. Extract the suggested diff from the ` ```suggestion` fenced block in the comment body
+2. Read the current file at `comment.path` lines around `comment.line` (use `comment.diff_hunk` for context)
+3. **Sonnet evaluation** — reason through each criterion:
+
+   **Accept conditions (any one sufficient):**
+   - Fixes a real bug or corrects incorrect logic
+   - Clear readability improvement with no semantic change
+   - Removes unnecessary complexity
+
+   **Reject conditions (any one sufficient):**
+   - Removes intentional logic
+   - Introduces a regression
+   - Pure style preference with no correctness benefit
+   - Conflicts with project conventions (check `config/project.yaml` `preferences.code_style`)
+
+4. Check for staleness: compare `comment.diff_hunk` against current file content at `comment.path:comment.line`. If the surrounding lines no longer match the hunk, the suggestion is **stale** — skip C3/C4 and post:
+   ```
+   gh api repos/$REPO/pulls/comments/$COMMENT_ID/replies \
+     -X POST -f "body=This suggestion is stale — the surrounding code has changed. Please re-review the updated file."
+   ```
+
+5. Route to C3 (accept) or C4 (reject).
+
+#### C3 — Copilot Negotiation: Accept Path
+
+```bash
+# 1. Apply the suggestion as a patch to the file
+#    Parse the ```suggestion block from comment.body
+#    Apply it to comment.path starting at comment.line
+#    Verify the file is valid (no syntax errors if detectable)
+
+# 2. Optionally run tests if test_command is set in config/project.yaml
+#    If tests fail, treat as implicit reject:
+#    - Revert the file change
+#    - Post reply: "Suggestion would break tests (<test output excerpt>). Rejecting."
+#    - Route to C4 logic (no code change)
+
+# 3. Commit
+git add <comment.path>
+git commit -m "fix: accept Copilot suggestion on <comment.path>:<comment.line> (PR #$PR round $ROUND)"
+
+# 4. Push
+git push origin <branch>
+
+# 5. Reply to the comment — NO @copilot mention
+gh api repos/$REPO/pulls/comments/$COMMENT_ID/replies \
+  -X POST -f "body=Applied in <commit_url>. Thanks."
+```
+
+Record result in the current round's `accepted` counter.
+
+#### C4 — Copilot Negotiation: Reject Path
+
+```bash
+# Post inline reply with one-sentence reason — NO @copilot mention
+gh api repos/$REPO/pulls/comments/$COMMENT_ID/replies \
+  -X POST -f "body=Not applying: <one-sentence reason>. Keeping current implementation because <rationale>."
+```
+
+No code change. No commit. Record result in the current round's `rejected` counter.
+
+#### C5 — Copilot Negotiation: Round Bookkeeping
+
+After processing all comments in this cycle (both suggestion and plain types):
+
+1. **Increment round counter:**
+   ```
+   copilot_negotiation.round += 1
+   ROUND = copilot_negotiation.round
+   ```
+
+2. **Append round detail:**
+   ```json
+   {
+     "round": ROUND,
+     "at": "ISO8601",
+     "suggestions_total": N,
+     "accepted": X,
+     "rejected": Y,
+     "plain_comments_fixed": Z
+   }
+   ```
+
+3. **Write watermark to PR body:**
+   ```bash
+   BODY=$(gh pr view $PR --repo $REPO --json body -q .body)
+
+   # Replace existing watermark, or append in HTML comment section
+   NEW_BODY=$(echo "$BODY" | sed "s/\[COPILOT_ROUND: [0-9]*\]/[COPILOT_ROUND: $ROUND]/")
+   if ! echo "$NEW_BODY" | grep -q "\[COPILOT_ROUND:"; then
+     NEW_BODY="$BODY\n\n<!-- xgh -->\n[COPILOT_ROUND: $ROUND]"
+   fi
+
+   gh pr edit $PR --repo $REPO --body "$NEW_BODY"
+   ```
+   Save watermark string in `copilot_negotiation.pr_body_watermark` for idempotency.
+
+4. **Re-request Copilot review** (reviewer list cycle — same as Step E):
+   ```bash
+   gh pr edit $PR --repo $REPO --remove-reviewer copilot-pull-request-reviewer 2>/dev/null
+   gh pr edit $PR --repo $REPO --add-reviewer copilot-pull-request-reviewer
+   ```
+
+5. **Update state:** `last_action = copilot-negotiation-round-<N>`
+
+6. **Append to `action_log`:**
+   ```json
+   { "at": "ISO8601", "pr": 42, "action": "copilot-negotiation-round-1", "detail": "3 suggestions (2 accepted, 1 rejected), 2 plain comments fixed" }
+   ```
+
+#### C6 — Copilot Negotiation: Cap Check
+
+**Check at the start of C2 (before evaluating a new round).** Cap threshold = `max_fix_cycles` (default 3).
+
+```
+if copilot_negotiation.round >= max_fix_cycles:
+```
+
+If capped:
+1. Set `copilot_negotiation.capped = true`
+2. Replace PR body watermark with cap marker:
+   ```bash
+   BODY=$(gh pr view $PR --repo $REPO --json body -q .body)
+   NEW_BODY=$(echo "$BODY" | sed "s/\[COPILOT_ROUND: [0-9]*\]/[NEGOTIATION_CAPPED: $ROUND rounds]/")
+   gh pr edit $PR --repo $REPO --body "$NEW_BODY"
+   ```
+3. **Store LCM metric:**
+   ```
+   lcm_store(
+     content: "PR #<N> in <repo>: Copilot negotiation capped at <ROUND> rounds. Accepted: X suggestions total, Rejected: Y suggestions total.",
+     tags: ["copilot-negotiation", "pr:<N>", "capped", "budget:rnd"]
+   )
+   ```
+4. Set `last_action = negotiation-capped`
+5. Print: `⚠️ PR #<N>: Copilot negotiation cap reached (<ROUND> rounds). Shipping.`
+6. Proceed directly to merge criteria (Step D) — remaining Copilot comments do not block merge.
+
+**LCM metric also stored on merge (always, when negotiation was active):**
+```
+lcm_store(
+  content: "PR #<N> in <repo>: merged after <ROUND> Copilot negotiation rounds. Accepted: X suggestions total, Rejected: Y suggestions total.",
+  tags: ["copilot-negotiation", "pr:<N>", "merged", "rounds:<N>", "budget:rnd"]
+)
+```
+
+Store this from the merge success path in Step A (when `state = MERGED` and `copilot_negotiation.round > 0`).
 
 #### D — New review with NO new comments
 
@@ -409,11 +587,13 @@ Repo: ipedro/lossless-claude | Provider: github | Reviewer: copilot-pull-request
 Merge: squash | Cron: <job-id> every 3m | Max fix cycles: 3
 Active since: 2026-03-22T03:00:00Z | Paused: false
 
-| PR   | Status      | Last Action          | Review    | Comments | Fixes | Agent |
-|------|-------------|----------------------|-----------|----------|-------|-------|
-| #101 | ✅ merged   | merge-succeeded      | 03:42:40Z | 20       | 1     | —     |
-| #59  | 👀 watching | re-requested-review  | 00:08:20Z | 28       | 0     | —     |
+| PR   | Status      | Last Action                     | Review    | Comments | Fixes | Copilot Rounds | Agent |
+|------|-------------|---------------------------------|-----------|----------|-------|----------------|-------|
+| #101 | ✅ merged   | merge-succeeded                 | 03:42:40Z | 20       | 1     | 2/3            | —     |
+| #59  | 👀 watching | copilot-negotiation-round-1     | 00:08:20Z | 28       | 0     | 1/3            | —     |
 ```
+
+**Copilot Rounds column:** Shows `<current_round>/<cap>` (e.g. `2/3`). Shows `—` when `copilot_negotiation.round == 0` or `reviewer_comment_author != "Copilot"`. Shows `CAPPED` when `copilot_negotiation.capped == true`.
 
 If no state file: `ℹ️ No active ship-prs session.`
 
@@ -503,6 +683,12 @@ Provider-specific quirks, reviewer behavior, and API patterns are documented in 
 | Fix agents loop without progress | fix_cycle_count cap (max_fix_cycles) stops infinite dispatch |
 | Concurrent cron ticks double-merging | merging flag prevents double-merge across overlapping ticks |
 | Branch requires N approvals but 1 reviewer | Pre-flight warning at start |
+| Copilot suggestion accepted but breaks tests | C3: run test_command before committing; if tests fail, revert + treat as reject |
+| Suggestion targets code that has since changed | C2: compare diff_hunk against current file; if stale, skip + reply "stale, please re-review" |
+| Multiple suggestions in one comment | C1: parse all fenced blocks per comment; evaluate and act on each independently |
+| Negotiation loops without progress | C6: cap at max_fix_cycles (default 3); ship with [NEGOTIATION_CAPPED] watermark |
+| PR body edit clobbers custom content | Watermark lives in `<!-- xgh -->` HTML comment section appended at end of body |
+| Copilot posts plain comments alongside suggestion blocks | Both types processed in same cycle; C1 classifies all, routes to appropriate path each |
 
 ---
 
@@ -518,6 +704,15 @@ Runtime state only — add to `.gitignore`.
 - `status` reads only
 - `stop` deletes it
 - `poll-once` creates/updates but leaves no background process
+
+**Per-PR negotiation state** (added to each PR block when `reviewer_comment_author == "Copilot"`):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `copilot_negotiation.round` | int | Current round number (0 = not started) |
+| `copilot_negotiation.capped` | bool | True once round >= max_fix_cycles |
+| `copilot_negotiation.rounds_detail` | array | Per-round breakdown: total/accepted/rejected/plain_fixed |
+| `copilot_negotiation.pr_body_watermark` | string | Last written watermark, for idempotency |
 
 ---
 
