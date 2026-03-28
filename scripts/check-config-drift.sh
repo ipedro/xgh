@@ -44,20 +44,18 @@ if [ ! -f "$INGEST" ]; then
   exit 2
 fi
 
-if [ ! -f "$PROVIDER" ]; then
-  echo "WARN: provider.yaml not found at $PROVIDER — skipping drift check"
-  exit 0
-fi
-
 # Ensure python3 + PyYAML are available — skip gracefully if not.
 if ! python3 -c "import yaml" 2>/dev/null; then
-  echo "WARN: python3/PyYAML not available — skipping drift check" >&2
+  echo "WARN: python3/PyYAML not available — skipping all checks" >&2
   exit 0
 fi
 
-# Python does the YAML parsing; we keep the shell script thin.
-# Wrap in a subshell so YAML parse errors emit WARN + exit 0 instead of hard failing.
-python3 - "$INGEST" "$PROVIDER" <<'PY' || { echo "WARN: YAML parse error — skipping drift check" >&2; exit 0; }
+# ── Check 1: active ingest.yaml repos present in provider.yaml ───────────────
+# Skipped gracefully when provider.yaml is absent (non-blocking).
+if [ ! -f "$PROVIDER" ]; then
+  echo "WARN: provider.yaml not found at $PROVIDER — skipping provider drift check (Check 1 only)"
+else
+  python3 - "$INGEST" "$PROVIDER" <<'PY' || { echo "WARN: YAML parse error — skipping drift check" >&2; }
 import sys
 import yaml
 
@@ -87,6 +85,37 @@ for project_name, project in projects.items():
 
 for project_name, repo in warnings:
     print(f"WARN: project {project_name} ({repo}) is active in ingest.yaml but missing from provider.yaml")
+
+sys.exit(0)
+PY
+fi
+
+# ── Check 2: unsupported github_sources values ────────────────────────────────
+# Runs independently of the provider.yaml check (provider.yaml may be absent).
+# Always exits 0 — warnings only.
+python3 - "$INGEST" <<'PY' || { echo "WARN: YAML parse error — skipping github_sources check" >&2; }
+import sys
+import yaml
+
+SUPPORTED = {"issues", "pull_requests", "releases"}
+
+ingest_path = sys.argv[1]
+with open(ingest_path) as f:
+    ingest = yaml.safe_load(f) or {}
+
+projects = ingest.get("projects", {}) or {}
+for project_name, project in projects.items():
+    if not isinstance(project, dict):
+        continue
+    sources = project.get("github_sources", []) or []
+    if not isinstance(sources, list):
+        continue
+    for source in sources:
+        if source not in SUPPORTED:
+            print(
+                f"WARN: project {project_name}: unsupported github_source '{source}'"
+                f" (supported: issues, pull_requests, releases)"
+            )
 
 sys.exit(0)
 PY
