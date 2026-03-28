@@ -211,5 +211,78 @@ assert_output_contains \
   "absent-provider: prints WARN about missing file" "WARN" \
   bash scripts/check-config-drift.sh --ingest "$INGEST_ALL_MATCH" --provider "$PROVIDER_ABSENT"
 
+# ── github_sources validation fixtures ────────────────────────────────────────
+
+INGEST_SOURCES_UNSUPPORTED="$TMPDIR_DRIFT/ingest-sources-unsupported.yaml"
+INGEST_SOURCES_MENTIONS="$TMPDIR_DRIFT/ingest-sources-mentions.yaml"
+INGEST_SOURCES_OK="$TMPDIR_DRIFT/ingest-sources-ok.yaml"
+
+# Project with 'actions' in github_sources (unsupported)
+cat > "$INGEST_SOURCES_UNSUPPORTED" <<'YAML'
+projects:
+  myproj:
+    status: active
+    github:
+    - owner/myrepo
+    github_sources:
+    - issues
+    - actions
+YAML
+
+# Project with 'mentions' in github_sources (unsupported)
+cat > "$INGEST_SOURCES_MENTIONS" <<'YAML'
+projects:
+  anotherproj:
+    status: active
+    github:
+    - owner/anotherrepo
+    github_sources:
+    - mentions
+    - pull_requests
+YAML
+
+# Project with only supported github_sources
+cat > "$INGEST_SOURCES_OK" <<'YAML'
+projects:
+  goodproj:
+    status: active
+    github:
+    - owner/goodrepo
+    github_sources:
+    - issues
+    - pull_requests
+    - releases
+YAML
+
+# 8. 'actions' in github_sources → WARN line with project name and value
+assert_output_contains \
+  "unsupported-source actions: WARN emitted" \
+  "WARN: project myproj: unsupported github_source 'actions'" \
+  bash scripts/check-config-drift.sh --ingest "$INGEST_SOURCES_UNSUPPORTED" --provider "$PROVIDER_ABSENT"
+
+assert_exit_zero \
+  "unsupported-source actions: exit 0" \
+  bash scripts/check-config-drift.sh --ingest "$INGEST_SOURCES_UNSUPPORTED" --provider "$PROVIDER_ABSENT"
+
+# 9. 'mentions' in github_sources → WARN line
+assert_output_contains \
+  "unsupported-source mentions: WARN emitted" \
+  "WARN: project anotherproj: unsupported github_source 'mentions'" \
+  bash scripts/check-config-drift.sh --ingest "$INGEST_SOURCES_MENTIONS" --provider "$PROVIDER_ABSENT"
+
+assert_exit_zero \
+  "unsupported-source mentions: exit 0" \
+  bash scripts/check-config-drift.sh --ingest "$INGEST_SOURCES_MENTIONS" --provider "$PROVIDER_ABSENT"
+
+# 10. Only supported sources → no unsupported WARN
+assert_output_not_contains \
+  "supported-sources only: no unsupported WARN" \
+  "unsupported github_source" \
+  bash scripts/check-config-drift.sh --ingest "$INGEST_SOURCES_OK" --provider "$PROVIDER_ABSENT"
+
+assert_exit_zero \
+  "supported-sources only: exit 0" \
+  bash scripts/check-config-drift.sh --ingest "$INGEST_SOURCES_OK" --provider "$PROVIDER_ABSENT"
+
 echo ""; echo "Results: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1
