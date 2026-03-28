@@ -175,7 +175,7 @@ This is the root cause of issue #145 — manual ingest.yaml edits bypass /xgh-tr
 
 **Second: check for config drift — active ingest.yaml projects missing from provider.yaml (issue #180):**
 
-Run `bash ~/.xgh/scripts/check-config-drift.sh` (or inline the logic below if the script is absent):
+Run `bash scripts/check-config-drift.sh` from within the xgh repo (or `bash ~/.claude/plugins/cache/extreme-go-horse/xgh/scripts/check-config-drift.sh` if running outside the repo), falling back to inline logic if the script is absent:
 
 ```python
 import yaml, os

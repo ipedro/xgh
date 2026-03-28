@@ -17,12 +17,25 @@ set -euo pipefail
 INGEST="${XGH_INGEST:-$HOME/.xgh/ingest.yaml}"
 PROVIDER="${XGH_PROVIDER:-$HOME/.xgh/user_providers/github-cli/provider.yaml}"
 
+usage() {
+  echo "Usage: $0 [--ingest <path>] [--provider <path>]" >&2
+}
+
 # Parse optional args
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --ingest)   INGEST="$2";   shift 2 ;;
-    --provider) PROVIDER="$2"; shift 2 ;;
-    *) echo "Unknown argument: $1" >&2; exit 2 ;;
+    --ingest|--provider)
+      if [[ $# -lt 2 ]]; then
+        echo "ERROR: $1 requires a path argument" >&2
+        usage; exit 2
+      fi
+      if [[ "$1" == "--ingest" ]]; then
+        INGEST="$2"
+      else
+        PROVIDER="$2"
+      fi
+      shift 2 ;;
+    *) echo "Unknown argument: $1" >&2; usage; exit 2 ;;
   esac
 done
 
@@ -36,8 +49,15 @@ if [ ! -f "$PROVIDER" ]; then
   exit 0
 fi
 
+# Ensure python3 + PyYAML are available — skip gracefully if not.
+if ! python3 -c "import yaml" 2>/dev/null; then
+  echo "WARN: python3/PyYAML not available — skipping drift check" >&2
+  exit 0
+fi
+
 # Python does the YAML parsing; we keep the shell script thin.
-python3 - "$INGEST" "$PROVIDER" <<'PY'
+# Wrap in a subshell so YAML parse errors emit WARN + exit 0 instead of hard failing.
+python3 - "$INGEST" "$PROVIDER" <<'PY' || { echo "WARN: YAML parse error — skipping drift check" >&2; exit 0; }
 import sys
 import yaml
 
