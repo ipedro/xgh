@@ -31,7 +31,7 @@ All inter-agent messages use structured metadata stored in lossless-claude works
 ```yaml
 type: plan | review | feedback | result | decision | question
 status: pending | in_progress | completed
-from_agent: <your-agent-id>    # e.g., claude-code, codex, cursor
+from_agent: <your-agent-id>    # e.g., claude-code, cursor
 for_agent: "*"                  # broadcast, or a specific agent id
 thread_id: <workflow-thread>    # groups all messages in a workflow
 priority: normal | high | urgent
@@ -70,7 +70,7 @@ Metadata:
   type: plan
   status: pending
   from_agent: claude-code
-  for_agent: codex
+  for_agent: gemini
   thread_id: feat-123
   priority: normal
   created_at: 2026-03-13T10:00:00Z

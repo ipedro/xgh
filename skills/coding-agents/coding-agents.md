@@ -1,11 +1,11 @@
 ---
 name: xgh:coding-agents
-description: "Use when the user asks to \"/xgh-coding-agents\", wants to see available coding agents (Codex, OpenCode, Gemini), probe CLI capabilities, or refresh model mappings."
+description: "Use when the user asks to \"/xgh-coding-agents\", wants to see available coding agents (OpenCode, Gemini), probe CLI capabilities, or refresh model mappings."
 ---
 
 # xgh:coding-agents — Coding Agent Management
 
-List and manage AI coding CLI agents (Codex, OpenCode, Gemini) and their model capabilities.
+List and manage AI coding CLI agents (OpenCode, Gemini) and their model capabilities.
 
 ## Usage
 
@@ -31,18 +31,18 @@ REFRESH=false
 for arg in $ARGUMENTS; do
   case "$arg" in
     --refresh) REFRESH=true ;;
-    codex|opencode|gemini) AGENT="$arg" ;;
+    opencode|gemini) AGENT="$arg" ;;
   esac
 done
 ```
 
 **If `--refresh` is set** (or no models file exists for the target agent):
-- Run the relevant probe function(s): `probe_opencode`, `probe_codex`, `probe_gemini`
-- If `AGENT` is set, run only that agent's probe. Otherwise run all three.
+- Run the relevant probe function(s): `probe_opencode`, `probe_gemini`
+- If `AGENT` is set, run only that agent's probe. Otherwise run all two.
 
 **Display current state** by reading `~/.xgh/user_providers/<agent>/models.yaml` for each target agent and rendering as a markdown table. Parse `agent`, `cli_binary`, `last_probed`, and the `models` array count from each YAML file.
 
-If `AGENT` is set, show only that agent. Otherwise show all three.
+If `AGENT` is set, show only that agent. Otherwise show all.
 
 **Output format:**
 
@@ -52,7 +52,6 @@ If `AGENT` is set, show only that agent. Otherwise show all three.
 | Agent | Status | Binary | Models | Last Probed |
 |-------|--------|--------|--------|-------------|
 | OpenCode | ✅ | opencode | 7 | 2026-03-23T00:00:00Z |
-| Codex | ✅ | codex | 5 | 2026-03-23T00:00:00Z |
 | Gemini | ⚠️ not probed | gemini | — | — |
 
 <if specific agent requested, also render a detail table of models:>
@@ -121,48 +120,6 @@ models:
 YAML
 
   echo "OpenCode: 7 models probed to $output_file"
-}
-```
-
-## Codex Probing
-
-**Discovery command:**
-```bash
-codex exec --help
-```
-
-**Probe function:**
-```bash
-probe_codex() {
-  local models_dir="$HOME/.xgh/user_providers/codex"
-  local output_file="$models_dir/models.yaml"
-
-  mkdir -p "$models_dir"
-
-  # Generate models.yaml (Codex models are simpler)
-  cat > "$output_file" << YAML
-agent: codex
-cli_binary: codex
-last_probed: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-models:
-  - friendly: GPT 5.4
-    cli_format: gpt-5.4
-    aliases: [gpt-5.4, gpt54, default]
-  - friendly: GPT 5.4 Mini
-    cli_format: gpt-5.4-mini
-    aliases: [gpt-5.4-mini, gpt54-mini]
-  - friendly: GPT 5.3 Codex
-    cli_format: gpt-5.3-codex
-    aliases: [gpt-5.3-codex]
-  - friendly: GPT 5.1 Codex Max
-    cli_format: gpt-5.1-codex-max
-    aliases: [gpt-5.1-codex-max, o3]
-  - friendly: GPT 5.1 Codex Mini
-    cli_format: gpt-5.1-codex-mini
-    aliases: [gpt-5.1-codex-mini]
-YAML
-
-  echo "Codex: 5 models probed to $output_file"
 }
 ```
 

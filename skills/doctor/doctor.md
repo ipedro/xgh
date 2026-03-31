@@ -47,6 +47,31 @@ For lossless-claude (current reference backend): check if `lcm_search` is presen
 
 **Important:** lossless-claude availability is determined by whether `lcm_search` appears in the tool list, NOT by file presence on disk.
 
+
+### Qdrant Vector Store
+
+Test Qdrant health:
+```bash
+curl -sf http://localhost:6333/healthz
+```
+
+- ✓ responding: Qdrant up and accepting connections
+- ✗ connection refused: Qdrant not running (run: `launchctl start com.qdrant.server`)
+- ✗ Embedding service offline: Qdrant running but WAL locks or load failures (run `/xgh-doctor fix` for WAL cleanup)
+
+### Cipher MCP
+
+Test Cipher availability:
+```
+Tool: mcp__cipher__cipher_memory_search
+Query: "xgh health check"
+```
+
+- ✓ tool available + responds: Cipher configured and ready
+- ✗ tool unavailable: Cipher MCP not registered (run `/xgh-init` or `claude mcp add -s user cipher`)
+- ⚠️ tool available but embedding fails: Qdrant unhealthy (see Qdrant section above)
+
+
 ## Check 3 — Pipeline freshness
 
 Check `~/.xgh/logs/retriever.log` for last timestamp (last line matching ISO date):
@@ -308,9 +333,9 @@ For each secondary agent in `config/agents.yaml` with a `tested_version` field (
 Report:
 ```
 Agent versions
-  ✓ codex: 0.116.0 (tested: 0.116.0 — exact match)
-  ⚠ codex: 0.120.0 (tested: 0.116.0 — newer, behaviors may differ)
-  ✗ codex: 0.100.0 (tested: 0.116.0 — older, some flags may be missing)
+  
+  
+  
   ⚠ gemini: tested_version not set — run /xgh-doctor after first use to record it
   - opencode: not installed
 ```
@@ -322,7 +347,7 @@ Rules:
 - `tested_version: null` and agent installed → ⚠ (no baseline recorded)
 - Agent not installed → skip (only flag if installed)
 
-**Fix for mismatch:** Re-test the affected skill (`/xgh-codex`, `/xgh-gemini`) and update `tested_version` in `config/agents.yaml` if behaviors are confirmed working.
+**Fix for mismatch:** Re-test the affected skill (`/xgh-gemini`) and update `tested_version` in `config/agents.yaml` if behaviors are confirmed working.
 
 ### Check 9 — Frontmatter Health
 
@@ -450,7 +475,7 @@ Codebase Index
   ✗ passcode-service: never indexed — run /xgh-index
 
 Agent Versions
-  ✓ codex: 0.116.0 (tested: 0.116.0)
+  
   ⚠ gemini: tested_version not set — update config/agents.yaml after validating
   - opencode: not installed
 

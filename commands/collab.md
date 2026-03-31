@@ -26,7 +26,7 @@ Start a multi-agent collaboration workflow using lossless-claude workspace as th
 /xgh-collab plan-review --task "Add rate limiting to API endpoints"
 
 # Parallel implementation: split work across agents
-/xgh-collab parallel-impl --task "Implement user preferences CRUD" --agents "claude,codex"
+/xgh-collab parallel-impl --task "Implement user preferences CRUD" --agents "claude"
 
 # Validation: implement then validate
 /xgh-collab validation --task "Refactor auth middleware"

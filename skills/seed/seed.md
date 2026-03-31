@@ -1,11 +1,11 @@
 ---
 name: xgh:seed
-description: "Use when injecting xgh project context into another AI CLI agent before dispatch (Gemini, OpenCode, Codex). Writes a project-context brief to .gemini/skills/xgh/, .agents/skills/xgh/, or .opencode/skills/xgh/ so dispatched agents start with project memory pre-loaded."
+description: "Use when injecting xgh project context into another AI CLI agent before dispatch (Gemini, OpenCode). Writes a project-context brief to .gemini/skills/xgh/ or .opencode/skills/xgh/ so dispatched agents start with project memory pre-loaded."
 ---
 
 # xgh:seed — Context Injection for Dispatched Agents
 
-Inject xgh project context into AI CLI tools' skill directories so that when you dispatch tasks to Codex, Gemini CLI, or OpenCode, those agents start with project memory pre-loaded — architecture notes, key decisions, recent activity.
+Inject xgh project context into AI CLI tools' skill directories so that when you dispatch tasks to Gemini CLI or OpenCode, those agents start with project memory pre-loaded — architecture notes, key decisions, recent activity.
 
 Inspired by ByteRover's connector pattern: writes a `context.md` and `SKILL.md` to each detected platform's skill directory.
 
@@ -17,15 +17,14 @@ Run the agent detection script:
 bash scripts/detect-agents.sh
 ```
 
-Output: space-separated list of installed agent IDs (e.g. `codex gemini`) or `none`.
+Output: space-separated list of installed agent IDs (e.g. `gemini opencode`) or `none`.
 
-If output is `none`, inform the user: "No supported CLI agents detected (codex, gemini, opencode). Install one first." and stop.
+If output is `none`, inform the user: "No supported CLI agents detected (gemini, opencode). Install one first." and stop.
 
 Platform → skill directory mapping (from agents.yaml `skill_dir` field):
 
 | Agent | Skill directory |
 |-------|----------------|
-| `codex` | `.agents/skills/xgh/` |
 | `gemini` | `.gemini/skills/xgh/` |
 | `opencode` | `.opencode/skills/xgh/` |
 
@@ -108,7 +107,7 @@ Project context auto-injected by xgh. Read `context.md` in this directory for cu
 
 - `/xgh-brief` — fresh session briefing
 - `/xgh-seed` — refresh this context
-- `/xgh-codex`, `/xgh-gemini`, `/xgh-opencode` — dispatch tasks to other AI agents
+- `/xgh-gemini`, `/xgh-opencode` — dispatch tasks to other AI agents
 ```
 
 Use Bash to create directories and write files:
@@ -127,7 +126,6 @@ Display a summary table:
 
 | Platform | Skill directory | Files written |
 |----------|----------------|---------------|
-| codex    | .agents/skills/xgh/ | context.md, SKILL.md |
 | gemini   | .gemini/skills/xgh/ | context.md, SKILL.md |
 ```
 

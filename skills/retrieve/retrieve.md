@@ -60,6 +60,22 @@ with `$XGH_PROJECT_SCOPE`.
 2. Check daily token cap: source `~/.xgh/lib/usage-tracker.sh`; if `xgh_usage_check_cap` returns non-zero, log and exit.
 3. Check quiet hours/days from `schedule.quiet_hours` and `schedule.quiet_days`. If now is in a quiet period, exit silently.
 
+
+### Cipher availability
+
+Before calling any Cipher tools:
+
+1. Test `cipher_memory_search` availability by checking the current tool list
+2. If Cipher is not available:
+   - Log: `echo "⚠️ Cipher MCP not configured — dedup will be skipped (searches will store raw)"`
+   - Set `CIPHER_AVAILABLE=0`
+3. If available but Qdrant backend is offline (Embedding service down):
+   - Log: `echo "⚠️ Cipher MCP responding but embedding service offline — dedup will be skipped"`
+   - Set `CIPHER_AVAILABLE=0`
+
+This prevents the retriever from crashing when Cipher is misconfigured or Qdrant isn't running.
+
+
 ## Step 0 — Detect project scope
 
 Determine which projects to retrieve for:

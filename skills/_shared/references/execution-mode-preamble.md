@@ -1,7 +1,7 @@
 # Shared: Execution Mode Preamble
 
 <!-- This file is the single source of truth for the execution mode preamble.
-     It is referenced by: codex, collab, gemini, implement, investigate, opencode, track.
+     It is referenced by: collab, gemini, implement, investigate, opencode, track.
      When updating this protocol, update only this file. -->
 
 Before starting, check whether the user has a saved execution mode preference for this skill.
@@ -55,21 +55,21 @@ json.dump(p, open(path, 'w'), indent=2)
 1. Ask at most 2 essential clarifying questions in the main session.
 2. Collect context:
    - **Standard skills:** user's request verbatim, current branch (`git branch --show-current`), recent log (`git log --oneline -5`), any relevant file paths mentioned.
-   - **Dispatch-type skills (codex, gemini, opencode):** user's request verbatim, dispatch type, model preference, any relevant file paths mentioned.
+   - **Dispatch-type skills (gemini, opencode):** user's request verbatim, dispatch type, model preference, any relevant file paths mentioned.
 3. Dispatch via Agent tool with `run_in_background: true`. Prompt must be fully self-contained.
 4. Reply:
    - **Standard skills:** "\<SKILL_LABEL\> running in background — I'll post findings when done."
-   - **Dispatch-type skills (codex, gemini, opencode):** "\<SKILL_LABEL\> running in background — I'll post results when done."
+   - **Dispatch-type skills (gemini, opencode):** "\<SKILL_LABEL\> running in background — I'll post results when done."
 5. When agent completes: post a ≤5-bullet summary to main session.
 
 **Background / fire-and-forget mode:**
 1. Collect context automatically (no questions):
    - **Standard skills:** user's request verbatim, current branch (`git branch --show-current`), recent log (`git log --oneline -5`), any relevant file paths mentioned.
-   - **Dispatch-type skills (codex, gemini, opencode):** user's request verbatim, dispatch type, model preference, any relevant file paths mentioned.
+   - **Dispatch-type skills (gemini, opencode):** user's request verbatim, dispatch type, model preference, any relevant file paths mentioned.
 2. Dispatch via Agent tool with `run_in_background: true`.
 3. Reply:
    - **Standard skills:** "\<SKILL_LABEL\> running in background — I'll post findings when done."
-   - **Dispatch-type skills (codex, gemini, opencode):** "\<SKILL_LABEL\> running in background — I'll post results when done."
+   - **Dispatch-type skills (gemini, opencode):** "\<SKILL_LABEL\> running in background — I'll post results when done."
 4. When agent completes: post a ≤5-bullet summary.
 
 ---
@@ -78,5 +78,5 @@ json.dump(p, open(path, 'w'), indent=2)
 
 | Placeholder | Meaning | Examples |
 |-------------|---------|---------|
-| `<SKILL_NAME>` | Key used in `~/.xgh/prefs.json` under `skill_mode` | `codex`, `collab`, `gemini`, `implement`, `investigate`, `opencode`, `track` |
-| `<SKILL_LABEL>` | Human-readable label shown in prompts and replies | `Codex dispatch`, `Collab`, `Gemini dispatch`, `Implementation`, `Investigation`, `OpenCode dispatch`, `Track` |
+| `<SKILL_NAME>` | Key used in `~/.xgh/prefs.json` under `skill_mode` | `collab`, `gemini`, `implement`, `investigate`, `opencode`, `track` |
+| `<SKILL_LABEL>` | Human-readable label shown in prompts and replies | `Collab`, `Gemini dispatch`, `Implementation`, `Investigation`, `OpenCode dispatch`, `Track` |

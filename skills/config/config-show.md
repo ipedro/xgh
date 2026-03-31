@@ -168,7 +168,7 @@ No pending preferences.
 | Field | Value | Source |
 |-------|-------|--------|
 | default_agent | xgh:dispatch | project default |
-| fallback_agent | xgh:codex | project default |
+| fallback_agent | xgh:gemini | project default |
 | exec_effort | high | project default |
 | review_effort | normal | project default |
 

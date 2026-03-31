@@ -23,17 +23,6 @@ When users mention models in natural language ("use GLM 4.7", "with GPT-5.4", "v
 | GPT 5.4, GPT-5.4 | `openai/gpt-5.4` |
 | GPT 5.4 Mini, GPT-5.4-mini | `openai/gpt-5.4-mini` |
 
-### Codex (`-m <model>`)
-
-| Friendly Name | Codex Format |
-|--------------|--------------|
-| GPT 5.4, GPT-5.4 | `gpt-5.4` (default) |
-| GPT 5.4 Mini, GPT-5.4-mini | `gpt-5.4-mini` |
-| GPT 5.3 Codex | `gpt-5.3-codex` |
-| GPT 5.1 Codex Max | `gpt-5.1-codex-max` |
-| GPT 5.1 Codex Mini | `gpt-5.1-codex-mini` |
-| o3, o3-preview | `o3` |
-
 ### Gemini (via `--model` flag)
 
 | Friendly Name | Gemini Format |
