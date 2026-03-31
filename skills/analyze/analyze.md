@@ -15,7 +15,10 @@ Invoked by CronCreate:
 
 ## Guard checks
 
-**1. lossless-claude availability** — Check if the `mcp__lossless-claude__lcm_search` tool is available in the current tool list. If the tool is present and callable → lossless-claude ✓. If the tool is absent → skip all lossless-claude steps (Steps 5–8) and log a warning. Print `lossless-claude ✓ available` or `lossless-claude ⚠ not available — skipping vector ops`.
+**1. Cipher MCP availability** — Test `mcp__cipher__cipher_memory_search` availability:
+   - If unavailable: log "⚠️ Cipher MCP not configured — dedup and vector storage will be skipped"
+   - If available but Embedding service offline: log "⚠️ Cipher responding but embedding service offline — vector storage will be skipped"
+   - Either way, continue (skip just the vector/dedup steps, still process inbox to workspace)
 
 **2. Config** — `~/.xgh/ingest.yaml` exists and parses.
 

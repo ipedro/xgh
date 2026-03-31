@@ -22,16 +22,16 @@ Start a multi-agent collaboration workflow using the xgh collaboration bus.
 
 ```bash
 # Plan and review a feature
-/xgh-collaborate plan-review --agents "claude-code,codex" --thread feat-auth Implement JWT token refresh with rotation
+/xgh-collaborate plan-review --agents "claude-code" --thread feat-auth Implement JWT token refresh with rotation
 
 # Parallel implementation across agents
-/xgh-collaborate parallel-impl --agents "claude-code,codex,cursor" --thread feat-api-v2 Build CRUD endpoints for users, products, and orders
+/xgh-collaborate parallel-impl --agents "claude-code,cursor" --thread feat-api-v2 Build CRUD endpoints for users, products, and orders
 
 # Validate an implementation
-/xgh-collaborate validation --agents "claude-code,codex" --thread fix-memory-leak Validate the memory leak fix in the connection pool
+/xgh-collaborate validation --agents "claude-code" --thread fix-memory-leak Validate the memory leak fix in the connection pool
 
 # Security review
-/xgh-collaborate security-review --agents "claude-code,codex" --thread sec-auth Review authentication flow for security vulnerabilities
+/xgh-collaborate security-review --agents "claude-code" --thread sec-auth Review authentication flow for security vulnerabilities
 ```
 
 ## What Happens

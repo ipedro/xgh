@@ -21,7 +21,7 @@ All inter-agent messages use structured metadata stored in the memory backend. E
 ```yaml
 type: plan | review | feedback | result | decision | question
 status: pending | in_progress | completed
-from_agent: <your-agent-id>    # e.g., claude-code, codex, cursor
+from_agent: <your-agent-id>    # e.g., claude-code, cursor
 for_agent: "*"                  # broadcast, or a specific agent id
 thread_id: <workflow-thread>    # groups all messages in a workflow
 priority: normal | high | urgent
@@ -55,7 +55,7 @@ pending → in_progress → completed
 
 ```
 lcm_store(
-  "type: plan | status: pending | from: claude-code | for: codex | thread: feat-123 | priority: normal | created: 2026-03-13T10:00:00Z\n\n<your message content — plan, review, feedback, etc.>",
+  "type: plan | status: pending | from: claude-code | for: gemini | thread: feat-123 | priority: normal | created: 2026-03-13T10:00:00Z\n\n<your message content — plan, review, feedback, etc.>",
   ["workspace", "collaboration"]
 )
 ```

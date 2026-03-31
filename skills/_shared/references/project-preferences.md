@@ -44,7 +44,7 @@ VALUE=$(load_<domain>_pref <field> [cli_override] [branch])
 
 **`dispatch`** — `/xgh-dispatch` cold-start defaults
 - `default_agent`: agent identifier used when no explicit agent is passed (e.g. `xgh:dispatch`)
-- `fallback_agent`: agent to use if dispatch can't determine best fit (e.g. `xgh:codex`)
+- `fallback_agent`: agent to use if dispatch can't determine best fit (e.g. `xgh:gemini`)
 - `exec_effort`: reasoning effort for implementation tasks (`low` | `normal` | `high` | `max`)
 - `review_effort`: reasoning effort for review tasks (`low` | `normal` | `high` | `max`)
 
@@ -62,7 +62,7 @@ VALUE=$(load_<domain>_pref <field> [cli_override] [branch])
 
 **`pair_programming`** — pair-programming skills
 - `enabled`: whether pairing is active (`true` | `false`)
-- `tool`: agent to pair with (`xgh:dispatch` | `xgh:codex` | `xgh:gemini` | `xgh:opencode`)
+- `tool`: agent to pair with (`xgh:dispatch` | `xgh:gemini` | `xgh:opencode`)
 - `effort`: reasoning effort for the pair agent
 - `phases`: list of phases where pairing applies (`design` | `per_task` | both)
 

@@ -17,7 +17,6 @@ Run the `xgh:dispatch` skill to automatically select the optimal agent, model, a
 /xgh-dispatch "Add unit tests for the auth module"
 /xgh-dispatch exec "Refactor connection pooling"
 /xgh-dispatch review --base main
-/xgh-dispatch --agent codex "Fix the flaky test"
-/xgh-dispatch --model gpt-5.4-mini "Rename the variable"
+/xgh-dispatch --model gemini-2.5-flash "Rename the variable"
 /xgh-dispatch --agent gemini --model gemini-2.5-flash "Quick docs update"
 ```

@@ -53,7 +53,6 @@ Output using this exact format:
 | `/xgh-investigate` | Debug from a Slack thread or bug report |
 | `/xgh-implement` | Implement a ticket with full context |
 | `/xgh-design` | Implement a UI from a Figma design |
-| `/xgh-codex` | Dispatch tasks to Codex CLI (exec or review) |
 | `/xgh-gemini` | Dispatch tasks to Gemini CLI (exec or review) |
 | `/xgh-opencode` | Dispatch tasks to OpenCode CLI (exec or review) |
 | `/xgh-dispatch` | Auto-route tasks to the best agent + model + effort |

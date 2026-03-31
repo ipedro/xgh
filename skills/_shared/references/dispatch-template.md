@@ -1,7 +1,7 @@
 # Shared Dispatch Template
 
 <!-- This file is the single source of truth for the shared dispatch workflow.
-     It is referenced by: codex, gemini, opencode.
+     It is referenced by: gemini, opencode.
      CLI-specific content (binary, flags, models, commands) lives in each skill file.
      When updating shared workflow logic, update only this file. -->
 
