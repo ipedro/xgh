@@ -2,7 +2,7 @@
 
 > **Output format:** Follow the [xgh output style guide](../templates/output-style.md). Start with `## 🐴🤖 xgh collab`. Use markdown tables for structured data. Use ✅ ⚠️ ❌ for status. End with an italicized next step.
 
-Start a multi-agent collaboration workflow using lossless-claude workspace as the async communication bus.
+Start a multi-agent collaboration workflow using MAGI workspace as the async communication bus.
 
 ## Usage
 
@@ -50,47 +50,53 @@ Agent A → PLAN (store to thread) → Agent B → REVIEW (store feedback) → A
 1. **Agent A (Planner)** receives the task, queries memory for context, and writes a detailed plan:
 
 ```
-Tool: lcm_store(text, ["workspace"])
-Content:
-  ## Plan: [task description]
+Tool: magi_store
+Parameters:
+  path: "threads/[thread-id]/plan.md"
+  title: "Plan: [task description]"
+  body: |
+    ## Context gathered:
+    [relevant memory, conventions, past work]
 
-  ### Context gathered:
-  [relevant memory, conventions, past work]
+    ## Approach:
+    [detailed implementation plan]
 
-  ### Approach:
-  [detailed implementation plan]
+    ## Files to change:
+    [list with rationale]
 
-  ### Files to change:
-  [list with rationale]
-
-  ### Risks:
-  [identified risks]
-Metadata: thread: [thread-id], type: plan, status: pending, from_agent: claude-code, for_agent: reviewer
+    ## Risks:
+    [identified risks]
+  tags: "thread:[thread-id],type:plan,status:pending,from:claude-code,for:reviewer"
+  scope: project
 ```
 
 2. **Agent B (Reviewer)** queries the thread for the plan and stores review feedback:
 
 ```
-Tool: lcm_search(query, { layers: ["semantic"], tags: ["workspace"] })
-Query: "thread:[thread-id] type:plan status:pending"
+Tool: magi_query
+Parameters:
+  query: "thread:[thread-id] type:plan status:pending"
+  limit: 10
 ```
 
 ```
-Tool: lcm_store(text, ["workspace"])
-Content:
-  ## Review: [task description]
+Tool: magi_store
+Parameters:
+  path: "threads/[thread-id]/review.md"
+  title: "Review: [task description]"
+  body: |
+    ## Feedback:
+    [specific feedback on the plan]
 
-  ### Feedback:
-  [specific feedback on the plan]
+    ## Concerns:
+    [risks identified, gaps found]
 
-  ### Concerns:
-  [risks identified, gaps found]
+    ## Approved: [yes/no/with-changes]
 
-  ### Approved: [yes/no/with-changes]
-
-  ### Required changes:
-  [if applicable]
-Metadata: thread: [thread-id], type: review, status: completed, from_agent: reviewer, for_agent: claude-code
+    ## Required changes:
+    [if applicable]
+  tags: "thread:[thread-id],type:review,status:completed,from:reviewer,for:claude-code"
+  scope: project
 ```
 
 3. **Agent A** reads feedback, adjusts plan, and implements.
@@ -106,13 +112,17 @@ Agent A → SPLIT tasks → Agents B,C,D → IMPLEMENT (parallel) → Agent A �
 1. **Orchestrator** splits the task into independent units and stores each as a work item:
 
 ```
-Tool: lcm_store(text, ["workspace"])
-Content:
-  Work item [N]: [description]
-  Files: [file list]
-  Dependencies: [none / depends on item M]
-  Acceptance criteria: [criteria]
-Metadata: thread: [thread-id], type: plan, subtype: work-item, item_number: [N], status: pending, from_agent: orchestrator, for_agent: [assigned agent]
+Tool: magi_store
+Parameters:
+  path: "threads/[thread-id]/work-item-[N].md"
+  title: "Work Item [N]: [description]"
+  body: |
+    Work item [N]: [description]
+    Files: [file list]
+    Dependencies: [none / depends on item M]
+    Acceptance criteria: [criteria]
+  tags: "thread:[thread-id],type:plan,subtype:work-item,item:[N],status:pending,from:orchestrator,for:[assigned agent]"
+  scope: project
 ```
 
 2. **Worker agents** pick up their assigned items, implement, and store results.
@@ -148,7 +158,7 @@ Agent A → IMPLEMENT → Agent B → SECURITY_REVIEW → Agent A → FIX → Ag
 
 ## Message Protocol
 
-All inter-agent messages in the lossless-claude workspace follow this structure:
+All inter-agent messages in the MAGI workspace follow this structure:
 
 ```yaml
 type: plan | review | feedback | result | decision | question
@@ -177,21 +187,25 @@ created_at: [ISO timestamp]
 
 The collaborate command dispatches the collaboration-dispatcher agent, which:
 
-1. Creates the thread in lossless-claude workspace
+1. Creates the thread in MAGI workspace
 2. Stores the initial task with workflow metadata
 3. Dispatches subagents according to the workflow template
 4. Monitors the thread for message progression
 5. Reports completion back to the user
 
 ```
-Tool: lcm_store(text, ["workspace"])
-Content:
-  Collaboration workflow started.
-  Workflow: [template name]
-  Task: [description]
-  Agents: [list]
-  Thread: [thread-id]
-Metadata: thread: [thread-id], type: orchestration, status: in_progress, from_agent: orchestrator, for_agent: "*"
+Tool: magi_store
+Parameters:
+  path: "threads/[thread-id]/init.md"
+  title: "Collaboration Workflow: [template name]"
+  body: |
+    Collaboration workflow started.
+    Workflow: [template name]
+    Task: [description]
+    Agents: [list]
+    Thread: [thread-id]
+  tags: "thread:[thread-id],type:orchestration,status:in_progress,from:orchestrator,for:all"
+  scope: project
 ```
 
 ---
@@ -200,9 +214,9 @@ Metadata: thread: [thread-id], type: orchestration, status: in_progress, from_ag
 
 | Tool | Usage |
 |---|---|
-| `lcm_store(text, ["workspace"])` | Store plans, reviews, feedback, results, decisions, and questions to thread |
-| `lcm_search(query, { layers: ["semantic"], tags: ["workspace"] })` | Query thread for messages, check for new responses |
-| Extract 3-7 bullet summary → `lcm_store(summary, ["workspace"])` | Extract learnings from completed collaboration. Do not pass raw conversation content to lcm_store. |
+| `magi_store` | Store plans, reviews, feedback, results, decisions, and questions to thread |
+| `magi_query` | Query thread for messages, check for new responses |
+| Extract 3-7 bullet summary → `magi_store` | Extract learnings from completed collaboration. Do not pass raw conversation content to magi_store. |
 
 ## Composability
 

@@ -46,7 +46,7 @@ You are a pipeline investigation agent for xgh. Your job is to find root causes 
 3. Provide specific, actionable fixes
 
 **Investigation Process:**
-1. **Run baseline diagnostics**: Check `lcm_doctor` and `lcm_stats` for memory health
+1. **Run baseline diagnostics**: Check `magi_status` for memory health
 2. **Check providers**:
    - List configured providers in `~/.xgh/providers/`
    - Check recent fetch logs for errors (`~/.xgh/logs/provider-*.log`)

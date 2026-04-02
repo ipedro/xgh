@@ -2,7 +2,7 @@
 
 > **Output format:** Follow the [xgh output style guide](../templates/output-style.md). Start with `## 🐴🤖 xgh ask`. Use markdown tables for structured data. Use ✅ ⚠️ ❌ for status. End with an italicized next step.
 
-Search xgh memory (lossless-claude vectors + context tree) and return ranked results.
+Search xgh memory (MAGI + context tree) and return ranked results.
 
 ## Usage
 
@@ -22,10 +22,10 @@ Extract the user's search question or keywords from the argument. If the argumen
 
 Execute BOTH search engines simultaneously:
 
-**lossless-claude Semantic Search:**
-1. Call `lcm_search(query)` with the user's query as-is
-2. Call `lcm_search(query)` with a reformulated version (synonym or broader terms)
-3. If the query relates to a decision, also call `lcm_search(query, { layers: ["semantic"], tags: ["reasoning"] })`
+**MAGI Search:**
+1. Call `magi_query` with the user's query as-is
+2. Call `magi_query` with a reformulated version (synonym or broader terms)
+3. If the query relates to a decision, also call `magi_query` with reasoning-specific terms appended
 
 **Context Tree BM25 Search:**
 1. Read `_manifest.json` from the context tree (path: `.xgh/context-tree/_manifest.json` or `$XGH_CONTEXT_TREE/_manifest.json`)
@@ -38,11 +38,11 @@ Execute BOTH search engines simultaneously:
 Combine results from both engines using the xgh scoring formula to produce ranked output:
 
 ```
-score = (0.5 * lcm_similarity + 0.3 * bm25_score + 0.1 * importance + 0.1 * recency) * maturityBoost
+score = (0.5 * magi_score + 0.3 * bm25_score + 0.1 * importance + 0.1 * recency) * maturityBoost
 ```
 
 Where:
-- `lcm_similarity`: 0-1 from lossless-claude's vector similarity
+- `magi_score`: 0-1 from MAGI's BM25 relevance score
 - `bm25_score`: 0-1, estimate based on keyword match density in context tree files
 - `importance`: from the file's frontmatter, normalized to 0-1
 - `recency`: from the file's frontmatter
@@ -55,7 +55,7 @@ Display results in this format:
 ```markdown
 ## 🐴🤖 xgh ask
 
-Query: "<user's query>" · Sources: lossless-claude (**N**) + Context Tree (**M**)
+Query: "<user's query>" · Sources: MAGI (**N**) + Context Tree (**M**)
 
 | # | Maturity | Title | Score | Tags |
 |---|----------|-------|-------|------|

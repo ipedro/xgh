@@ -59,7 +59,7 @@ You are a context tree curation agent for xgh. Your job is to review the team's 
    - Does `_manifest.json` match the actual files on disk?
    - Are there orphaned files not in the manifest?
    - Are there manifest entries pointing to missing files?
-5. **Search memory for promotable content**: Use `lcm_search` to find:
+5. **Search memory for promotable content**: Use `magi_query` to find:
    - Decisions discussed in conversations but not in the context tree
    - Patterns that have been applied multiple times
    - Conventions mentioned in reviews

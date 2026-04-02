@@ -2,7 +2,7 @@
 
 > **Output format:** Follow the [xgh output style guide](../templates/output-style.md). Start with `## 🐴🤖 xgh curate`. Use markdown tables for structured data. Use ✅ ⚠️ ❌ for status. End with an italicized next step.
 
-Store knowledge in lossless-claude memory and sync to the context tree.
+Store knowledge in MAGI memory and sync to the context tree.
 
 ## Usage
 
@@ -66,17 +66,17 @@ Use the `xgh:curate` skill to:
 
 ### Step 4: Store in lossless-claude
 
-1. Extract key learnings as a concise summary (3-7 bullets), then call lcm_store with the
-   summary text and context-appropriate tags. Do not pass raw conversation content to lcm_store.
-   Use tags: `["session"]`
-2. For decisions, also call `lcm_store(text, ["reasoning"])` with the reasoning chain
+1. Extract key learnings as a concise summary (3-7 bullets), then call magi_store with the
+   summary as body and context-appropriate tags. Do not pass raw conversation content to magi_store.
+   Use tags: `"session"` (and add `"scope:project"` if project-specific)
+2. For decisions, also call `magi_store` with tags including `"reasoning"` for the reasoning chain
 
 ### Step 5: Verify Storage
 
 Verification is built into the curate workflow — see the Verification section of the `xgh:curate` skill.
 
-1. Run `lcm_search(query)` with the title keywords — entry must appear in top 5
-2. Run `lcm_search(query)` with a natural-language question — entry must appear in top 5
+1. Run `magi_query` with the title keywords — entry must appear in top 5
+2. Run `magi_query` with a natural-language question — entry must appear in top 5
 3. Verify the context tree file exists and has valid frontmatter
 4. Verify `_manifest.json` is updated
 
@@ -100,12 +100,12 @@ Stored: **"<title>"**
 
 | Check | Status |
 |-------|--------|
-| lossless-claude search (title) | ✅ rank #N / ❌ |
-| lossless-claude search (question) | ✅ rank #N / ❌ |
+| MAGI search (title) | ✅ rank #N / ❌ |
+| MAGI search (question) | ✅ rank #N / ❌ |
 | Context tree file | ✅ / ❌ |
 | Manifest updated | ✅ / ❌ |
 ```
 
 If any verification fails, show ❌ in the Status column and add a retry note below the table:
 
-*❌ lossless-claude search (title) failed — re-curating with improved keywords...*
+*❌ MAGI search (title) failed — re-curating with improved keywords...*

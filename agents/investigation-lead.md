@@ -62,7 +62,7 @@ You are a debugging investigation agent for xgh. Your job is to systematically f
    - Read the specific code section
    - Check assertions and edge cases
    - Run targeted tests if possible
-   - Look for similar past issues in lossless-claude memory (`lcm_search`)
+   - Look for similar past issues in MAGI memory (`magi_query`)
 5. **Isolate root cause**:
    - Confirm with evidence
    - Rate confidence: High (reproduced), Medium (strong evidence), Low (circumstantial)

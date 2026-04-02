@@ -13,7 +13,7 @@ xgh is declarative AI ops — declare your agent behavior in YAML, converge ever
 AI platform to match. The same way Terraform lets you declare infrastructure,
 xgh lets you declare AI agent behavior and converge every platform to match. It combines:
 
-- **lossless-claude** — persistent memory via SQLite + FTS5 for storing and querying
+- **MAGI** — persistent memory via SQLite + FTS5 for storing and querying
   past decisions, reasoning chains, and patterns
 - **Context Tree** — a git-committed markdown knowledge base (`.xgh/context-tree/`)
   that is human-readable, PR-reviewable, and greppable without special tooling
@@ -40,7 +40,7 @@ claude plugin install xgh@extreme-go-horse
 | Config | YAML, JSON (settings) |
 | Skills / commands / agents | Markdown (Claude Code format) |
 | Context tree search | Python 3 (BM25/TF-IDF) |
-| Persistent memory | lossless-claude (SQLite + FTS5) |
+| Persistent memory | MAGI (SQLite + FTS5) |
 | Provider framework | Reference configs in `providers/examples/`; active generated providers in `~/.xgh/user_providers/` |
 | Tests | Bash with `assert_*` helpers |
 
@@ -161,10 +161,10 @@ Instructions for Codex CLI when working on this repository.
 
 | Situation | Action |
 |-----------|--------|
-| Starting a task | Search context tree + lossless-claude memories |
+| Starting a task | Search context tree + MAGI memories |
 | Making an architectural decision | Check .xgh/context-tree/ and .xgh/specs/ first |
 | Choosing between approaches | Use rationalization table pattern; document in spec |
-| Completing significant work | Capture learnings in context tree + lcm_store |
+| Completing significant work | Capture learnings in context tree + magi_store |
 | Deviating from a plan | Document the reason explicitly in plan file |
 | Writing new code | Check existing patterns in codebase first |
 
