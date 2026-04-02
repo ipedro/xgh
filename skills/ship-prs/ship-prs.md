@@ -648,7 +648,7 @@ Load `.xgh/ship-prs-state.json` and display:
 ```
 ## 🐴🤖 xgh ship-prs — status
 
-Repo: ipedro/lossless-claude | Provider: github | Reviewer: copilot-pull-request-reviewer[bot]
+Repo: katsuragi-corp/magi | Provider: github | Reviewer: copilot-pull-request-reviewer[bot]
 Merge: squash | Cron: <job-id> every 1m | Max fix cycles: 3
 Active since: 2026-03-22T03:00:00Z | Paused: false
 

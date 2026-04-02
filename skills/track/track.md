@@ -47,8 +47,8 @@ Ask each question below separately. Validate before moving to the next.
 
 10. **Project dependencies** (optional) — other tracked projects this project depends on.
     Show a list of existing project names from `ingest.yaml` and let the user pick.
-    Example: "xgh depends on: lossless-claude, context-mode"
-    Store as `dependencies: [lossless-claude, context-mode]`.
+    Example: "xgh depends on: magi, context-mode"
+    Store as `dependencies: [magi, context-mode]`.
     Default: empty list. These are used by retrieval and briefing to scope data gathering
     — when working in this project, data from its dependencies is also included.
 
@@ -73,7 +73,7 @@ projects:
     my_role: ios-lead
     my_intent: "Own iOS implementation, delegate QA to platform team, coordinate backend API changes"
     dependencies:            # from Q10 — other tracked projects
-      - lossless-claude
+      - magi
       - context-mode
     providers:
       slack:      { access: read }

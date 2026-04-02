@@ -57,8 +57,8 @@ assert_contains "skills/gemini/gemini.md" "policy"
 assert_contains "skills/gemini/gemini.md" "run_in_background"
 
 # --- Skill: curate/memory ---
-assert_contains "skills/gemini/gemini.md" "lossless-claude"
-assert_contains "skills/gemini/gemini.md" "lcm_store"
+assert_contains "skills/gemini/gemini.md" "MAGI"
+assert_contains "skills/gemini/gemini.md" "memory-backend.md"
 
 # --- Skill: preamble ---
 assert_contains "skills/gemini/gemini.md" "prefs.json"

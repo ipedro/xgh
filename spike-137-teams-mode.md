@@ -84,7 +84,7 @@ synthesis agent: merges completion logs, updates global state
 - Read all inbox files sequentially
 - Classify each item (Steps 3–4)
 - Deduplicate against existing memory (Step 5)
-- Write to lossless-claude (Step 7)
+- Write to MAGI (Step 7)
 - Single-pass, no parallelism
 
 **Teams mode opportunity:**
@@ -195,7 +195,7 @@ synthesis_agent:
 # Parallel gather when teams_mode=true
 
 gather_workers:
-  - worker_1: [lcm_memory, team_pulse]        # always available, cheap
+  - worker_1: [magi_memory, team_pulse]        # always available, cheap
   - worker_2: [slack_unread, slack_urgent]    # if slack available
   - worker_3: [jira_assigned, jira_in_progress]  # if jira available
   - worker_4: [github_prs, github_issues]     # if github available

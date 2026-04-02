@@ -1,6 +1,6 @@
 ---
 name: xgh:doctor
-description: "This skill should be used when the user runs /xgh-doctor or asks to 'check health', 'run diagnostics', 'validate pipeline', 'check ingest', 'is the pipeline running'. Validates config completeness, Slack/Jira/lossless-claude connectivity, scheduler freshness, workspace stats, and codebase index status — outputs a structured pass/fail report with fix suggestions."
+description: "This skill should be used when the user runs /xgh-doctor or asks to 'check health', 'run diagnostics', 'validate pipeline', 'check ingest', 'is the pipeline running'. Validates config completeness, Slack/Jira/MAGI connectivity, scheduler freshness, workspace stats, and codebase index status — outputs a structured pass/fail report with fix suggestions."
 ---
 
 # xgh:doctor — Pipeline Health Check
@@ -12,7 +12,7 @@ Run all checks and output a structured report. Use `✓` for pass, `✗` for fai
 - `~/.xgh/ingest.yaml` exists and parses: `python3 -c "import yaml; yaml.safe_load(open('...'))" 2>&1`
 - Required fields present: `profile.name`, `profile.slack_id`, `profile.platforms`
 - At least one active project under `projects:`
-- lossless-claude is configured (check `.claude/.mcp.json` has `lossless-claude` entry)
+- MAGI is configured (check `.claude/.mcp.json` has `magi` entry)
 
 ## Check 2 — Connectivity
 

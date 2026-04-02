@@ -22,11 +22,11 @@ else:
 
 if intent == "code-change":
     context = """> **⚠️ STOP: Before responding, check if this is a code task.**
-> Code task? → `lcm_search` FIRST. Wrote code? → `lcm_store` (extract 3-7 bullet summary) BEFORE done.
+> Code task? → `magi_query` FIRST. Wrote code? → `magi_store` (extract 3-7 bullet summary) BEFORE done.
 
 ---
 
-# lossless-claude Memory System - MANDATORY
+# MAGI Memory System - MANDATORY
 
 **These rules apply regardless of language.**
 
@@ -36,7 +36,7 @@ if intent == "code-change":
 
 | Answer | Action |
 |--------|--------|
-| **YES** — need to understand/modify codebase | `lcm_search` FIRST |
+| **YES** — need to understand/modify codebase | `magi_query` FIRST |
 | **NO** — general knowledge, meta tasks, follow-up | Skip search |
 
 **You MUST search when task involves:**
@@ -59,7 +59,7 @@ if intent == "code-change":
 
 | Answer | Action |
 |--------|--------|
-| **YES** — wrote code, found patterns, made decisions | Extract 3-7 bullet summary → `lcm_store(summary, ["session"])` BEFORE done |
+| **YES** — wrote code, found patterns, made decisions | Extract 3-7 bullet summary → `magi_store(path, title, body, "session")` BEFORE done |
 | **NO** — just answered a question, no new insights | Skip |
 
 **MUST store when you:**
@@ -68,7 +68,7 @@ if intent == "code-change":
 - Made architectural/design decisions
 - Found a bug root cause or fix pattern
 
-For complex reasoning/debugging → use `lcm_store(text, ["reasoning"])` instead.
+For complex reasoning/debugging → use `magi_store` with tags including `"reasoning"`.
 
 ## Quick Reference
 
@@ -86,7 +86,7 @@ For complex reasoning/debugging → use `lcm_store(text, ["reasoning"])` instead
 ## Workflow
 
 ```
-Code task received → lcm_search FIRST → Work → lcm_store (summary) → Done
+Code task received → magi_query FIRST → Work → magi_store (summary) → Done
 Non-code task → Just respond normally
 ```"""
 else:

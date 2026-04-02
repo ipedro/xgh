@@ -36,8 +36,8 @@ sources:
       min_timestamp: "{cursor}"
 
   decisions:
-    # Architectural decisions stored in lossless-claude
-    tool: lcm_search
+    # Architectural decisions stored in MAGI
+    tool: magi_query
     params:
       query: "decision OR architecture OR chose OR tradeoff"
       tags: ["reasoning"]
