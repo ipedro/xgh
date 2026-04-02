@@ -1,6 +1,6 @@
 # Copilot Review Instructions — xgh (extreme-go-horse)
 
-This repo is a GitHub context ingestion pipeline: provider scripts pull data via `gh` CLI, transform it with `jq`, and store structured memory via lossless-claude (lcm). It also contains xgh skills and agent definitions.
+This repo is a GitHub context ingestion pipeline: provider scripts pull data via `gh` CLI, transform it with `jq`, and store structured memory via MAGI. It also contains xgh skills and agent definitions.
 
 ## Primary concerns
 
@@ -24,9 +24,9 @@ This repo is a GitHub context ingestion pipeline: provider scripts pull data via
 - No tab characters in YAML (use spaces).
 - Markdown frontmatter must be valid YAML — flag unquoted colons in values.
 
-### LCM tagging conventions
-- All `lcm_store` calls must include tags following this pattern: `[project:name, type:solution|gotcha|decision, sprint:spN]`.
-- Flag lcm calls missing the `type:` or `project:` tags.
+### MAGI tagging conventions
+- All `magi_store` calls must include tags following this pattern: `project:name,type:solution|gotcha|decision,sprint:spN`.
+- Flag magi_store calls missing the `type:` or `project:` tags.
 - `sprint:` tag must match the current sprint identifier format `spN` (e.g., `sp2`).
 
 ### ingest.yaml cron safety

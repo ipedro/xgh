@@ -1,6 +1,6 @@
 ---
 name: xgh:archive
-description: "Use this skill when the user runs /xgh-archive or /xgh-archive --obituary. Archives a file or feature by moving it to .xgh/archived/ with a timestamp prefix. With --obituary, also creates a GitHub issue labeled kind:decommission documenting what it did, why it was removed, what metric it failed to move, and who removed it — then stores the decision in LCM."
+description: "Use this skill when the user runs /xgh-archive or /xgh-archive --obituary. Archives a file or feature by moving it to .xgh/archived/ with a timestamp prefix. With --obituary, also creates a GitHub issue labeled kind:decommission documenting what it did, why it was removed, what metric it failed to move, and who removed it — then stores the decision in MAGI."
 ---
 
 # xgh:archive — Archive & Obituary Workflow
@@ -109,8 +109,8 @@ body:
 ## Archive location
 `.xgh/archived/<timestamped-filename>` (or "no file — logical feature only")
 
-## LCM entry
-Stored with tags: `["obituary", "removed:<feature-name>", "sprint:<YYYY-MM-DD>"]`
+## MAGI entry
+Stored with tags: `obituary,removed:<feature-name>,sprint:<YYYY-MM-DD>`
 ```
 
 Where `YYYY-MM-DD` is today's date.
@@ -131,21 +131,21 @@ gh label create "kind:decommission" --color "#b60205" --description "Tracks remo
 
 Capture the issue URL from the output.
 
-### Step 5 — Store in LCM
+### Step 5 — Store in MAGI
 
-Call `mcp__lcm__lcm_store` (or `mcp__plugin_lcm_lcm__lcm_store` if the first is unavailable) with:
+Call `mcp__magi__magi_store` with:
 
 ```json
 {
-  "name": "obituary: <feature-name>",
-  "description": "<What it did> — Removed: <Why removed>. Removed by: <who>.",
-  "type": "decision",
-  "tags": ["obituary", "removed:<feature-name>", "sprint:<YYYY-MM-DD>"],
-  "source": "xgh:archive"
+  "path": "obituaries/<YYYY-MM-DD>-<feature-slug>.md",
+  "title": "obituary: <feature-name>",
+  "body": "<What it did> — Removed: <Why removed>. Removed by: <who>.",
+  "tags": "obituary,removed:<feature-name>,sprint:<YYYY-MM-DD>",
+  "scope": "project"
 }
 ```
 
-If LCM is not available, log a warning: `LCM not available — obituary stored in GitHub only (issue: <url>)`.
+If MAGI is not available, log a warning: `MAGI not available — obituary stored in GitHub only (issue: <url>)`.
 
 ### Step 6 — Done
 
@@ -154,7 +154,7 @@ Print a full summary:
 ✓ Obituary complete for <feature-name>
   Archived:    .xgh/archived/<timestamped-filename>  (or "logical feature — no file moved")
   GitHub:      <issue-url>
-  LCM:         obituary | removed:<feature-name> | sprint:<YYYY-MM-DD>
+  MAGI:        obituary | removed:<feature-name> | sprint:<YYYY-MM-DD>
 ```
 
 ---
@@ -166,7 +166,7 @@ Print a full summary:
 | File not found | Print error, stop — do not create partial state |
 | `gh` not authenticated | Print error with fix command, stop |
 | GitHub issue creation fails | Print raw error, skip LCM step, report partial completion |
-| LCM unavailable | Log warning, continue — GitHub issue is the primary record |
+| MAGI unavailable | Log warning, continue — GitHub issue is the primary record |
 | Label creation fails (already exists) | Ignore the error, proceed with issue creation |
 
 ---

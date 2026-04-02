@@ -11,9 +11,9 @@ Follow the shared project resolution protocol in `skills/_shared/references/proj
 
 ## Step 2 — Hard prerequisite: index freshness
 
-### 2a — Search lossless-claude for index entries
+### 2a — Search MAGI for index entries
 
-[SEARCH] tags `["xgh:index", "<repo-name>"]` → call `lcm_search("xgh:index", { tags: ["xgh:index", "<repo-name>"] })`.
+[SEARCH] → call `magi_query("xgh:index <repo-name>")`.
 
 - If no results returned → stop:
   > "No codebase index found for `<repo-name>`. Run `/xgh:index` first."
@@ -97,7 +97,7 @@ Identify all modules/packages in the codebase. For each module:
 - What it exposes to other modules (public API/interface)
 - Which other modules it depends on (seams)
 
-Use indexed memories (from [SEARCH] with tag `xgh:index`) as primary source. Supplement with Glob/Grep if needed.
+Use indexed memories (from [SEARCH] with `magi_query("xgh:index <repo-name)")`) as primary source. Supplement with Glob/Grep if needed.
 
 Format as a table:
 ```
@@ -204,17 +204,15 @@ Run additional analysis based on `<stack>`:
 
 ## Step 8 — Store artifacts to memory backend (see `_shared/references/memory-backend.md`)
 
-For each artifact produced, [STORE] → call `lcm_store`:
+For each artifact produced, [STORE] → call `magi_store`:
 
 ```
-[ARCHITECTURE][<artifact-name>] <repo-name>
-<artifact content as structured summary>
-Mode: <quick|full>
-Stack: <stack>
-Generated: <ISO timestamp>
+path: "architecture/<repo-name>/<artifact-name>.md"
+title: "[ARCHITECTURE][<artifact-name>] <repo-name>"
+body: "<artifact content as structured summary>\nMode: <quick|full>\nStack: <stack>\nGenerated: <ISO timestamp>"
+tags: "xgh:architecture,<artifact-name>,<repo-name>"
+scope: "project"
 ```
-
-Tags: `["xgh:architecture", "<artifact-name>", "<repo-name>"]`
 
 Do not store raw file content. Store synthesized, structured summaries only.
 

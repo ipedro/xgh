@@ -94,7 +94,7 @@ For each active project, run `xgh:briefing` logic in parallel using background A
 
 Gather from every project:
 - GitHub: `gh pr list --state open`, `gh issue list --assignee @me --state open`, `gh pr list --review-requested @me --state open`
-- lossless-claude: [SEARCH] → call `lcm_search("in progress OR blocked OR needs review", { limit: 3 })`
+- MAGI: [SEARCH] → call `magi_query("in progress OR blocked OR needs review", { limit: 3 })`
 
 Output format adds a **project label** to every item:
 
@@ -201,7 +201,7 @@ If neither is active:
 Compact output — one line per project, counts only:
 
 ```
-🐴🤖 pulse — context-mode: 2 new · xgh: quiet · inspector: quiet · lossless-claude: quiet
+🐴🤖 pulse — context-mode: 2 new · xgh: quiet · inspector: quiet · MAGI: quiet
 ```
 
 For each project, fetch only the count of new/open items from GitHub (unread PRs + assigned issues). Skip memory and Slack for pulse. Output on a single line.

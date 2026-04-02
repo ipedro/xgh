@@ -73,18 +73,18 @@ done
 # ── Agent-specific content ──────────────────────────────────────────────────
 # code-reviewer
 assert_contains "$PLUGIN_DIR/agents/code-reviewer.md"   "Correctness"     "code-reviewer: checks correctness"
-assert_contains "$PLUGIN_DIR/agents/code-reviewer.md"   "lcm_search"      "code-reviewer: uses lcm_search"
-assert_contains "$PLUGIN_DIR/agents/code-reviewer.md"   "lcm_store"       "code-reviewer: uses lcm_store"
+assert_contains "$PLUGIN_DIR/agents/code-reviewer.md"   "magi_query"      "code-reviewer: uses magi_query"
+assert_contains "$PLUGIN_DIR/agents/code-reviewer.md"   "magi_store"      "code-reviewer: uses magi_store"
 
 # collaboration-dispatcher
 assert_contains "$PLUGIN_DIR/agents/collaboration-dispatcher.md"  "thread"      "dispatcher: manages threads"
-assert_contains "$PLUGIN_DIR/agents/collaboration-dispatcher.md"  "lcm_store"   "dispatcher: uses lcm_store"
+assert_contains "$PLUGIN_DIR/agents/collaboration-dispatcher.md"  "magi_store"  "dispatcher: uses magi_store"
 
 # pipeline-doctor
 assert_contains "$PLUGIN_DIR/agents/pipeline-doctor.md"  "provider"     "pipeline-doctor: checks providers"
 assert_contains "$PLUGIN_DIR/agents/pipeline-doctor.md"  "scheduler"    "pipeline-doctor: checks scheduler"
 assert_contains "$PLUGIN_DIR/agents/pipeline-doctor.md"  "inbox"        "pipeline-doctor: checks inbox"
-assert_contains "$PLUGIN_DIR/agents/pipeline-doctor.md"  "lcm_doctor"   "pipeline-doctor: uses lcm_doctor"
+assert_contains "$PLUGIN_DIR/agents/pipeline-doctor.md"  "magi_status"  "pipeline-doctor: uses magi_status"
 
 # context-curator
 assert_contains "$PLUGIN_DIR/agents/context-curator.md"  "context-tree"   "context-curator: references context tree"

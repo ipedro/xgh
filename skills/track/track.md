@@ -32,7 +32,7 @@ Ask each question below separately. Validate before moving to the next.
 
 5. **Jira project key** (optional) — e.g. `PTECH-31204`. If provided, call `getJiraIssue` with a search to verify. Show count of open issues if found.
 
-6. **Confluence links** (optional) — paste RFC/spec/wiki URLs one per line. For each, call `getConfluencePage` to verify access, then extract key learnings as a concise summary (3-7 bullets), [STORE] → call lcm_store with the summary text and context-appropriate tags. Do not pass raw conversation content to lcm_store. Use tags: ["session"].
+6. **Confluence links** (optional) — paste RFC/spec/wiki URLs one per line. For each, call `getConfluencePage` to verify access, then extract key learnings as a concise summary (3-7 bullets), [STORE] → call magi_store with the summary text and context-appropriate tags. Do not pass raw conversation content to magi_store. Use tags: "session".
 
 7. **Figma links** (optional) — store as plain refs (no indexing in v1).
 
@@ -47,8 +47,8 @@ Ask each question below separately. Validate before moving to the next.
 
 10. **Project dependencies** (optional) — other tracked projects this project depends on.
     Show a list of existing project names from `ingest.yaml` and let the user pick.
-    Example: "xgh depends on: lossless-claude, context-mode"
-    Store as `dependencies: [lossless-claude, context-mode]`.
+    Example: "xgh depends on: magi, context-mode"
+    Store as `dependencies: [magi, context-mode]`.
     Default: empty list. These are used by retrieval and briefing to scope data gathering
     — when working in this project, data from its dependencies is also included.
 
@@ -73,7 +73,7 @@ projects:
     my_role: ios-lead
     my_intent: "Own iOS implementation, delegate QA to platform team, coordinate backend API changes"
     dependencies:            # from Q10 — other tracked projects
-      - lossless-claude
+      - magi
       - context-mode
     providers:
       slack:      { access: read }
@@ -296,18 +296,20 @@ Sub-command that implements the processo 100% requirement: captures decisions an
 
 ### Step 2 — Check for duplicates (idempotency)
 
-Search LCM for existing decisions with the same decision text (using lcm_search or exact text matching in decisions stored previously). If found:
-- Show: "Decision already tracked: {lcm_id} → {issue_url}"
+Search MAGI for existing decisions with the same decision text (using magi_query or exact text matching in decisions stored previously). If found:
+- Show: "Decision already tracked: {magi_path} → {issue_url}"
 - Exit with code 0 (success, no-op)
 
-### Step 3 — Create LCM entry
+### Step 3 — Create MAGI entry
 
-Call `lcm_store` with:
-- `text`: decision text
-- `tags`: `["category:decision", "owner:{owner}", "sp:{sp}", "priority:{priority}", "source:xgh-track-decision"]`
-- `metadata`: `{ "score": "{score}", "dry_run": {dry_run_bool} }`
+Call `magi_store` with:
+- `path`: `decisions/<slug>.md`
+- `title`: decision text (first 80 chars)
+- `body`: full decision text
+- `tags`: `"category:decision,owner:{owner},sp:{sp},priority:{priority},source:xgh-track-decision"`
+- `scope`: `project`
 
-Capture returned `lcm_id`.
+Capture returned `path` as the MAGI reference.
 
 ### Step 4 — Create GitHub Issue
 
@@ -337,12 +339,12 @@ gh issue create \
 ## Confidence Score
 {score}
 
-## LCM Reference
-{lcm_id}
+## MAGI Reference
+{magi_path}
 
 ---
 
-_Auto-created by xgh:track decision. Run \`/xgh-track decision --help\` for details._
+_Auto-created by xgh:track decision. Run `/xgh-track decision --help` for details._
 EOF
 )" \
   --label "decision" \
@@ -371,7 +373,7 @@ Capture returned `project_item_id`.
 If `--dry-run`:
 ```
 [DRY RUN] Would create:
-  LCM entry: {lcm_id}
+  MAGI entry: {magi_path}
   GitHub issue: {org}/{repo}#{number} "{title}"
   Project item: {project_name} / {column}
 ```
@@ -380,7 +382,7 @@ If actually created:
 ```
 ✅ Decision tracked successfully!
 
-  LCM: {lcm_id}
+  MAGI: {magi_path}
   Issue: {issue_url}
   Project: {project_name} / {column}
 ```
@@ -388,7 +390,7 @@ If actually created:
 Return structured JSON (for programmatic use):
 ```json
 {
-  "lcm_id": "{lcm_id}",
+  "magi_path": "{magi_path}",
   "issue_url": "{issue_url}",
   "issue_number": {number},
   "project_item_id": "{project_item_id}",
@@ -403,7 +405,7 @@ Return structured JSON (for programmatic use):
 | No GitHub repo in ingest.yaml | Fail with message, suggest `--repo manual/override` |
 | GitHub auth failed | Check `gh auth status`, suggest login |
 | Duplicate decision (by text hash) | Return early with "already tracked" message |
-| LCM unavailable | Warn and continue (create issue only) |
+| MAGI unavailable | Warn and continue (create issue only) |
 | Issue creation failed | Fail with gh error, suggest manual creation |
 
 ---

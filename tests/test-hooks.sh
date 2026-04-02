@@ -229,7 +229,7 @@ except Exception as e:
 assert_eq "prompt-submit emits valid JSON" "$PS_VALID" "yes"
 
 # Static memory instructions live in xgh-instructions.md (not in hook output)
-PS_STATIC=$(grep -q 'lcm_search' templates/xgh-instructions.md 2>/dev/null && echo "yes" || echo "no")
+PS_STATIC=$(grep -q 'magi_query' templates/xgh-instructions.md 2>/dev/null && echo "yes" || echo "no")
 assert_eq "memory instructions in static xgh-instructions.md" "$PS_STATIC" "yes"
 
 # General prompt also emits valid JSON

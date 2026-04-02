@@ -1,6 +1,6 @@
 ---
 name: xgh:ask
-description: "Use when querying project memory, asking about architecture or decisions, or routing a question to the right memory engine. Covers tiered query routing: lossless-claude semantic search vs context tree BM25 vs both."
+description: "Use when querying project memory, asking about architecture or decisions, or routing a question to the right memory engine. Covers tiered query routing: MAGI semantic search vs context tree BM25 vs both."
 ---
 
 # xgh:ask
@@ -16,9 +16,9 @@ Not all queries are equal. A broad "how do we handle auth?" needs different rout
 **When:** Starting a new task, exploring a domain, or unsure what exists.
 
 **Strategy:**
-1. [SEARCH] → call `lcm_search(query)` with a natural-language description of the task
+1. [SEARCH] → call `magi_query(query)` with a natural-language description of the task
 2. Read context tree `_index.md` files for the relevant domain
-3. Merge results mentally — lossless-claude catches semantic matches, context tree catches keyword matches
+3. Merge results mentally — MAGI catches semantic matches, context tree catches keyword matches
 
 **Example queries:**
 - "How does our authentication system work?"
@@ -34,7 +34,7 @@ Not all queries are equal. A broad "how do we handle auth?" needs different rout
 **Strategy:**
 1. Check context tree `_manifest.json` for the specific domain/topic path
 2. Read the knowledge file directly
-3. Fall back to [SEARCH] → call `lcm_search(query)` only if the context tree does not have it
+3. Fall back to [SEARCH] → call `magi_query(query)` only if the context tree does not have it
 
 **Example queries:**
 - "JWT refresh token rotation interval"
@@ -43,13 +43,13 @@ Not all queries are equal. A broad "how do we handle auth?" needs different rout
 
 **Expected:** One or two highly relevant results. The context tree's structured hierarchy makes this fast.
 
-### Tier 3: Reasoning Patterns (use lossless-claude reasoning tools)
+### Tier 3: Reasoning Patterns (use MAGI reasoning tools)
 
 **When:** Making a decision and wanting to learn from past decisions.
 
 **Strategy:**
-1. [SEARCH] → call `lcm_search(query, { layers: ["semantic"], tags: ["reasoning"] })` with the decision context
-2. `lcm_search` to retrieve patterns → Claude evaluates inline
+1. [SEARCH] → call `magi_query(query)` with the decision context (include "reasoning" in query terms)
+2. `magi_query` to retrieve patterns → Claude evaluates inline
 3. Check context tree for files with category: decision in the relevant domain
 
 **Example queries:**
@@ -59,12 +59,12 @@ Not all queries are equal. A broad "how do we handle auth?" needs different rout
 
 **Expected:** Reasoning chains with outcomes — learn from what worked and what did not.
 
-### Tier 4: Debugging/Bug Investigation (use lossless-claude semantic search FIRST)
+### Tier 4: Debugging/Bug Investigation (use MAGI semantic search FIRST)
 
 **When:** Encountering an error or unexpected behavior.
 
 **Strategy:**
-1. [SEARCH] → call `lcm_search(query)` with the error message or symptom description
+1. [SEARCH] → call `magi_query(query)` with the error message or symptom description
 2. Search context tree for files with category: bug-fix
 3. If nothing found, broaden the search to the general area (e.g., "authentication errors" instead of "401 on /api/refresh")
 

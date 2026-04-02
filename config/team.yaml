@@ -32,7 +32,7 @@ conventions:
     - "**Use xgh to build xgh**: run `/xgh-brief` at session start, `/xgh-retrieve` before researching, `/xgh-analyze` after significant findings — xgh improves by exercising its own tools"
     - "**If you call it, test it**: whenever a skill is invoked during a session and no AI unit test exists for it, add a prompt to `tests/skill-triggering/prompts/` before the session ends"
     - "**Capture every gap**: when a skill fails, misfires, or is not triggered by the right prompt, immediately add or update the prompt test that would have caught it"
-    - "**lcm_store session learnings**: after any significant work, extract 3-7 bullets and store via `lcm_store` — the next session starts smarter"
+    - "**magi_store session learnings**: after any significant work, extract 3-7 bullets and store via `magi_store` — the next session starts smarter"
 
 iron_laws:
   - title: "Never skip the test"

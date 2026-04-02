@@ -1,6 +1,6 @@
 ---
 name: xgh:doctor
-description: "This skill should be used when the user runs /xgh-doctor or asks to 'check health', 'run diagnostics', 'validate pipeline', 'check ingest', 'is the pipeline running'. Validates config completeness, Slack/Jira/lossless-claude connectivity, scheduler freshness, workspace stats, and codebase index status — outputs a structured pass/fail report with fix suggestions."
+description: "This skill should be used when the user runs /xgh-doctor or asks to 'check health', 'run diagnostics', 'validate pipeline', 'check ingest', 'is the pipeline running'. Validates config completeness, Slack/Jira/MAGI connectivity, scheduler freshness, workspace stats, and codebase index status — outputs a structured pass/fail report with fix suggestions."
 ---
 
 # xgh:doctor — Pipeline Health Check
@@ -12,7 +12,7 @@ Run all checks and output a structured report. Use `✓` for pass, `✗` for fai
 - `~/.xgh/ingest.yaml` exists and parses: `python3 -c "import yaml; yaml.safe_load(open('...'))" 2>&1`
 - Required fields present: `profile.name`, `profile.slack_id`, `profile.platforms`
 - At least one active project under `projects:`
-- lossless-claude is configured (check `.claude/.mcp.json` has `lossless-claude` entry)
+- MAGI is configured (check `.claude/.mcp.json` has `magi` entry)
 
 ## Check 2 — Connectivity
 
@@ -41,11 +41,11 @@ curl -sf --max-time 5 "${XGH_REMOTE_URL}/v1/models"
 
 Memory backend availability (see `_shared/references/memory-backend.md` for detection priority):
 
-For lossless-claude (current reference backend): check if `lcm_search` is present in the available tool list:
-- Tool absent → lossless-claude MCP not registered. Fix: add lossless-claude entry to `.claude/.mcp.json`
-- Tool present but call returns error → daemon not running. Fix: `lossless-claude daemon start`
+For MAGI (current reference backend): check if `magi_query` is present in the available tool list:
+- Tool absent → MAGI MCP not registered. Fix: add magi entry to `.claude/.mcp.json`
+- Tool present but call returns error → MAGI server not running. Fix: start the MAGI MCP server
 
-**Important:** lossless-claude availability is determined by whether `lcm_search` appears in the tool list, NOT by file presence on disk.
+**Important:** MAGI availability is determined by whether `magi_query` appears in the tool list, NOT by file presence on disk.
 
 
 ### Qdrant Vector Store
@@ -430,13 +430,13 @@ Connectivity
   ✓ Slack: #channel-1 accessible
   ✗ Slack: #channel-missing — not found (check channel name in ingest.yaml)
   ✓ Jira: PTECH-31204 exists (23 open issues)
-  ✓ lossless-claude: connected (tool available)
+  ✓ MAGI: connected (tool available)
   # Remote inference (when XGH_BACKEND=remote):
   ✓ Remote inference server: http://macmini.local:11434 — reachable, 2 models available
   # OR if unreachable:
   ✗ Remote inference server: http://192.168.1.100:11434 — unreachable (timeout)
     Fix: ensure the server is running and port 11434 is accessible from this machine
-  ✗ lossless-claude: not in tool list — add to .claude/.mcp.json (command: lossless-claude, args: [mcp])
+  ✗ MAGI: not in tool list — add to .claude/.mcp.json (command: magi, args: [mcp])
 
 Pipeline
   ✓ Retriever: last run 3 min ago (healthy)

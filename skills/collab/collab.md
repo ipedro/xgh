@@ -1,6 +1,6 @@
 ---
 name: xgh:collab
-description: "This skill should be used when the user runs /xgh-collab or asks for multi-agent collaboration workflows. Teaches agents how to participate in structured collaboration via the xgh message protocol and lossless-claude workspace — handles message routing, coordination between agents, and workflow completion."
+description: "This skill should be used when the user runs /xgh-collab or asks for multi-agent collaboration workflows. Teaches agents how to participate in structured collaboration via the xgh message protocol and MAGI workspace — handles message routing, coordination between agents, and workflow completion."
 ---
 
 ## Preamble — Execution mode
@@ -15,18 +15,18 @@ Follow the shared execution mode protocol in `skills/_shared/references/executio
 
 # xgh:collab
 
-> Skill for multi-agent collaboration workflows. Teaches agents how to participate in structured collaboration via the xgh message protocol and lossless-claude workspace.
+> Skill for multi-agent collaboration workflows. Teaches agents how to participate in structured collaboration via the xgh message protocol and MAGI workspace.
 
 ## When to Activate
 
 This skill activates when:
 - A user requests `/xgh-collab` or mentions multi-agent collaboration
-- A collaboration workflow message is found in lossless-claude workspace addressed to this agent
+- A collaboration workflow message is found in MAGI workspace addressed to this agent
 - The dispatcher agent delegates a task as part of a workflow
 
 ## Message Protocol
 
-All inter-agent messages use structured metadata stored in lossless-claude workspace. Every message MUST include these fields:
+All inter-agent messages use structured metadata stored in MAGI workspace. Every message MUST include these fields:
 
 ```yaml
 type: plan | review | feedback | result | decision | question
@@ -61,24 +61,18 @@ pending → in_progress → completed
 
 ## How to Send a Message
 
-Use [STORE] → call `lcm_store(text, ["workspace"])` to store a message in lossless-claude workspace:
+Use [STORE] → call `magi_store` to store a message in MAGI workspace:
 
 ```
-Content: <your message content — plan, review, feedback, etc.>
-Tags: ["workspace"]
-Metadata:
-  type: plan
-  status: pending
-  from_agent: claude-code
-  for_agent: gemini
-  thread_id: feat-123
-  priority: normal
-  created_at: 2026-03-13T10:00:00Z
+path: "collaboration/<thread_id>/<type>-<timestamp>.md"
+title: "type: plan | status: pending | from: claude-code | for: gemini | thread: feat-123"
+body: "<your message content — plan, review, feedback, etc.>"
+tags: "workspace,collaboration"
 ```
 
 ## How to Receive Messages
 
-Use [SEARCH] → call `lcm_search(query, { layers: ["semantic"], tags: ["workspace"] })` to check for messages addressed to you:
+Use [SEARCH] → call `magi_query(query)` to check for messages addressed to you:
 
 ```
 Query: "collaboration message for <your-agent-id> status:pending thread:<thread_id>"
@@ -92,16 +86,16 @@ When you find a pending message:
 ## Workflow Participation
 
 ### As a Planner (plan-review workflow)
-1. Search memory for relevant context: [SEARCH] → call `lcm_search(query, { layers: ["semantic"], tags: ["workspace"] })`
+1. Search memory for relevant context: [SEARCH] → call `magi_query("workspace collaboration <topic>")`
 2. Create your plan and store with `type: plan`
 3. Wait for review feedback
 4. Incorporate feedback, store `type: decision`
 5. Implement the approved plan, store `type: result`
 
 ### As a Reviewer (plan-review workflow)
-1. Search for pending plans addressed to you: [SEARCH] → call `lcm_search(query, { layers: ["semantic"], tags: ["workspace"] })`
+1. Search for pending plans addressed to you: [SEARCH] → call `magi_query("workspace collaboration pending <your-agent-id>")`
 2. Read the plan thoroughly
-3. Search memory for related patterns: [SEARCH] → call `lcm_search(query, { layers: ["semantic"], tags: ["reasoning"] })`
+3. Search memory for related patterns: [SEARCH] → call `magi_query("reasoning patterns <topic>")`
 4. Store your review with `type: review`, including:
    - What looks good
    - Concerns or gaps
@@ -115,13 +109,13 @@ When you find a pending message:
 4. Once all results are in, merge and store final `type: result`
 
 ### As an Implementer (parallel-impl or validation workflow)
-1. Search for tasks assigned to you: [SEARCH] → call `lcm_search(query, { layers: ["semantic"], tags: ["workspace"] })`
+1. Search for tasks assigned to you: [SEARCH] → call `magi_query("workspace collaboration task <your-agent-id>")`
 2. Pick up the task (update status to `in_progress`)
 3. Implement the solution
 4. Store your result with `type: result`
 
 ### As a Security Reviewer (security-review workflow)
-1. Search for pending results to review: [SEARCH] → call `lcm_search(query, { layers: ["semantic"], tags: ["workspace"] })`
+1. Search for pending results to review: [SEARCH] → call `magi_query("workspace collaboration security review pending")`
 2. Review for: injection, auth gaps, data exposure, insecure defaults, missing validation, secrets in code, CSRF, path traversal
 3. Store findings with `type: feedback`, including severity per finding (critical / high / medium / low / info)
 4. If fixes are submitted, re-review and either approve or request further fixes
@@ -184,15 +178,15 @@ Best for: auth changes, data exposure, any code touching secrets.
 
 ### Parallel Execution Semantics
 
-In `parallel-impl`, the Coordinator sends one `type: plan` per implementer with unique `for_agent` values. All implementers work concurrently. The Coordinator polls with `lcm_search` until all expected `type: result` messages arrive before merging.
+In `parallel-impl`, the Coordinator sends one `type: plan` per implementer with unique `for_agent` values. All implementers work concurrently. The Coordinator polls with `magi_query` until all expected `type: result` messages arrive before merging.
 
 ## Workflow Completion
 
 When a collaboration workflow reaches its completion state (all steps done, final result stored):
 
-Extract key learnings as a concise summary (3-7 bullets), then [STORE] → call lcm_store with the
-summary text and context-appropriate tags. Do not pass raw conversation content to lcm_store.
-Use tags: ["workspace"]
+Extract key learnings as a concise summary (3-7 bullets), then [STORE] → call magi_store with the
+summary text and context-appropriate tags. Do not pass raw conversation content to magi_store.
+Use tags: "workspace"
 
 Content to capture: decisions made, patterns established, feedback incorporated, final outcome.
 
@@ -201,7 +195,7 @@ Content to capture: decisions made, patterns established, feedback incorporated,
 1. **Always include all protocol fields** — missing fields break routing
 2. **Never skip the thread_id** — it groups messages into a coherent workflow
 3. **Update status honestly** — do not mark `completed` until actually done
-4. **Store before moving on** — always persist your message to lossless-claude before proceeding to the next step
+4. **Store before moving on** — always persist your message to MAGI before proceeding to the next step
 5. **Search before acting** — check for existing messages in the thread before creating new ones
 6. **Respect for_agent routing** — only pick up messages addressed to you or to `"*"`
 7. **Honor max_iterations** — if a feedback loop exceeds the template's max_iterations, escalate to the coordinator or user

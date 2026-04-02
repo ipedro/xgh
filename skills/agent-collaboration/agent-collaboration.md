@@ -51,41 +51,43 @@ pending → in_progress → completed
 
 ## How to Send a Message
 
-[STORE] → use `lcm_store` to persist a message in the memory backend:
+[STORE] → use `magi_store` to persist a message in the memory backend:
 
 ```
-lcm_store(
-  "type: plan | status: pending | from: claude-code | for: gemini | thread: feat-123 | priority: normal | created: 2026-03-13T10:00:00Z\n\n<your message content — plan, review, feedback, etc.>",
-  ["workspace", "collaboration"]
+magi_store(
+  path: "collaboration/<thread_id>/<type>-<timestamp>.md",
+  title: "type: plan | status: pending | from: claude-code | for: gemini | thread: feat-123",
+  body: "<your message content — plan, review, feedback, etc.>",
+  tags: "workspace,collaboration"
 )
 ```
 
 ## How to Receive Messages
 
-[SEARCH] → use `lcm_search` to check for messages addressed to you:
+[SEARCH] → use `magi_query` to check for messages addressed to you:
 
 ```
-lcm_search("collaboration message for <your-agent-id> status:pending thread:<thread_id>")
+magi_query("collaboration message for <your-agent-id> status:pending thread:<thread_id>")
 ```
 
 When you find a pending message:
-1. Update its status to `in_progress` (store an updated copy via [STORE] → `lcm_store`)
+1. Update its status to `in_progress` (store an updated copy via [STORE] → `magi_store`)
 2. Process the message according to its type
 3. Send your response as a new message with the same `thread_id`
 
 ## Workflow Participation
 
 ### As a Planner (plan-review workflow)
-1. [SEARCH] relevant context → `lcm_search`
+1. [SEARCH] relevant context → `magi_query`
 2. Create your plan and store with `type: plan`
 3. Wait for review feedback
 4. Incorporate feedback, store `type: decision`
 5. Implement the approved plan, store `type: result`
 
 ### As a Reviewer (plan-review workflow)
-1. [SEARCH] pending plans addressed to you → `lcm_search`
+1. [SEARCH] pending plans addressed to you → `magi_query`
 2. Read the plan thoroughly
-3. [SEARCH] related patterns, tags `["reasoning"]` → `lcm_search(query, ["reasoning"])`
+3. [SEARCH] related patterns → `magi_query("reasoning patterns <topic>")`
 4. Store your review with `type: review`, including:
    - What looks good
    - Concerns or gaps
@@ -99,13 +101,13 @@ When you find a pending message:
 4. Once all results are in, merge and store final `type: result`
 
 ### As an Implementer (parallel-impl or validation workflow)
-1. [SEARCH] tasks assigned to you → `lcm_search`
+1. [SEARCH] tasks assigned to you → `magi_query`
 2. Pick up the task (update status to `in_progress`)
 3. Implement the solution
 4. Store your result with `type: result`
 
 ### As a Security Reviewer (security-review workflow)
-1. [SEARCH] pending results to review → `lcm_search`
+1. [SEARCH] pending results to review → `magi_query`
 2. Review for: injection, auth gaps, data exposure, insecure defaults, missing validation, secrets in code, CSRF, path traversal
 3. Store findings with `type: feedback`, including severity per finding (critical / high / medium / low / info)
 4. If fixes are submitted, re-review and either approve or request further fixes

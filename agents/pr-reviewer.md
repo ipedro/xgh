@@ -52,7 +52,7 @@ You are a PR review agent for xgh. Your job is to provide comprehensive GitHub P
    - `gh pr diff <number>`
    - Check PR description for linked Jira tickets or Slack threads
 2. **Cross-reference context**:
-   - Search lossless-claude memory for related decisions: `lcm_search("PR topic")`
+   - Search MAGI memory for related decisions: `magi_query("PR topic")`
    - Check `.xgh/context-tree/conventions/` for relevant coding standards
    - If Jira ticket is linked, search memory for ticket context
 3. **Review the diff**:

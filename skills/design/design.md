@@ -110,7 +110,7 @@ Supplement Figma data with xgh memory and codebase analysis.
 
 ### Step 2.1: Query xgh Memory (if memory backend available (see `_shared/references/memory-backend.md`))
 
-Use [SEARCH] → call `lcm_search(query)` to search for:
+Use [SEARCH] → call `magi_query(query)` to search for:
 - "How do we implement [component type] in this repo?"
 - Team conventions for UI components (naming, file structure, test patterns)
 - Past implementations of similar designs
@@ -309,7 +309,7 @@ Deviations from design:
 
 ### Step 5.1: Curate New Component Mappings
 
-Store new Figma → code mappings — extract key learnings as a concise summary (3-7 bullets), then [STORE] → call lcm_store with the summary text and context-appropriate tags. Do not pass raw conversation content to lcm_store. Use tags: ["session"]. Content to store:
+Store new Figma → code mappings — extract key learnings as a concise summary (3-7 bullets), then [STORE] → call magi_store with the summary text and context-appropriate tags. Do not pass raw conversation content to magi_store. Use tags: "session". Content to store:
 - New components created and their Figma node IDs
 - Design token mappings established
 - Convention decisions made during implementation

@@ -193,7 +193,7 @@ If neither `--repo` nor `--repos` is given, fall back to `--repo` auto-detected 
   extreme-go-horse/xgh
   ipedro/claudinho
   ipedro/autoimprove
-  lossless-claude/lcm
+  katsuragi-corp/magi
   ```
 - Neither flag → auto-detect from current directory's git remote (same as `start` bootstrap)
 
@@ -221,7 +221,7 @@ Print a discovery summary before handing off:
 Discovered open PRs:
   extreme-go-horse/xgh  →  #12, #14, #17
   ipedro/autoimprove    →  #3
-  lossless-claude/lcm   →  (none)
+  katsuragi-corp/magi   →  (none)
 
 Starting watch session for 4 PRs across 2 repos...
 ```
@@ -261,7 +261,7 @@ Load `.xgh/watch-prs-state.json` and display last-seen snapshot:
 ```
 ## 🐴🤖 xgh watch-prs — status
 
-Repo: ipedro/lossless-claude | Provider: github
+Repo: katsuragi-corp/magi | Provider: github
 Cron: <job-id> every 3m
 Active since: 2026-03-22T03:00:00Z
 

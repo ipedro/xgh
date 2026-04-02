@@ -139,11 +139,11 @@ For each domain directory:
 1. Regenerate `_index.md` with a compressed summary of all active entries
 2. Update `_manifest.json` domain-level statistics
 
-### Step 5: Sync with lossless-claude
+### Step 5: Sync with MAGI
 
 For each modified entry:
-1. Update the corresponding memory via `lcm_store` (extract 3-7 bullet summary first)
-2. The lossless-claude deduplication layer handles archival automatically
+1. Update the corresponding memory via `magi_store` (extract 3-7 bullet summary first)
+2. MAGI's indexing handles updates automatically
 
 ## Health Metrics
 

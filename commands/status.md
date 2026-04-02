@@ -44,13 +44,13 @@ From the manifest, calculate:
 | Orphaned entries | Entries in manifest whose files do not exist on disk |
 | Domains | Count unique domains |
 
-### Step 3: Test lossless-claude Connectivity
+### Step 3: Test MAGI Connectivity
 
-Check if `mcp__lossless-claude__lcm_search` is present in the available tool list:
-- Tool absent → lossless-claude MCP not registered. Fix: add lossless-claude entry to `.claude/.mcp.json`
-- Tool present but call returns error → daemon not running. Fix: `lossless-claude daemon start`
+Check if `mcp__magi__magi_query` is present in the available tool list:
+- Tool absent → MAGI MCP not registered. Fix: add magi entry to `.claude/.mcp.json`
+- Tool present but call returns error → MAGI server not running. Fix: `magi start`
 
-Run `lcm_search("xgh health check")` to verify connectivity.
+Run `magi_query` with query `"xgh health check"` to verify connectivity.
 
 ### Step 4: Display Status
 
@@ -76,7 +76,7 @@ Team: **<team-name>** · Context tree: `<path>`
 | Avg recency | <N> | ✅/⚠️/❌ |
 | Stale entries | <N>/<total> (<percent>%) | ✅/⚠️/❌ |
 | Orphaned | <N> | ✅/⚠️/❌ |
-| lossless-claude | Connected/Disconnected | ✅/❌ |
+| MAGI | Connected/Disconnected | ✅/❌ |
 
 ### Domains
 

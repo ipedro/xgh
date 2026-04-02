@@ -21,7 +21,7 @@ assert_contains "${REPO_ROOT}/scripts/mcp-detect.sh" "detect_mcp"
 assert_contains "${REPO_ROOT}/scripts/mcp-detect.sh" "slack"
 assert_contains "${REPO_ROOT}/scripts/mcp-detect.sh" "figma"
 assert_contains "${REPO_ROOT}/scripts/mcp-detect.sh" "atlassian"
-assert_contains "${REPO_ROOT}/scripts/mcp-detect.sh" "lossless_claude"
+assert_contains "${REPO_ROOT}/scripts/mcp-detect.sh" "xgh_has_magi"
 assert_contains "${REPO_ROOT}/scripts/mcp-detect.sh" "XGH_AVAILABLE_MCPS"
 
 # === briefing skill ===
@@ -33,7 +33,7 @@ assert_contains "${REPO_ROOT}/skills/briefing/briefing.md" "TEAM PULSE"
 assert_contains "${REPO_ROOT}/skills/briefing/briefing.md" "SUGGESTED FOCUS"
 assert_contains "${REPO_ROOT}/skills/briefing/briefing.md" "🐴🤖"
 assert_contains "${REPO_ROOT}/skills/briefing/briefing.md" "XGH_BRIEFING"
-assert_contains "${REPO_ROOT}/skills/briefing/briefing.md" "lcm_search"
+assert_contains "${REPO_ROOT}/skills/briefing/briefing.md" "magi_query"
 assert_contains "${REPO_ROOT}/skills/briefing/briefing.md" "mcp-setup"
 
 # === briefing command ===

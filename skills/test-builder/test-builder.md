@@ -32,7 +32,7 @@ Usage:
 
 #### 1a — Search memory for architecture entries (see `_shared/references/memory-backend.md`)
 
-[SEARCH] tags `["xgh:architecture", "<repo-name>"]` → call `lcm_search("xgh:architecture", { tags: ["xgh:architecture", "<repo-name>"] })`.
+[SEARCH] → call `magi_query("xgh:architecture <repo-name>")`.
 
 - If no results returned → stop:
   > "No architecture analysis found for `<repo-name>`. Run `/xgh:architecture` first."
@@ -77,22 +77,22 @@ Parse the output as `<days>|<arch-mode>`:
 #### 1c — Check mode adequacy
 
 If `<arch-mode>` is `quick`:
-- [SEARCH] public-surfaces artifact (tags `["xgh:architecture", "public-surfaces", "<repo-name>"]`) → call `lcm_search(...)`.
+- [SEARCH] public-surfaces artifact → call `magi_query("xgh:architecture public-surfaces <repo-name>")`.
 - If multiple surface types detected (e.g. cli + api, or api + web) → recommend: "Consider running `/xgh:architecture full` for deeper analysis — critical-paths and test-landscape will improve test generation."
 
 ---
 
 ### Step 2 — Read architectural definitions
 
-[SEARCH] from memory backend → call `lcm_search`:
+[SEARCH] from memory backend → call `magi_query`:
 
-| Artifact | Tags | Required |
-|----------|------|----------|
-| module-boundaries | `["xgh:architecture", "module-boundaries", "<repo-name>"]` | yes |
-| public-surfaces | `["xgh:architecture", "public-surfaces", "<repo-name>"]` | yes |
-| integration-points | `["xgh:architecture", "integration-points", "<repo-name>"]` | yes |
-| critical-paths | `["xgh:architecture", "critical-paths", "<repo-name>"]` | no (full only) |
-| test-landscape | `["xgh:architecture", "test-landscape", "<repo-name>"]` | no (full only) |
+| Artifact | Query | Required |
+|----------|-------|----------|
+| module-boundaries | `"xgh:architecture module-boundaries <repo-name>"` | yes |
+| public-surfaces | `"xgh:architecture public-surfaces <repo-name>"` | yes |
+| integration-points | `"xgh:architecture integration-points <repo-name>"` | yes |
+| critical-paths | `"xgh:architecture critical-paths <repo-name>"` | no (full only) |
+| test-landscape | `"xgh:architecture test-landscape <repo-name>"` | no (full only) |
 
 Save all retrieved content for use in subsequent steps.
 

@@ -25,7 +25,7 @@ assert_contains "skills/seed/seed.md" ".opencode/skills/xgh"
 
 # Seed skill: context content
 assert_contains "skills/seed/seed.md" "context.md"
-assert_contains "skills/seed/seed.md" "lossless-claude"
+assert_contains "skills/seed/seed.md" "MAGI"
 
 # commands/help.md
 assert_contains "commands/help.md" "xgh-seed"

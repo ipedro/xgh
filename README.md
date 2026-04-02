@@ -45,7 +45,7 @@ The hard problem — as always — is **drift**. Platform skill files go stale, 
 
 | What you need | What does it |
 |---------------|-------------|
-| Persistent memory across sessions | [lossless-claude](https://github.com/extreme-go-horse/lossless-claude) — SQLite + FTS5 |
+| Persistent memory across sessions | [MAGI](https://github.com/katsuragi-corp/magi) — SQLite + FTS5 |
 | Context tree search | BM25/TF-IDF over `.xgh/context-tree/` |
 | Multi-platform dispatch | Codex CLI, Gemini CLI, OpenCode, GLM — all driven from one config |
 | Session-start injection | Top knowledge files injected automatically at session start |
@@ -169,7 +169,7 @@ The YAML is the source of truth. AGENTS.md is a view. Platform skill files are d
 | Config | YAML |
 | Skills / commands / agents | Markdown (Claude Code format) |
 | Context tree search | Python 3 (BM25/TF-IDF) |
-| Persistent memory | lossless-claude (SQLite + FTS5) |
+| Persistent memory | MAGI (SQLite + FTS5) |
 | Tests | Bash `assert_*` helpers |
 
 </details>

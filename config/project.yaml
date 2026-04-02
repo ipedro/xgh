@@ -11,7 +11,7 @@ description: |
   AI platform to match. The same way Terraform lets you declare infrastructure,
   xgh lets you declare AI agent behavior and converge every platform to match. It combines:
 
-  - **lossless-claude** — persistent memory via SQLite + FTS5 for storing and querying
+  - **MAGI** — persistent memory via SQLite + FTS5 for storing and querying
     past decisions, reasoning chains, and patterns
   - **Context Tree** — a git-committed markdown knowledge base (`.xgh/context-tree/`)
     that is human-readable, PR-reviewable, and greppable without special tooling
@@ -35,7 +35,7 @@ tech_stack:
   - layer: "Context tree search"
     technology: "Python 3 (BM25/TF-IDF)"
   - layer: "Persistent memory"
-    technology: "lossless-claude (SQLite + FTS5)"
+    technology: "MAGI (SQLite + FTS5)"
   - layer: "Provider framework"
     technology: "Reference configs in `providers/examples/`; active generated providers in `~/.xgh/user_providers/`"
   - layer: "Tests"
