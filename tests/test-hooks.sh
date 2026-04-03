@@ -61,10 +61,8 @@ assert_output_contains() {
 
 # ── Basic file existence ──────────────────────────────────
 assert_file_exists "hooks/session-start.sh"
-assert_file_exists "hooks/prompt-submit.sh"
 
 assert_not_contains "hooks/session-start.sh" "placeholder"
-assert_not_contains "hooks/prompt-submit.sh" "placeholder"
 assert_not_contains "hooks/session-start.sh" "not yet implemented"
 
 # ── session-start: structured JSON output ─────────────────
@@ -214,36 +212,8 @@ print('null' if d.get('schedulerInstructions') is None else 'present')
 " "$SS_SCHED_PAUSED")
 assert_eq "schedulerInstructions null when paused" "$SS_SI_PAUSED" "null"
 
-# ── prompt-submit: structured JSON output ─────────────────
-PS_OUTPUT=$(PROMPT="implement a new login feature" bash hooks/prompt-submit.sh)
-
-# prompt-submit emits valid JSON (may be empty {} when no nudge needed)
-PS_VALID=$(python3 -c "
-import json, sys
-try:
-    d = json.loads(sys.argv[1])
-    print('yes' if isinstance(d, dict) else 'no')
-except Exception as e:
-    print('no:' + str(e))
-" "$PS_OUTPUT")
-assert_eq "prompt-submit emits valid JSON" "$PS_VALID" "yes"
-
-# Static memory instructions live in xgh-instructions.md (not in hook output)
-PS_STATIC=$(grep -q 'magi_query' templates/xgh-instructions.md 2>/dev/null && echo "yes" || echo "no")
-assert_eq "memory instructions in static xgh-instructions.md" "$PS_STATIC" "yes"
-
-# General prompt also emits valid JSON
-PS_GENERAL=$(PROMPT="what time is it?" bash hooks/prompt-submit.sh)
-PS_VALID_G=$(python3 -c "
-import json, sys
-d = json.loads(sys.argv[1])
-print('yes' if isinstance(d, dict) else 'no')
-" "$PS_GENERAL")
-assert_eq "prompt-submit general emits valid JSON" "$PS_VALID_G" "yes"
-
-# Both hooks exit 0
+# session-start exits 0
 bash hooks/session-start.sh > /dev/null 2>&1 && PASS=$((PASS + 1)) || { echo "FAIL: session-start.sh non-zero exit"; FAIL=$((FAIL + 1)); }
-bash hooks/prompt-submit.sh > /dev/null 2>&1 && PASS=$((PASS + 1)) || { echo "FAIL: prompt-submit.sh non-zero exit"; FAIL=$((FAIL + 1)); }
 
 # ── Context-mode enforcement ──────────────────────────────
 # Context-mode plugin owns its own enforcement via PreToolUse hooks.

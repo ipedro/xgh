@@ -15,7 +15,6 @@ for d in skills commands agents; do
   fi
 done
 
-
 # --- agents.yaml: opencode entry ---
 assert_contains "config/agents.yaml" "opencode:"
 assert_contains "config/agents.yaml" "opencode run"
@@ -28,51 +27,15 @@ assert_contains "config/agents.yaml" "auto_detect:"
 assert_contains "config/agents.yaml" "auto_detect: codex"
 assert_contains "config/agents.yaml" "auto_detect: gemini"
 
-# --- watch-prs: command + skill registration ---
-assert_file_exists "commands/watch-prs.md"
-assert_file_exists "skills/watch-prs/watch-prs.md"
-assert_contains "commands/watch-prs.md" "watch-prs"
-
-# --- ship-prs: command + skill registration ---
-assert_file_exists "commands/ship-prs.md"
-assert_file_exists "skills/ship-prs/ship-prs.md"
-assert_contains "commands/ship-prs.md" "ship-prs"
-assert_contains "skills/ship-prs/ship-prs.md" "^name: xgh:ship-prs"
-assert_contains "skills/ship-prs/ship-prs.md" "pause"
-assert_contains "skills/ship-prs/ship-prs.md" "dry-run"
-assert_contains "skills/ship-prs/ship-prs.md" "fix_cycle_count"
-
 # --- config: command + skill registration ---
 assert_file_exists "commands/config.md"
 assert_file_exists "skills/config/config.md"
 assert_contains "commands/config.md" "name: xgh-config"
 
-# --- architecture: command + skill registration ---
-assert_file_exists "commands/architecture.md"
-assert_file_exists "skills/architecture/architecture.md"
-assert_contains "commands/architecture.md" "name: xgh-architecture"
-
-# --- test-builder: command + skill registration ---
-assert_file_exists "commands/test-builder.md"
-assert_file_exists "skills/test-builder/test-builder.md"
-assert_contains "commands/test-builder.md" "name: xgh-test-builder"
-
-# --- prompt test coverage for new skills (all variants) ---
-assert_file_exists "tests/skill-triggering/prompts/watch-prs.txt"
-assert_file_exists "tests/skill-triggering/prompts/watch-prs-2.txt"
-assert_file_exists "tests/skill-triggering/prompts/watch-prs-3.txt"
-assert_file_exists "tests/skill-triggering/prompts/ship-prs.txt"
-assert_file_exists "tests/skill-triggering/prompts/ship-prs-2.txt"
-assert_file_exists "tests/skill-triggering/prompts/ship-prs-3.txt"
+# --- prompt test coverage for surviving skills ---
 assert_file_exists "tests/skill-triggering/prompts/config.txt"
 assert_file_exists "tests/skill-triggering/prompts/config-2.txt"
 assert_file_exists "tests/skill-triggering/prompts/config-3.txt"
-assert_file_exists "tests/skill-triggering/prompts/architecture.txt"
-assert_file_exists "tests/skill-triggering/prompts/architecture-2.txt"
-assert_file_exists "tests/skill-triggering/prompts/architecture-3.txt"
-assert_file_exists "tests/skill-triggering/prompts/test-builder.txt"
-assert_file_exists "tests/skill-triggering/prompts/test-builder-2.txt"
-assert_file_exists "tests/skill-triggering/prompts/test-builder-3.txt"
 
 assert_file_exists "config/project.yaml"
 assert_contains "config/project.yaml" "name: xgh"
@@ -88,7 +51,7 @@ assert_contains "config/project.yaml" "xgh:codex"
 # --- preferences.pr section ---
 assert_contains "config/project.yaml" "pr:"
 assert_contains "config/project.yaml" "provider: github"
-assert_contains "config/project.yaml" "repo: extreme-go-horse/xgh"
+assert_contains "config/project.yaml" "repo: tokyo-megacorp/xgh"
 assert_contains "config/project.yaml" "copilot-pull-request-reviewer\[bot\]"
 assert_contains "config/project.yaml" "reviewer_comment_author: Copilot"
 assert_contains "config/project.yaml" "merge_method: squash"
@@ -120,11 +83,6 @@ assert_contains "config/team.yaml" "lower_snake_case"
 assert_contains "config/team.yaml" 'YAML keys: `snake_case`'
 assert_contains "config/team.yaml" '`triggers`'
 
-# --- validate-project-prefs ---
-assert_file_exists "commands/validate-project-prefs.md"
-assert_file_exists "skills/validate-project-prefs/validate-project-prefs.md"
-assert_contains "commands/validate-project-prefs.md" "validate-project-prefs"
-
 assert_file_exists "config/workflow.yaml"
 assert_contains "config/workflow.yaml" "phases:"
 assert_contains "config/workflow.yaml" "defaults:"
@@ -139,10 +97,6 @@ assert_contains "config/triggers.yaml" "pr-opened"
 assert_contains "config/triggers.yaml" "digest-ready"
 assert_contains "config/triggers.yaml" "security-alert"
 
-assert_contains "agents/code-reviewer.md" "model: sonnet"
-assert_contains "agents/code-reviewer.md" "color: default"
-assert_contains "agents/code-reviewer.md" "tools:"
-assert_contains "agents/pr-reviewer.md" "model: sonnet"
 assert_contains "config/agents.yaml" "local_agents:"
 assert_contains "config/agents.yaml" "type: agent"
 
@@ -160,7 +114,6 @@ assert_contains "AGENTS.md" "## Implementation Status"
 assert_contains "AGENTS.md" "### Branch strategy"
 assert_contains "AGENTS.md" 'Feature work: branch off `develop`'
 
-assert_contains ".xgh/specs/2026-03-21-xgh-agents-design.md" '| 1 | `code-reviewer` | sonnet |'
 assert_contains ".xgh/specs/2026-03-21-xgh-agents-design.md" "sonnet/haiku/opus"
 assert_contains ".xgh/xgh.md" 'Source: loaded by `CLAUDE.local.md` via `@` reference.'
 assert_contains "tests/skill-triggering/prompts/track.txt" "add this repo to xgh monitoring"
@@ -188,18 +141,13 @@ data["local_agents"] = {}
 path.write_text(yaml.safe_dump(data, sort_keys=False))
 PY
 
-python3 - "$TMP_REPO/agents/code-reviewer.md" <<'PY'
+python3 - "$TMP_REPO/agents/pipeline-doctor.md" <<'PY'
 from pathlib import Path
 import sys
 
 path = Path(sys.argv[1])
 text = path.read_text()
 text = text.replace("model: sonnet", "model: haiku", 1)
-text = text.replace(
-    "capabilities: [code-review, architecture, conventions]",
-    "capabilities: [frontmatter-source]",
-    1,
-)
 path.write_text(text)
 PY
 
@@ -220,7 +168,7 @@ else
 fi
 assert_contains "$TMP_REPO/gen.stderr" "WARNING:"
 assert_contains "$TMP_REPO/gen.stderr" "bad-frontmatter.md:"
-assert_contains "$TMP_REPO/AGENTS.md" '| code-reviewer | haiku | `frontmatter-source` |'
+assert_contains "$TMP_REPO/AGENTS.md" '| pipeline-doctor | haiku |'
 
 else
   echo "SKIP: pyyaml not installed — skipping generator fixture tests"

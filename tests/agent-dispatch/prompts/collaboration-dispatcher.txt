@@ -1,1 +1,0 @@
-Dispatch the xgh:collaboration-dispatcher agent to orchestrate a plan-review workflow for the latest feature implementation.

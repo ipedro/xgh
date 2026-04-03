@@ -1,1 +1,0 @@
-seed codex and opencode with the project context

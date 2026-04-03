@@ -1,1 +1,0 @@
-Dispatch the xgh:code-reviewer agent to review the agents/ directory implementation against our team conventions.

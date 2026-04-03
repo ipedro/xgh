@@ -1,1 +1,0 @@
-Dispatch the xgh:investigation-lead agent to debug why the briefing skill returns empty results even when inbox has items.

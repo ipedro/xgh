@@ -1,1 +1,0 @@
-Dispatch the xgh:context-curator agent to audit the context tree for stale entries after our recent refactoring.

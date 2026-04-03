@@ -1,1 +1,0 @@
-I want to dispatch this refactoring task to OpenCode in a worktree: extract the retry logic from scripts/retrieve-all.sh into a shared function

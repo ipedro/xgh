@@ -40,7 +40,7 @@ result=$(load_pr_pref "provider" "" "")
 assert_equals "Project default: provider" "github" "$result"
 
 result=$(load_pr_pref "repo" "" "")
-assert_equals "Project default: repo" "extreme-go-horse/xgh" "$result"
+assert_equals "Project default: repo" "tokyo-megacorp/xgh" "$result"
 
 result=$(load_pr_pref "reviewer" "" "")
 assert_equals "Project default: reviewer" "copilot-pull-request-reviewer[bot]" "$result"

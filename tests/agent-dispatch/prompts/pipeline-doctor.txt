@@ -1,1 +1,0 @@
-Dispatch the xgh:pipeline-doctor agent to investigate provider failures. The basic doctor check shows errors but I need deeper root cause analysis.
