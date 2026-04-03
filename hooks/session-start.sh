@@ -52,6 +52,15 @@ max_files = 5
 xgh_project = os.environ.get("XGH_PROJECT", "")
 xgh_scope = os.environ.get("XGH_PROJECT_SCOPE", "")
 
+# Read active profile from ~/.xgh/active-profile
+active_profile = ""
+profile_path = Path.home() / ".xgh" / "active-profile"
+if profile_path.exists():
+    try:
+        active_profile = profile_path.read_text().strip()
+    except Exception:
+        pass
+
 # Detect dispatch file from command center
 dispatch_context = None
 dispatch_path = Path.home() / ".xgh" / "inbox" / ".dispatch.md"
@@ -139,8 +148,9 @@ if scheduler_trigger == "on" and custom_jobs:
 
 # No context tree found
 if not context_tree or not os.path.isdir(context_tree):
+    profile_suffix = f" profile={active_profile}." if active_profile else ""
     output = {
-        "additionalContext": f"xgh: session-start loaded 0 context files. scheduler={scheduler_trigger}. briefing={briefing_trigger}.",
+        "additionalContext": f"xgh: session-start loaded 0 context files. scheduler={scheduler_trigger}. briefing={briefing_trigger}.{profile_suffix}",
         "result": "xgh: session-start loaded 0 context files",
         "contextFiles": [],
         "briefingTrigger": briefing_trigger,
@@ -150,6 +160,7 @@ if not context_tree or not os.path.isdir(context_tree):
         "dispatchContext": dispatch_context,
         "projectName": xgh_project,
         "projectScope": xgh_scope,
+        "activeProfile": active_profile,
     }
     print(json.dumps(output))
     sys.exit(0)
@@ -230,6 +241,8 @@ context_summary = f"xgh: session-start loaded {len(context_files)} context files
 if context_files:
     titles = ", ".join(e["title"] for e in context_files[:3])
     context_summary += f" Top files: {titles}."
+if active_profile:
+    context_summary += f" profile={active_profile}."
 if dispatch_context:
     context_summary += f" {dispatch_context}"
 
@@ -244,6 +257,7 @@ output = {
     "dispatchContext": dispatch_context,
     "projectName": xgh_project,
     "projectScope": xgh_scope,
+    "activeProfile": active_profile,
 }
 
 print(json.dumps(output))
