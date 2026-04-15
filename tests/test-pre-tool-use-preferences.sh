@@ -99,23 +99,22 @@ echo ""
 
 echo "--- Merge method mismatch tests ---"
 
-# Test: --merge on a repo with default squash (no PR number = no branch lookup, uses default)
+# Without a resolvable PR number or open head-branch PR, TARGET_BRANCH stays empty
+# and the hook exits silently (fail-open contract; no false positives — see #223).
+
+# Test: --merge with no PR number — TARGET_BRANCH unresolvable → silent pass-through
 OUT=$(run_hook '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge --merge"}}')
-assert_valid_json "Mismatch output is valid JSON" "$OUT"
-assert_contains "Default squash vs --merge warns" "$OUT" "mismatch"
-assert_contains "Warning mentions configured method" "$OUT" "squash"
-assert_not_contains "Never blocks" "$OUT" "decision"
+assert_empty "No PR number --merge exits silently (no false positive)" "$OUT"
 
-# Test: --squash on default (should match, no output)
+# Test: --squash with no PR number — also silent
 OUT=$(run_hook '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge --squash"}}')
-assert_empty "Default squash vs --squash passes silently" "$OUT"
+assert_empty "No PR number --squash exits silently" "$OUT"
 
-# Test: --rebase on default (mismatch)
+# Test: PR number that gh cannot resolve — TARGET_BRANCH empty → silent pass-through
 OUT=$(run_hook '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge 42 --rebase"}}')
-assert_valid_json "Rebase mismatch is valid JSON" "$OUT"
-assert_contains "Rebase vs squash warns" "$OUT" "mismatch"
+assert_empty "Unresolvable PR number exits silently (no false positive)" "$OUT"
 
-# Test: no merge flag specified (should pass through)
+# Test: no merge flag specified (should pass through regardless)
 OUT=$(run_hook '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge 42"}}')
 assert_empty "No merge flag passes silently" "$OUT"
 
@@ -139,11 +138,60 @@ assert_empty "Non-force push to main passes silently" "$OUT"
 
 echo ""
 
-# ── Output format validation ────────────────────────────────────────────
+# ── Branch-override and output format tests (mock gh) ──────────────────
+# These tests stub `gh` on PATH so we can control what baseRefName is returned
+# without relying on live PRs.  The stub is created in a temp dir and cleaned up.
 
-echo "--- Output format tests ---"
+echo "--- Branch-override + output format tests (mock gh) ---"
 
-OUT=$(run_hook '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge --rebase"}}')
+MOCK_BIN=$(mktemp -d)
+trap 'rm -rf "$MOCK_BIN"' EXIT
+
+# Helper: write a gh stub that returns a fixed baseRefName for `gh pr view`
+# and an empty list for `gh pr list`.
+write_gh_stub() {
+  local base_ref="$1"
+  cat > "$MOCK_BIN/gh" << STUB
+#!/usr/bin/env bash
+if [[ "\$*" == *"pr view"* ]]; then
+  echo "${base_ref}"
+  exit 0
+fi
+if [[ "\$*" == *"pr list"* ]]; then
+  echo ""
+  exit 0
+fi
+exec \$(command -v gh) "\$@"
+STUB
+  chmod +x "$MOCK_BIN/gh"
+}
+
+# Helper: run hook with mock gh injected
+run_hook_mocked() {
+  local base_ref="$1" input="$2"
+  write_gh_stub "$base_ref"
+  echo "$input" | PATH="$MOCK_BIN:$PATH" bash "$HOOK" 2>/dev/null || true
+}
+
+# ── Regression test #223: --merge targeting main should NOT warn ─────────
+# config/project.yaml: branches.main.merge_method = merge (overrides default squash)
+OUT=$(run_hook_mocked "main" '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge 223 --merge"}}')
+assert_empty "regression #223: --merge to main passes silently (branch override respected)" "$OUT"
+
+# ── Sanity: --squash targeting main SHOULD warn (main prefers merge) ─────
+OUT=$(run_hook_mocked "main" '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge 223 --squash"}}')
+assert_valid_json "mocked main --squash: warning is valid JSON" "$OUT"
+assert_contains "mocked main --squash: warns about mismatch" "$OUT" "mismatch"
+assert_contains "mocked main --squash: names the configured method" "$OUT" "merge"
+assert_contains "mocked main --squash: includes branch name" "$OUT" "main"
+
+# ── Sanity: --rebase targeting develop SHOULD warn (develop prefers squash) ─
+OUT=$(run_hook_mocked "develop" '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge 10 --rebase"}}')
+assert_valid_json "mocked develop --rebase: warning is valid JSON" "$OUT"
+assert_contains "mocked develop --rebase: warns about mismatch" "$OUT" "mismatch"
+
+# ── Output format: warning has correct JSON shape ────────────────────────
+OUT=$(run_hook_mocked "develop" '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge 10 --merge"}}')
 if [ -n "$OUT" ]; then
   HAS_HOOK_EVENT=$(echo "$OUT" | jq -r '.hookSpecificOutput.hookEventName // empty' 2>/dev/null || true)
   if [ "$HAS_HOOK_EVENT" = "PreToolUse" ]; then
@@ -164,7 +212,7 @@ if [ -n "$OUT" ]; then
   fi
 else
   FAIL=$((FAIL + 2))
-  echo "  FAIL: Expected mismatch output for --rebase"
+  echo "  FAIL: Expected mismatch output for develop --merge"
 fi
 
 echo ""

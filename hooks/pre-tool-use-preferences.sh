@@ -52,6 +52,20 @@ if echo "$COMMAND" | grep -q 'gh pr merge'; then
   if [ -n "$PR_NUMBER" ]; then
     TARGET_BRANCH=$(gh pr view "$PR_NUMBER" --json baseRefName -q .baseRefName 2>/dev/null || true)
   fi
+  # Fallback: if gh pr view failed (closed/missing PR, auth issue, etc.),
+  # try to find an open PR whose head matches the current branch.
+  # This covers the common case of `gh pr merge <N>` run from the feature branch
+  # after the PR has already been merged/closed in the same session.
+  if [ -z "$TARGET_BRANCH" ]; then
+    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+    if [ -n "$CURRENT_BRANCH" ]; then
+      TARGET_BRANCH=$(gh pr list --head "$CURRENT_BRANCH" --json baseRefName -q '.[0].baseRefName' 2>/dev/null || true)
+    fi
+  fi
+  # If we still can't determine the target branch, bail out silently.
+  # We cannot reliably pick the branch override without knowing the target,
+  # and warning against the project default would be a false positive (#223).
+  [ -n "$TARGET_BRANCH" ] || exit 0
 
   # Load configured merge method via config-reader.sh
   CONFIGURED_METHOD=""
