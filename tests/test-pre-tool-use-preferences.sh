@@ -99,24 +99,43 @@ echo ""
 
 echo "--- Merge method mismatch tests ---"
 
-# Test: --merge on a repo with default squash (no PR number = no branch lookup, uses default)
-OUT=$(run_hook '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge --merge"}}')
-assert_valid_json "Mismatch output is valid JSON" "$OUT"
-assert_contains "Default squash vs --merge warns" "$OUT" "mismatch"
-assert_contains "Warning mentions configured method" "$OUT" "squash"
-assert_not_contains "Never blocks" "$OUT" "decision"
+# Without a resolvable PR number or open head-branch PR, TARGET_BRANCH stays empty
+# and the hook exits silently (fail-open contract; no false positives — see #223).
+#
+# These tests stub gh early so they do not depend on the live test runner's
+# checked-out branch (which could otherwise match an open PR and skew results).
 
-# Test: --squash on default (should match, no output)
-OUT=$(run_hook '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge --squash"}}')
-assert_empty "Default squash vs --squash passes silently" "$OUT"
+EARLY_STUB=$(mktemp -d)
+trap 'rm -rf "$EARLY_STUB"' EXIT
+cat > "$EARLY_STUB/gh" << 'EARLYSTUB'
+#!/usr/bin/env bash
+# Return empty for any pr view / pr list — keeps TARGET_BRANCH empty.
+if [[ "$*" == *"pr view"* ]] || [[ "$*" == *"pr list"* ]]; then
+  exit 0
+fi
+exec $(command -v gh) "$@"
+EARLYSTUB
+chmod +x "$EARLY_STUB/gh"
 
-# Test: --rebase on default (mismatch)
-OUT=$(run_hook '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge 42 --rebase"}}')
-assert_valid_json "Rebase mismatch is valid JSON" "$OUT"
-assert_contains "Rebase vs squash warns" "$OUT" "mismatch"
+run_hook_empty_gh() {
+  local input="$1"
+  echo "$input" | PATH="$EARLY_STUB:$PATH" bash "$HOOK" 2>/dev/null || true
+}
 
-# Test: no merge flag specified (should pass through)
-OUT=$(run_hook '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge 42"}}')
+# Test: --merge with no PR number — TARGET_BRANCH unresolvable → silent pass-through
+OUT=$(run_hook_empty_gh '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge --merge"}}')
+assert_empty "No PR number --merge exits silently (no false positive)" "$OUT"
+
+# Test: --squash with no PR number — also silent
+OUT=$(run_hook_empty_gh '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge --squash"}}')
+assert_empty "No PR number --squash exits silently" "$OUT"
+
+# Test: PR number that gh cannot resolve — TARGET_BRANCH empty → silent pass-through
+OUT=$(run_hook_empty_gh '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge 42 --rebase"}}')
+assert_empty "Unresolvable PR number exits silently (no false positive)" "$OUT"
+
+# Test: no merge flag specified (should pass through regardless)
+OUT=$(run_hook_empty_gh '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge 42"}}')
 assert_empty "No merge flag passes silently" "$OUT"
 
 echo ""
@@ -139,11 +158,115 @@ assert_empty "Non-force push to main passes silently" "$OUT"
 
 echo ""
 
-# ── Output format validation ────────────────────────────────────────────
+# ── Branch-override and output format tests (mock gh) ──────────────────
+# These tests stub `gh` on PATH so we can control what baseRefName is returned
+# without relying on live PRs.  The stub is created in a temp dir and cleaned up.
 
-echo "--- Output format tests ---"
+echo "--- Branch-override + output format tests (mock gh) ---"
 
-OUT=$(run_hook '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge --rebase"}}')
+MOCK_BIN=$(mktemp -d)
+trap 'rm -rf "$EARLY_STUB" "$MOCK_BIN"' EXIT
+
+# Helper: write a gh stub that returns a fixed baseRefName for `gh pr view`
+# and an empty list for `gh pr list`.
+write_gh_stub() {
+  local base_ref="$1"
+  cat > "$MOCK_BIN/gh" << STUB
+#!/usr/bin/env bash
+if [[ "\$*" == *"pr view"* ]]; then
+  echo "${base_ref}"
+  exit 0
+fi
+if [[ "\$*" == *"pr list"* ]]; then
+  echo ""
+  exit 0
+fi
+exec \$(command -v gh) "\$@"
+STUB
+  chmod +x "$MOCK_BIN/gh"
+}
+
+# Helper: run hook with mock gh injected
+run_hook_mocked() {
+  local base_ref="$1" input="$2"
+  write_gh_stub "$base_ref"
+  echo "$input" | PATH="$MOCK_BIN:$PATH" bash "$HOOK" 2>/dev/null || true
+}
+
+# ── Regression test #223: --merge targeting main should NOT warn ─────────
+# config/project.yaml: branches.main.merge_method = merge (overrides default squash)
+OUT=$(run_hook_mocked "main" '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge 223 --merge"}}')
+assert_empty "regression #223: --merge to main passes silently (branch override respected)" "$OUT"
+
+# ── Sanity: --squash targeting main SHOULD warn (main prefers merge) ─────
+OUT=$(run_hook_mocked "main" '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge 223 --squash"}}')
+assert_valid_json "mocked main --squash: warning is valid JSON" "$OUT"
+assert_contains "mocked main --squash: warns about mismatch" "$OUT" "mismatch"
+assert_contains "mocked main --squash: names the configured method" "$OUT" "merge"
+assert_contains "mocked main --squash: includes branch name" "$OUT" "main"
+
+# ── Sanity: --rebase targeting develop SHOULD warn (develop prefers squash) ─
+OUT=$(run_hook_mocked "develop" '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge 10 --rebase"}}')
+assert_valid_json "mocked develop --rebase: warning is valid JSON" "$OUT"
+assert_contains "mocked develop --rebase: warns about mismatch" "$OUT" "mismatch"
+
+# ── Misbinding guard (codex review #227): explicit PR number must not fall back ──
+# If `gh pr view <N>` fails, we must NOT infer target from `gh pr list --head
+# <current-branch>` — doing so could bind the command to a different PR open on
+# the current branch. Explicit PR number → trust pr view only → bail silently.
+write_gh_view_fail_stub() {
+  local list_base_ref="$1"
+  cat > "$MOCK_BIN/gh" << STUB
+#!/usr/bin/env bash
+if [[ "\$*" == *"pr view"* ]]; then
+  # Simulate a failure (e.g. closed/missing PR, auth issue)
+  exit 1
+fi
+if [[ "\$*" == *"pr list"* ]]; then
+  # A DIFFERENT PR is open on the current branch targeting \${list_base_ref}.
+  # If the hook wrongly falls back to this, the test will observe a warning
+  # driven by the wrong branch's merge_method.
+  echo "${list_base_ref}"
+  exit 0
+fi
+exec \$(command -v gh) "\$@"
+STUB
+  chmod +x "$MOCK_BIN/gh"
+}
+
+# Setup: pr view fails for explicit PR 999, but pr list would return "develop".
+# If the fallback fires, the develop branch override (squash) would trigger a
+# mismatch warning against the --merge flag. Correct behavior: silent bail.
+write_gh_view_fail_stub "develop"
+OUT=$(echo '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge 999 --merge"}}' | PATH="$MOCK_BIN:$PATH" bash "$HOOK" 2>/dev/null || true)
+assert_empty "explicit PR number with failed pr view bails silently (no misbinding)" "$OUT"
+
+# ── URL-selector coverage (codex review round 2) ─────────────────────────
+# `gh pr merge` accepts <number> | <url> | <branch>. The URL form must also
+# be treated as an explicit selector — no current-branch fallback.
+
+# URL form resolves to main via pr view — --merge is correct for main (no warn)
+write_gh_stub "main"
+OUT=$(echo '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge https://github.com/tokyo-megacorp/xgh/pull/223 --merge"}}' | PATH="$MOCK_BIN:$PATH" bash "$HOOK" 2>/dev/null || true)
+assert_empty "URL selector: --merge to main passes silently" "$OUT"
+
+# URL form resolves to develop — --merge mismatches (develop prefers squash)
+write_gh_stub "develop"
+OUT=$(echo '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge https://github.com/tokyo-megacorp/xgh/pull/10 --merge"}}' | PATH="$MOCK_BIN:$PATH" bash "$HOOK" 2>/dev/null || true)
+assert_contains "URL selector: --merge to develop warns (true positive)" "$OUT" "mismatch"
+
+# URL form but pr view fails; pr list would return a different base — must bail silently
+write_gh_view_fail_stub "main"
+OUT=$(echo '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge https://github.com/tokyo-megacorp/xgh/pull/999 --squash"}}' | PATH="$MOCK_BIN:$PATH" bash "$HOOK" 2>/dev/null || true)
+assert_empty "URL selector with failed pr view bails silently (no misbinding)" "$OUT"
+
+# Malformed URL (no numeric pull id) — treated as explicit selector, bails silently
+write_gh_view_fail_stub "main"
+OUT=$(echo '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge https://github.com/tokyo-megacorp/xgh/pull/abc --merge"}}' | PATH="$MOCK_BIN:$PATH" bash "$HOOK" 2>/dev/null || true)
+assert_empty "malformed URL bails silently (no current-branch fallback)" "$OUT"
+
+# ── Output format: warning has correct JSON shape ────────────────────────
+OUT=$(run_hook_mocked "develop" '{"tool_name": "Bash", "tool_input": {"command": "gh pr merge 10 --merge"}}')
 if [ -n "$OUT" ]; then
   HAS_HOOK_EVENT=$(echo "$OUT" | jq -r '.hookSpecificOutput.hookEventName // empty' 2>/dev/null || true)
   if [ "$HAS_HOOK_EVENT" = "PreToolUse" ]; then
@@ -164,7 +287,7 @@ if [ -n "$OUT" ]; then
   fi
 else
   FAIL=$((FAIL + 2))
-  echo "  FAIL: Expected mismatch output for --rebase"
+  echo "  FAIL: Expected mismatch output for develop --merge"
 fi
 
 echo ""

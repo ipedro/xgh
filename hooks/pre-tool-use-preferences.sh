@@ -44,14 +44,49 @@ if echo "$COMMAND" | grep -q 'gh pr merge'; then
   # If no flag specified, we can't determine intent — pass through
   [ -n "$CMD_METHOD" ] || exit 0
 
-  # Extract PR number from command (gh pr merge <number> or gh pr merge <url>)
-  PR_NUMBER=$(echo "$COMMAND" | grep -oE 'gh pr merge[[:space:]]+([0-9]+)' | grep -oE '[0-9]+' || true)
+  # Extract PR number from command. `gh pr merge` accepts `<number> | <url> |
+  # <branch>` per `gh pr merge --help`. We parse number and URL forms here;
+  # branch selector is intentionally out of scope (far less common, and
+  # harder to disambiguate from flag arguments).
+  PR_NUMBER=""
+  # Number form: `gh pr merge 123 ...`
+  PR_NUMBER=$(echo "$COMMAND" | grep -oE 'gh pr merge[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' || true)
+  if [ -z "$PR_NUMBER" ]; then
+    # URL form: `gh pr merge https://github.com/<owner>/<repo>/pull/<N> ...`
+    PR_NUMBER=$(echo "$COMMAND" | grep -oE 'gh pr merge[[:space:]]+https?://[^[:space:]]+/pull/[0-9]+' | grep -oE '[0-9]+$' || true)
+  fi
+  # Presence of an explicit selector (number OR URL) — used to disable the
+  # current-branch fallback and avoid misbinding to a different PR (#227 review).
+  EXPLICIT_SELECTOR=""
+  if [ -n "$PR_NUMBER" ]; then
+    EXPLICIT_SELECTOR="yes"
+  elif echo "$COMMAND" | grep -qE 'gh pr merge[[:space:]]+https?://'; then
+    # URL was given but we couldn't parse the PR number (e.g. malformed URL).
+    # Still treat as explicit — we must not fall back to current-branch inference.
+    EXPLICIT_SELECTOR="yes"
+  fi
 
   # Determine target branch
   TARGET_BRANCH=""
   if [ -n "$PR_NUMBER" ]; then
-    TARGET_BRANCH=$(gh pr view "$PR_NUMBER" --json baseRefName -q .baseRefName 2>/dev/null || true)
+    # Explicit selector (number or URL): trust gh pr view only. Do NOT fall
+    # back to `gh pr list --head <current-branch>` — that could bind the
+    # command to a different PR open on the current branch (codex review #227).
+    TARGET_BRANCH=$(_run_timeout 10 gh pr view "$PR_NUMBER" --json baseRefName -q .baseRefName 2>/dev/null || true)
+  elif [ -z "$EXPLICIT_SELECTOR" ]; then
+    # No explicit selector at all (e.g. `gh pr merge --squash` run from the
+    # feature branch). Infer target from the open PR whose head matches the
+    # current branch — safe here because the command itself relies on that
+    # same current-branch → PR mapping.
+    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+    if [ -n "$CURRENT_BRANCH" ]; then
+      TARGET_BRANCH=$(_run_timeout 10 gh pr list --head "$CURRENT_BRANCH" --json baseRefName -q '.[0].baseRefName' 2>/dev/null || true)
+    fi
   fi
+  # If we still can't determine the target branch, bail out silently.
+  # We cannot reliably pick the branch override without knowing the target,
+  # and warning against the project default would be a false positive (#223).
+  [ -n "$TARGET_BRANCH" ] || exit 0
 
   # Load configured merge method via config-reader.sh
   CONFIGURED_METHOD=""
