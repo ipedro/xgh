@@ -30,42 +30,159 @@ CONFIG_READER="${REPO_ROOT}/lib/config-reader.sh"
 PROJECT_YAML="${REPO_ROOT}/config/project.yaml"
 
 # ── Check 1: gh pr merge — merge method validation ─────────────────────
-# Anchored ERE: only match `gh pr merge` at the start of the command string,
-# after a shell separator (;, &, &&, ||, |), or after leading whitespace.
-# This prevents false-positive matches when the literal text appears inside
-# quoted heredoc bodies, commit messages, or other argument values (#228).
-if echo "$COMMAND" | grep -qE '(^|[;&|[:space:]])gh pr merge[[:space:]]'; then
+# Semantic trigger (#228): we must only fire when an actual `gh pr merge`
+# shell command is present — not when that text appears inside a quoted
+# string, --body/--message argument value, or heredoc body.
+#
+# Strategy (Option B from the spec):
+#   1. Strip heredoc bodies from the command string before any analysis.
+#      A heredoc `<<WORD … WORD` can span newlines; its body lines must be
+#      invisible to the segment walker below.
+#   2. Split the heredoc-stripped command on shell separators (&&, ||, |,
+#      ;, newlines) to get individual segments.
+#   3. For each segment, strip leading whitespace and check that the first
+#      real token (skipping KEY=value env assignments) is `gh` and the
+#      segment matches `^gh pr merge`.
+#   4. Single-line quoted strings (-m "gh pr merge …", --body "…") are
+#      handled implicitly: their content appears on the same line as the
+#      outer command (e.g. `git commit -m "gh pr merge …"`), so after
+#      splitting, the segment's first token is `git`, not `gh` — no match.
+#
+# _strip_heredocs: remove heredoc bodies from a multi-line command string.
+# Works by walking line by line in bash (avoids gawk-only match() syntax):
+# once a `<<[-]WORD` or `<<'WORD'` or `<<"WORD"` marker is seen on a line,
+# subsequent lines are suppressed until the bare terminator word appears
+# alone on a line (with leading tabs stripped for <<- form).
+_strip_heredocs() {
+  local in_heredoc=0 terminator="" line stripped
+  while IFS= read -r line; do
+    if [ "$in_heredoc" -eq 1 ]; then
+      # Strip leading tabs (<<- form allows indented terminators)
+      stripped="${line#"${line%%[!	]*}"}"  # remove leading tabs
+      if [ "$stripped" = "$terminator" ] || [ "$line" = "$terminator" ]; then
+        in_heredoc=0
+      fi
+      # Suppress heredoc body line (including terminator)
+      continue
+    fi
+    # Detect <<[-]['"]?WORD['"]? and extract the bare WORD
+    if printf '%s\n' "$line" | grep -qE '<<-?[[:space:]]*'"'"'?["]?[A-Za-z_][A-Za-z0-9_]*'"'"'?["]?'; then
+      # Extract the terminator word: strip <<, optional -, optional quotes
+      terminator=$(printf '%s\n' "$line" \
+        | grep -oE '<<-?[[:space:]]*'"'"'?"?[A-Za-z_][A-Za-z0-9_]*'"'"'?"?' \
+        | sed "s/<<-\?[[:space:]]*//; s/['\"]//g" \
+        | head -1)
+      if [ -n "$terminator" ]; then
+        in_heredoc=1
+      fi
+    fi
+    printf '%s\n' "$line"
+  done
+}
 
-  # Extract merge method from command flags
+# _command_segments: emit one segment per line after heredoc-stripping and
+# separator-splitting.  Each output line is the trimmed text of a segment.
+_command_segments() {
+  local cmd="$1"
+  printf '%s\n' "$cmd" \
+    | _strip_heredocs \
+    | sed 's/&&/\n/g; s/||/\n/g; s/|/\n/g; s/;/\n/g' \
+    | sed 's/^[[:space:]]*//'
+}
+
+# _command_has_gh_pr_merge: returns 0 if any shell-level segment is a real
+# `gh pr merge` invocation; 1 otherwise.
+_command_has_gh_pr_merge() {
+  local cmd="$1"
+  while IFS= read -r seg; do
+    [ -z "$seg" ] && continue
+    # First real token must be gh (handles KEY=VAR gh … and \gh / command gh)
+    local first
+    first=$(printf '%s\n' "$seg" | awk '{
+      for (i=1;i<=NF;i++) { if ($i !~ /^[A-Z_][A-Z0-9_]*=/) { print $i; exit } }
+    }')
+    case "$first" in
+      gh|'\gh') ;;
+      command)
+        # `command gh pr merge …` — drop the word "command" and recheck
+        seg=$(printf '%s\n' "$seg" | sed 's/^[[:space:]]*command[[:space:]]*//')
+        first=$(printf '%s\n' "$seg" | awk '{print $1}')
+        [ "$first" = "gh" ] || continue
+        ;;
+      *) continue ;;
+    esac
+    if printf '%s\n' "$seg" | grep -qE '^(\\)?gh[[:space:]]+pr[[:space:]]+merge([[:space:]]|$)'; then
+      return 0
+    fi
+  done < <(_command_segments "$cmd")
+  return 1
+}
+
+# _gh_pr_merge_segments: emit only the segments that are real gh pr merge
+# invocations (same logic as _command_has_gh_pr_merge, but prints matches).
+_gh_pr_merge_segments() {
+  local cmd="$1"
+  while IFS= read -r seg; do
+    [ -z "$seg" ] && continue
+    local first
+    first=$(printf '%s\n' "$seg" | awk '{
+      for (i=1;i<=NF;i++) { if ($i !~ /^[A-Z_][A-Z0-9_]*=/) { print $i; exit } }
+    }')
+    local check_seg="$seg"
+    case "$first" in
+      gh|'\gh') ;;
+      command)
+        check_seg=$(printf '%s\n' "$seg" | sed 's/^[[:space:]]*command[[:space:]]*//')
+        first=$(printf '%s\n' "$check_seg" | awk '{print $1}')
+        [ "$first" = "gh" ] || continue
+        ;;
+      *) continue ;;
+    esac
+    if printf '%s\n' "$check_seg" | grep -qE '^(\\)?gh[[:space:]]+pr[[:space:]]+merge([[:space:]]|$)'; then
+      printf '%s\n' "$check_seg"
+    fi
+  done < <(_command_segments "$cmd")
+}
+
+if _command_has_gh_pr_merge "$COMMAND"; then
+
+  # Collect the actual gh pr merge segment(s) for flag/selector extraction.
+  # Using only segment text ensures flags and PR numbers from the real
+  # invocation are used, not text embedded in argument values.
+  GH_SEG=$(printf '%s\n' "$(_gh_pr_merge_segments "$COMMAND")" | head -1)
+
+  # Extract merge method from the gh pr merge segment flags
   CMD_METHOD=""
-  if echo "$COMMAND" | grep -qE -- '--squash'; then
+  if printf '%s\n' "$GH_SEG" | grep -qE -- '--squash'; then
     CMD_METHOD="squash"
-  elif echo "$COMMAND" | grep -qE -- '--merge'; then
+  elif printf '%s\n' "$GH_SEG" | grep -qE -- '--merge'; then
     CMD_METHOD="merge"
-  elif echo "$COMMAND" | grep -qE -- '--rebase'; then
+  elif printf '%s\n' "$GH_SEG" | grep -qE -- '--rebase'; then
     CMD_METHOD="rebase"
   fi
   # If no flag specified, we can't determine intent — pass through
   [ -n "$CMD_METHOD" ] || exit 0
 
-  # Extract PR number from command. `gh pr merge` accepts `<number> | <url> |
-  # <branch>` per `gh pr merge --help`. We parse number and URL forms here;
-  # branch selector is intentionally out of scope (far less common, and
-  # harder to disambiguate from flag arguments).
+  # Extract PR number from the gh pr merge segment. `gh pr merge` accepts
+  # `<number> | <url> | <branch>` per `gh pr merge --help`. We parse number
+  # and URL forms here; branch selector is intentionally out of scope.
   PR_NUMBER=""
-  # Number form: `gh pr merge 123 ...`
-  # Anchored to separator/start so embedded text cannot supply a spurious number (#228).
-  PR_NUMBER=$(echo "$COMMAND" | grep -oE '(^|[;&|[:space:]])gh pr merge[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' || true)
+  # Number form: `gh pr merge 123 …`
+  PR_NUMBER=$(printf '%s\n' "$GH_SEG" \
+    | grep -oE 'gh[[:space:]]+pr[[:space:]]+merge[[:space:]]+[0-9]+' \
+    | grep -oE '[0-9]+$' || true)
   if [ -z "$PR_NUMBER" ]; then
-    # URL form: `gh pr merge https://github.com/<owner>/<repo>/pull/<N> ...`
-    PR_NUMBER=$(echo "$COMMAND" | grep -oE '(^|[;&|[:space:]])gh pr merge[[:space:]]+https?://[^[:space:]]+/pull/[0-9]+' | grep -oE '[0-9]+$' || true)
+    # URL form: `gh pr merge https://…/pull/<N> …`
+    PR_NUMBER=$(printf '%s\n' "$GH_SEG" \
+      | grep -oE 'gh[[:space:]]+pr[[:space:]]+merge[[:space:]]+https?://[^[:space:]]+/pull/[0-9]+' \
+      | grep -oE '[0-9]+$' || true)
   fi
   # Presence of an explicit selector (number OR URL) — used to disable the
   # current-branch fallback and avoid misbinding to a different PR (#227 review).
   EXPLICIT_SELECTOR=""
   if [ -n "$PR_NUMBER" ]; then
     EXPLICIT_SELECTOR="yes"
-  elif echo "$COMMAND" | grep -qE '(^|[;&|[:space:]])gh pr merge[[:space:]]+https?://'; then
+  elif printf '%s\n' "$GH_SEG" | grep -qE 'gh[[:space:]]+pr[[:space:]]+merge[[:space:]]+https?://'; then
     # URL was given but we couldn't parse the PR number (e.g. malformed URL).
     # Still treat as explicit — we must not fall back to current-branch inference.
     EXPLICIT_SELECTOR="yes"
